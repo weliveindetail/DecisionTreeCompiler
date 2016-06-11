@@ -23,31 +23,32 @@ struct TreeNode {
     TreeNode(float bias,
              OperationType op,
              ComparatorType comp,
-             int featureIdx)
-            : Bias(bias)
-            , Op(op)
-            , Comp(comp)
-            , DataSetFeatureIdx(featureIdx) {}
+             unsigned long featureIdx)
+        : Bias(bias)
+        , Op(op)
+        , Comp(comp)
+        , DataSetFeatureIdx(featureIdx) {}
 
-    int getFalseChildIdx() const {
-        return ChildNodesIdx[0];
+    unsigned long getFalseChildIdx() const {
+        return FalseChildNodesIdx;
     }
 
-    int getTrueChildIdx() const {
-        return ChildNodesIdx[1];
+    unsigned long getTrueChildIdx() const {
+        return TrueChildNodesIdx;
     }
 
     bool isLeaf() const {
-        assert((getFalseChildIdx() == -1) == (getTrueChildIdx() == -1) &&
+        assert((getFalseChildIdx() == 0) == (getTrueChildIdx() == 0) &&
                "There must either both or no child nodes");
-        return getFalseChildIdx() == -1;
+        return getFalseChildIdx() == 0;
     }
 
     float Bias;
     OperationType Op;
     ComparatorType Comp;
-    int DataSetFeatureIdx;
-    std::array<int, 2> ChildNodesIdx { -1, -1 };
+    unsigned long DataSetFeatureIdx;
+    unsigned long TrueChildNodesIdx = 0;
+    unsigned long FalseChildNodesIdx = 0;
 };
 
 // for expected input range [0, 1)
@@ -77,19 +78,19 @@ std::array<TreeNode, TreeSize(TreeDepth_)> makeDecisionTree() {
 
     int parentIdx = 0;
     int parentBranch = 0;
-    auto registerChild = [&tree, &parentIdx, &parentBranch](int childIdx) {
-        tree[parentIdx].ChildNodesIdx[parentBranch] = childIdx;
-
+    auto registerChild = [&tree, &parentIdx, &parentBranch](unsigned long childIdx) {
         if (parentBranch == 0) {
+            tree[parentIdx].FalseChildNodesIdx = childIdx;
             parentBranch = 1;
         }
         else {
+            tree[parentIdx].TrueChildNodesIdx = childIdx;
             parentBranch = 0;
             parentIdx++;
         }
     };
 
-    for (int i = 1; i < TreeSize(TreeDepth_); i++) {
+    for (unsigned long i = 1; i < TreeSize(TreeDepth_); i++) {
         tree[i] = makeDecisionTreeNode<DataSetFeatures_>();
         registerChild(i);
     }
