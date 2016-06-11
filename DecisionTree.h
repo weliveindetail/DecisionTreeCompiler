@@ -1,6 +1,6 @@
 #pragma once
 
-#include <array>
+#include <unordered_map>
 #include <cassert>
 
 #include "Utils.h"
@@ -51,6 +51,8 @@ struct TreeNode {
     unsigned long FalseChildNodesIdx = 0;
 };
 
+using DecisionTree = std::unordered_map<unsigned long, TreeNode>;
+
 // for expected input range [0, 1)
 float makeBalancedBias(OperationType op) {
     switch (op) {
@@ -71,9 +73,10 @@ TreeNode makeDecisionTreeNode() {
 }
 
 template<unsigned long TreeDepth_, unsigned long DataSetFeatures_>
-std::array<TreeNode, TreeSize(TreeDepth_)> makeDecisionTree() {
-    std::array<TreeNode, TreeSize(TreeDepth_)> tree;
+DecisionTree makeDecisionTree() {
+    DecisionTree tree;
 
+    tree.reserve(TreeSize(TreeDepth_));
     tree[0] = makeDecisionTreeNode<DataSetFeatures_>(); // root
 
     int parentIdx = 0;

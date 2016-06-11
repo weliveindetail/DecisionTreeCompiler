@@ -43,12 +43,12 @@ unsigned long computeChildNodeForDataSet(
 
 template<unsigned long TreeDepth_, unsigned long DataSetFeatures_>
 unsigned long computeLeafNodeIdxForDataSet(
-        const std::array<TreeNode, TreeSize(TreeDepth_)>& tree,
+        const DecisionTree& tree,
         const std::array<float, DataSetFeatures_>& dataSet) {
     unsigned long treeNodeIdx = 0;
 
-    while (!tree[treeNodeIdx].isLeaf()) {
-        treeNodeIdx = computeChildNodeForDataSet(tree[treeNodeIdx], dataSet);
+    while (!tree.at(treeNodeIdx).isLeaf()) {
+        treeNodeIdx = computeChildNodeForDataSet(tree.at(treeNodeIdx), dataSet);
     }
 
     return treeNodeIdx;
