@@ -53,7 +53,7 @@ void runBenchmark(int repetitions) {
     printf("Building decision tree with depth %lu..\n", TreeDepth_);
     auto tree = makeDecisionTree<TreeDepth_, DataSetFeatures_>();
 
-    printf("Compiling node evaluators..");
+    printf("Compiling node evaluators..\n");
     initializeLLVM();
     compileEvaluators(tree);
 
@@ -78,7 +78,7 @@ void runBenchmark(int repetitions) {
                             tree, dataSet);
 
             std::tie(resultCompiled, runtimeCompiled) =
-                    runBenchmarkEvalRegular<TreeDepth_, DataSetFeatures_>(
+                    runBenchmarkEvalCompiled<TreeDepth_, DataSetFeatures_>(
                             tree, dataSet);
 
             assert(resultRegular == resultCompiled);

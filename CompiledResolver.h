@@ -59,6 +59,40 @@ void shutdownLLVM() {
     llvm::llvm_shutdown();
 }
 
+llvm::Function* getUnaryIntrinsic(llvm::Intrinsic::ID id, llvm::Type* opTy) {
+    return llvm::Intrinsic::getDeclaration(TheModule.get(), id, { opTy });
+}
+
+llvm::Value* emitOperator(OperationType op, llvm::Value* value) {
+    switch (op) {
+        case OperationType::Bypass:
+            return value;
+
+        case OperationType::Sqrt: {
+            llvm::Function* sqrtFn = getUnaryIntrinsic(
+                    llvm::Intrinsic::sqrt, value->getType());
+            return Builder.CreateCall(sqrtFn, { value });
+        }
+
+        case OperationType::Ln: {
+            llvm::Function* lnFn = getUnaryIntrinsic(
+                    llvm::Intrinsic::log, value->getType());
+            return Builder.CreateCall(lnFn, { value });
+        }
+    }
+};
+
+llvm::Value* emitComparison(ComparatorType comp, float bias, llvm::Value* value) {
+    llvm::Constant *biasConst = llvm::ConstantFP::get(value->getType(), bias);
+    switch (comp) {
+        case ComparatorType::LessThan:
+            return Builder.CreateFCmpOLT(value, biasConst);
+
+        case ComparatorType::GreaterThan:
+            return Builder.CreateFCmpOGT(value, biasConst);
+    }
+}
+
 void compileEvaluators(const DecisionTree& tree) {
     using namespace llvm;
 
@@ -76,13 +110,30 @@ void compileEvaluators(const DecisionTree& tree) {
         auto signature = FunctionType::get(returnTy, { argTy }, false);
         auto linkage = Function::ExternalLinkage;
 
-        Function *evalFn = Function::Create(signature, linkage, name, TheModule.get());
+        Function* evalFn = Function::Create(signature, linkage, name, TheModule.get());
         evalFn->setName(name);
 
-        // todo: emit function definition
+        // emit code
+        Builder.SetInsertPoint(
+                llvm::BasicBlock::Create(Ctx, "entry", evalFn));
 
+        Value* dataSetPtr = &*evalFn->arg_begin();
+        Value* dataSetFeaturePtr = Builder.CreateConstGEP1_32(dataSetPtr, node.DataSetFeatureIdx);
+        Value* dataSetFeatureVal = Builder.CreateLoad(dataSetFeaturePtr);
+
+        Value* comparableFeatureVal = emitOperator(node.Op, dataSetFeatureVal);
+        Value* comparisonResult = emitComparison(node.Comp, node.Bias, comparableFeatureVal);
+
+        Constant* falseNext = ConstantInt::get(Type::getInt64Ty(Ctx), (int64_t)node.getFalseChildIdx());
+        Constant* trueNext = ConstantInt::get(Type::getInt64Ty(Ctx), (int64_t)node.getTrueChildIdx());
+        Value* nextNodeIdx = Builder.CreateSelect(comparisonResult, trueNext, falseNext);
+
+        Builder.CreateRet(nextNodeIdx);
         llvm::verifyFunction(*evalFn);
     }
+
+    //llvm::outs() << "We just constructed this LLVM module:\n\n";
+    //llvm::outs() << *TheModule.get() << "\n\n";
 
     // submit for jit compilation
     TheCompiler->submitModule(std::move(TheModule));
@@ -97,7 +148,7 @@ template<unsigned long DataSetFeatures_>
 unsigned long computeLeafNodeIdxForDataSetCompiled(
         const DecisionTree& tree,
         const std::array<float, DataSetFeatures_>& dataSet) {
-    unsigned long treeNodeIdx = 0;
+    int64_t treeNodeIdx = 0;
 
     while (!tree.at(treeNodeIdx).isLeaf()) {
         auto compiledEvaluator = compiledNodeEvaluators[treeNodeIdx];

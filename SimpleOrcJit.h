@@ -65,6 +65,9 @@ public:
     auto jitSymbol = CompileLayer.findSymbol(mangle(unmangledName), false);
     auto functionAddr = jitSymbol.getAddress();
 
+    //printf("Symbol %s resolved to %p\n", unmangledName.c_str(), (void*)functionAddr);
+    assert(functionAddr != 0);
+
     return (Evaluator_f*)functionAddr;
   }
 
