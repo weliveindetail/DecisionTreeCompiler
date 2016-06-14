@@ -53,12 +53,12 @@ void runBenchmark(int repetitions) {
     printf("Building decision tree with depth %lu..\n", TreeDepth_);
     auto tree = makeDecisionTree<TreeDepth_, DataSetFeatures_>();
 
-    printf("Compiling node evaluators..\n");
+    printf("\nCompiling evaluators for %lu nodes\n", tree.size());
     initializeLLVM();
     compileEvaluators(tree);
 
     {
-        printf("Benchmarking: %d runs with %lu features..\n",
+        printf("\n\nBenchmarking: %d runs with %lu features\n",
                repetitions, DataSetFeatures_);
 
         unsigned long resultRegular;
@@ -88,10 +88,10 @@ void runBenchmark(int repetitions) {
         }
 
         float averageRuntimeRegular = totalRuntimeRegular / repetitions;
-        printf("Average evaluation time regular: %fns\n\n", averageRuntimeRegular);
+        printf("Average evaluation time regular: %fns\n", averageRuntimeRegular);
 
-        float averageRuntimeCompiled = totalRuntimeRegular / repetitions;
-        printf("Average evaluation time regular: %fns\n\n", averageRuntimeCompiled);
+        float averageRuntimeCompiled = totalRuntimeCompiled / repetitions;
+        printf("Average evaluation time compiled: %fns\n\n", averageRuntimeCompiled);
     }
 
     shutdownLLVM();
@@ -99,8 +99,8 @@ void runBenchmark(int repetitions) {
 
 int main() {
     {
-        int repetitions = 1000;
-        constexpr auto treeDepth = 25; // ~1GB
+        int repetitions = 10000;
+        constexpr auto treeDepth = 20; // depth 25 ~ 1GB data
         constexpr auto dataSetFeatures = 100;
         runBenchmark<treeDepth, dataSetFeatures>(repetitions);
     }

@@ -96,6 +96,10 @@ llvm::Value* emitComparison(ComparatorType comp, float bias, llvm::Value* value)
 void compileEvaluators(const DecisionTree& tree) {
     using namespace llvm;
 
+    printf("%% ");
+    unsigned long nodesProcessed = 0;
+    unsigned long halfPercentStep = tree.size() / 50;
+
     std::string nameStub = "nodeEvaluator_";
 
     // emit an evaluator function per node
@@ -130,6 +134,11 @@ void compileEvaluators(const DecisionTree& tree) {
 
         Builder.CreateRet(nextNodeIdx);
         llvm::verifyFunction(*evalFn);
+
+        if (++nodesProcessed % halfPercentStep == 0) {
+            printf(".");
+            fflush(stdout);
+        }
     }
 
     //llvm::outs() << "We just constructed this LLVM module:\n\n";
@@ -139,9 +148,15 @@ void compileEvaluators(const DecisionTree& tree) {
     TheCompiler->submitModule(std::move(TheModule));
 
     // collect evaluators
-    for (const auto& entry : tree)
+    for (const auto& entry : tree) {
         compiledNodeEvaluators[entry.first] =
-            TheCompiler->getEvaluatorFnPtr(nameStub + std::to_string(entry.first));
+                TheCompiler->getEvaluatorFnPtr(nameStub + std::to_string(entry.first));
+
+        if (++nodesProcessed % halfPercentStep == 0) {
+            printf(".");
+            fflush(stdout);
+        }
+    }
 }
 
 template<unsigned long DataSetFeatures_>
