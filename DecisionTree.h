@@ -81,16 +81,16 @@ DecisionTree makeDecisionTree() {
 
   printf("%% ");
   constexpr unsigned long nodes = TreeSize(TreeDepth_);
-  constexpr unsigned long percentStep = nodes / 100;
+  //constexpr unsigned long percentStep = nodes / 100;
 
   for (unsigned long i = 1; i < nodes; i++) {
     tree[i] = makeDecisionTreeNode<DataSetFeatures_>();
     registerChild(i);
 
-    if (i % percentStep == 0) {
+    /*if (i % percentStep == 0) {
       printf(".");
       fflush(stdout);
-    }
+    }*/
   }
 
   printf("\n");

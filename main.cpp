@@ -53,7 +53,7 @@ void runBenchmark(int repetitions) {
 
   printf("\nCompiling evaluators for %lu nodes\n", tree.size());
   initializeLLVM();
-  compileEvaluators(tree);
+  compileEvaluators(tree, 3);
 
   {
     printf("\n\nBenchmarking: %d runs with %lu features\n", repetitions,
@@ -96,8 +96,8 @@ void runBenchmark(int repetitions) {
 
 int main() {
   {
-    int repetitions = 10000;
-    constexpr auto treeDepth = 20; // depth 25 ~ 1GB data
+    int repetitions = 1000;
+    constexpr auto treeDepth = 15; // depth 25 ~ 1GB data
     constexpr auto dataSetFeatures = 100;
     runBenchmark<treeDepth, dataSetFeatures>(repetitions);
   }
