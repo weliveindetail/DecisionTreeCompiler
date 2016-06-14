@@ -1,31 +1,36 @@
 #pragma once
 
-#include "llvm/Support/DynamicLibrary.h"
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/Orc/CompileUtils.h>
-#include <llvm/ExecutionEngine/Orc/GlobalMappingLayer.h>
 #include <llvm/ExecutionEngine/Orc/IRCompileLayer.h>
+#include <llvm/ExecutionEngine/Orc/IRTransformLayer.h>
 #include <llvm/ExecutionEngine/Orc/LambdaResolver.h>
 #include <llvm/ExecutionEngine/Orc/ObjectLinkingLayer.h>
 #include <llvm/ExecutionEngine/RTDyldMemoryManager.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Mangler.h>
+#include <llvm/Support/DynamicLibrary.h>
+#include <llvm/Transforms/Scalar.h>
 
 class SimpleOrcJit {
   using ObjectLayer_t = llvm::orc::ObjectLinkingLayer<>;
   using CompileLayer_t = llvm::orc::IRCompileLayer<ObjectLayer_t>;
-  using MappingLayer_t = llvm::orc::GlobalMappingLayer<CompileLayer_t>;
+
+  using OptimizeFunction_t = std::function<std::unique_ptr<llvm::Module>(
+      std::unique_ptr<llvm::Module>)>;
+  using OptimizeLayer_t =
+      llvm::orc::IRTransformLayer<CompileLayer_t, OptimizeFunction_t>;
+
+  using ModuleHandle_t = OptimizeLayer_t::ModuleSetHandleT;
 
 public:
   SimpleOrcJit(llvm::TargetMachine &targetMachine)
       : DataLayout(targetMachine.createDataLayout()),
         CompileLayer(ObjectLayer, llvm::orc::SimpleCompiler(targetMachine)),
-        MappingLayer(CompileLayer) {
+        OptimizeLayer(CompileLayer, [this](std::unique_ptr<llvm::Module> M) {
+          return optimizeModule(std::move(M));
+        }) {
     llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
-  }
-
-  void addGlobalMapping(std::string name, void *addr) {
-    MappingLayer.setGlobalMapping(mangle(name), llvm::orc::TargetAddress(addr));
   }
 
   void submitModule(std::unique_ptr<llvm::Module> module) {
@@ -39,9 +44,9 @@ public:
         },
         [](const std::string &S) { return nullptr; });
 
-    MappingLayer.addModuleSet(singletonSet(std::move(module)),
-                              std::make_unique<llvm::SectionMemoryManager>(),
-                              std::move(lambdaResolver));
+    OptimizeLayer.addModuleSet(singletonSet(std::move(module)),
+                               std::make_unique<llvm::SectionMemoryManager>(),
+                               std::move(lambdaResolver));
   }
 
   template <class Signature_t>
@@ -68,16 +73,29 @@ private:
   llvm::DataLayout DataLayout;
   ObjectLayer_t ObjectLayer;
   CompileLayer_t CompileLayer;
-  MappingLayer_t MappingLayer;
+  OptimizeLayer_t OptimizeLayer;
+
+  std::unique_ptr<llvm::Module>
+  optimizeModule(std::unique_ptr<llvm::Module> M) {
+    auto FPM = llvm::make_unique<llvm::legacy::FunctionPassManager>(M.get());
+
+    FPM->add(llvm::createInstructionCombiningPass());
+    FPM->add(llvm::createReassociatePass());
+    FPM->add(llvm::createGVNPass());
+    FPM->add(llvm::createCFGSimplificationPass());
+    FPM->doInitialization();
+
+    // run on all functions in the module
+    for (auto &F : *M)
+      FPM->run(F);
+
+    return M;
+  }
 
   llvm::orc::JITSymbol findMangledSymbol(const std::string &name) {
     // local symbols first
     if (auto symbol = CompileLayer.findSymbol(name, false))
       return symbol;
-
-    // added global symbols next
-    if (auto SymAddr = MappingLayer.findSymbol(name, false))
-      return SymAddr;
 
     // host process symbols otherwise
     if (auto SymAddr =
