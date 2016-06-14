@@ -13,13 +13,12 @@ struct TreeNode {
   TreeNode() = default;
   ~TreeNode() = default;
 
-  TreeNode(float bias, OperationType op, ComparatorType comp,
-           unsigned long featureIdx)
+  TreeNode(float bias, OperationType op, ComparatorType comp, int featureIdx)
       : Bias(bias), Op(op), Comp(comp), DataSetFeatureIdx(featureIdx) {}
 
-  unsigned long getFalseChildIdx() const { return FalseChildNodesIdx; }
+  int64_t getFalseChildIdx() const { return FalseChildNodesIdx; }
 
-  unsigned long getTrueChildIdx() const { return TrueChildNodesIdx; }
+  int64_t getTrueChildIdx() const { return TrueChildNodesIdx; }
 
   bool isLeaf() const {
     assert((getFalseChildIdx() == 0) == (getTrueChildIdx() == 0) &&
@@ -30,12 +29,12 @@ struct TreeNode {
   float Bias;
   OperationType Op;
   ComparatorType Comp;
-  unsigned long DataSetFeatureIdx;
-  unsigned long TrueChildNodesIdx = 0;
-  unsigned long FalseChildNodesIdx = 0;
+  int DataSetFeatureIdx;
+  int64_t TrueChildNodesIdx = 0;
+  int64_t FalseChildNodesIdx = 0;
 };
 
-using DecisionTree = std::unordered_map<unsigned long, TreeNode>;
+using DecisionTree = std::unordered_map<int64_t, TreeNode>;
 
 // for expected input range [0, 1)
 float makeBalancedBias(OperationType op) {
@@ -49,7 +48,7 @@ float makeBalancedBias(OperationType op) {
   };
 }
 
-template <unsigned long DataSetFeatures_> TreeNode makeDecisionTreeNode() {
+template <int DataSetFeatures_> TreeNode makeDecisionTreeNode() {
   auto op = (OperationType)makeRandomInt<0, 2>();
   auto comp = (ComparatorType)makeRandomInt<0, 1>();
   int featureIdx = makeRandomInt<0, DataSetFeatures_>();
@@ -58,17 +57,16 @@ template <unsigned long DataSetFeatures_> TreeNode makeDecisionTreeNode() {
   return TreeNode(bias, op, comp, featureIdx);
 }
 
-template <unsigned long TreeDepth_, unsigned long DataSetFeatures_>
+template <int TreeDepth_, int DataSetFeatures_>
 DecisionTree makeDecisionTree() {
   DecisionTree tree;
 
   tree.reserve(TreeSize(TreeDepth_));
   tree[0] = makeDecisionTreeNode<DataSetFeatures_>(); // root
 
-  int parentIdx = 0;
+  int64_t parentIdx = 0;
   int parentBranch = 0;
-  auto registerChild = [&tree, &parentIdx,
-                        &parentBranch](unsigned long childIdx) {
+  auto registerChild = [&tree, &parentIdx, &parentBranch](int64_t childIdx) {
     if (parentBranch == 0) {
       tree[parentIdx].FalseChildNodesIdx = childIdx;
       parentBranch = 1;
@@ -79,20 +77,11 @@ DecisionTree makeDecisionTree() {
     }
   };
 
-  printf("%% ");
-  constexpr unsigned long nodes = TreeSize(TreeDepth_);
-  //constexpr unsigned long percentStep = nodes / 100;
-
-  for (unsigned long i = 1; i < nodes; i++) {
+  constexpr int64_t nodes = TreeSize(TreeDepth_);
+  for (int64_t i = 1; i < nodes; i++) {
     tree[i] = makeDecisionTreeNode<DataSetFeatures_>();
     registerChild(i);
-
-    /*if (i % percentStep == 0) {
-      printf(".");
-      fflush(stdout);
-    }*/
   }
 
-  printf("\n");
   return tree;
 };

@@ -2,8 +2,8 @@
 
 #include <random>
 
-constexpr unsigned long TreeSize(const unsigned long depth) {
-  return (1 << depth) - 1;
+constexpr int64_t TreeSize(const int depth) {
+  return ((int64_t)1 << depth) - 1;
 }
 
 float makeRandomFloat() {

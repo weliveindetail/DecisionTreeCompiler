@@ -3,7 +3,7 @@
 #include "DecisionTree.h"
 
 template <unsigned long DataSetFeatures_>
-unsigned long
+int64_t
 computeChildNodeForDataSet(const TreeNode &currentNode,
                            const std::array<float, DataSetFeatures_> &dataSet) {
 
@@ -44,8 +44,8 @@ computeChildNodeForDataSet(const TreeNode &currentNode,
                        : currentNode.getFalseChildIdx();
 }
 
-template <unsigned long TreeDepth_, unsigned long DataSetFeatures_>
-unsigned long computeLeafNodeIdxForDataSet(
+template <unsigned long DataSetFeatures_>
+int64_t computeLeafNodeIdxForDataSet(
     const DecisionTree &tree,
     const std::array<float, DataSetFeatures_> &dataSet) {
   unsigned long treeNodeIdx = 0;

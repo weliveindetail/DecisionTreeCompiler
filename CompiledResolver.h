@@ -1,8 +1,8 @@
 #pragma once
 
-#include <string>
-#include <queue>
 #include <forward_list>
+#include <queue>
+#include <string>
 #include <unordered_map>
 
 #include "llvm/ExecutionEngine/ExecutionEngine.h"
@@ -25,9 +25,9 @@ llvm::IRBuilder<> Builder(Ctx);
 std::unique_ptr<llvm::Module> TheModule;
 std::unique_ptr<SimpleOrcJit> TheCompiler;
 
-using compiledNodeEvaluator_f = unsigned long(const float *);
+using compiledNodeEvaluator_f = int64_t(const float *);
 using compiledNodeEvaluatorsMap_t =
-    std::unordered_map<unsigned long, compiledNodeEvaluator_f *>;
+    std::unordered_map<int64_t, compiledNodeEvaluator_f *>;
 
 compiledNodeEvaluatorsMap_t compiledNodeEvaluators;
 
@@ -59,7 +59,7 @@ void shutdownLLVM() {
   llvm::llvm_shutdown();
 }
 
-llvm::Function* emitFunctionDeclaration(std::string name) {
+llvm::Function *emitFunctionDeclaration(std::string name) {
   using namespace llvm;
 
   auto returnTy = Type::getInt64Ty(Ctx);
@@ -73,7 +73,6 @@ llvm::Function* emitFunctionDeclaration(std::string name) {
   evalFn->setName(name);
   return evalFn;
 }
-
 
 llvm::Function *getUnaryIntrinsic(llvm::Intrinsic::ID id, llvm::Type *opTy) {
   return llvm::Intrinsic::getDeclaration(TheModule.get(), id, {opTy});
@@ -122,12 +121,11 @@ llvm::Value *emitSingleNodeEvaluaton(const TreeNode &node,
   return emitComparison(node.Comp, node.Bias, comparableFeatureVal);
 }
 
-llvm::Value *emitNodeEvaluatonsRecursively(const DecisionTree &tree,
-                                           unsigned long nodeIdx,
-                                           llvm::Function *function,
-                                           llvm::Value *dataSetPtr,
-                                           int remainingLevels,
-                                           std::queue<unsigned long>& scheduledNodes) {
+llvm::Value *
+emitNodeEvaluationsRecursively(const DecisionTree &tree, int64_t nodeIdx,
+                               llvm::Function *function,
+                               llvm::Value *dataSetPtr, int remainingLevels,
+                               std::queue<int64_t> &scheduledNodes) {
   using namespace llvm;
 
   Type *returnTy = Type::getInt64Ty(Ctx);
@@ -139,8 +137,8 @@ llvm::Value *emitNodeEvaluatonsRecursively(const DecisionTree &tree,
 
   Value *comparisonResult = emitSingleNodeEvaluaton(node, dataSetPtr);
 
-  unsigned long trueIdx = node.getTrueChildIdx();
-  unsigned long falseIdx = node.getFalseChildIdx();
+  int64_t trueIdx = node.getTrueChildIdx();
+  int64_t falseIdx = node.getFalseChildIdx();
 
   if (remainingLevels == 0) {
     scheduledNodes.push(trueIdx);
@@ -149,29 +147,30 @@ llvm::Value *emitNodeEvaluatonsRecursively(const DecisionTree &tree,
     return Builder.CreateSelect(comparisonResult,
                                 ConstantInt::get(returnTy, trueIdx),
                                 ConstantInt::get(returnTy, falseIdx));
-  }
-  else {
+  } else {
     std::string trueBBName = "node_" + std::to_string(trueIdx);
-    auto* trueBB = llvm::BasicBlock::Create(Ctx, trueBBName, function);
+    auto *trueBB = llvm::BasicBlock::Create(Ctx, trueBBName, function);
 
     std::string falseBBName = "node_" + std::to_string(falseIdx);
-    auto* falseBB = llvm::BasicBlock::Create(Ctx, falseBBName, function);
+    auto *falseBB = llvm::BasicBlock::Create(Ctx, falseBBName, function);
 
-    std::string mergeBBName = "merge_" + std::to_string(trueIdx)
-                                 + "_" + std::to_string(falseIdx);
-    auto* mergeBB = llvm::BasicBlock::Create(Ctx, mergeBBName, function);
+    std::string mergeBBName =
+        "merge_" + std::to_string(trueIdx) + "_" + std::to_string(falseIdx);
+    auto *mergeBB = llvm::BasicBlock::Create(Ctx, mergeBBName, function);
 
     Builder.CreateCondBr(comparisonResult, trueBB, falseBB);
 
     Builder.SetInsertPoint(trueBB);
-    Value *trueResult = emitNodeEvaluatonsRecursively(
-        tree, trueIdx, function, dataSetPtr, remainingLevels - 1, scheduledNodes);
+    Value *trueResult =
+        emitNodeEvaluationsRecursively(tree, trueIdx, function, dataSetPtr,
+                                       remainingLevels - 1, scheduledNodes);
     Builder.CreateBr(mergeBB);
     trueBB = Builder.GetInsertBlock();
 
     Builder.SetInsertPoint(falseBB);
-    Value *falseResult = emitNodeEvaluatonsRecursively(
-        tree, falseIdx, function, dataSetPtr, remainingLevels - 1, scheduledNodes);
+    Value *falseResult =
+        emitNodeEvaluationsRecursively(tree, falseIdx, function, dataSetPtr,
+                                       remainingLevels - 1, scheduledNodes);
     Builder.CreateBr(mergeBB);
     falseBB = Builder.GetInsertBlock();
 
@@ -186,20 +185,16 @@ llvm::Value *emitNodeEvaluatonsRecursively(const DecisionTree &tree,
   }
 }
 
-void compileEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
+int64_t compileEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
   using namespace llvm;
 
-  printf("%% ");
-  //unsigned long nodesProcessed = 0;
-  //unsigned long quaterPercentStep = tree.size() / 25;
-
   std::string nameStub = "nodeEvaluator_";
-  std::queue<unsigned long> scheduledNodes;
-  std::forward_list<unsigned long> processedNodes;
+  std::queue<int64_t> scheduledNodes;
+  std::forward_list<int64_t> processedNodes;
   scheduledNodes.push(0);
 
   while (!scheduledNodes.empty()) {
-    unsigned long nodeIdx = scheduledNodes.front();
+    int64_t nodeIdx = scheduledNodes.front();
     const TreeNode &node = tree.at(nodeIdx);
 
     std::string name = nameStub + std::to_string(nodeIdx);
@@ -207,54 +202,56 @@ void compileEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
     Value *dataSetPtr = &*evalFn->arg_begin();
 
     Builder.SetInsertPoint(llvm::BasicBlock::Create(Ctx, "entry", evalFn));
-    Value *nextNodeIdx = emitNodeEvaluatonsRecursively(
-        tree, nodeIdx, evalFn, dataSetPtr, nodeLevelsPerFunction - 1, scheduledNodes);
+    Value *nextNodeIdx = emitNodeEvaluationsRecursively(
+        tree, nodeIdx, evalFn, dataSetPtr, nodeLevelsPerFunction - 1,
+        scheduledNodes);
 
     Builder.CreateRet(nextNodeIdx);
     llvm::verifyFunction(*evalFn);
-
-    /*nodesProcessed += TreeSize(nodeLevelsPerFunction);
-    if (nodesProcessed >= quaterPercentStep) {
-      nodesProcessed -= quaterPercentStep;
-      printf(".");
-      fflush(stdout);
-    }*/
 
     processedNodes.push_front(nodeIdx);
     scheduledNodes.pop();
   }
 
-  //llvm::outs() << "We just constructed this LLVM module:\n\n";
-  //llvm::outs() << *TheModule.get() << "\n\n";
+  printf(".");
+  fflush(stdout);
+
+  // llvm::outs() << "We just constructed this LLVM module:\n\n";
+  // llvm::outs() << *TheModule.get() << "\n\n";
 
   // submit for jit compilation
   TheCompiler->submitModule(std::move(TheModule));
-
-  for (int i = 0; i < 50; i++)
-    printf(".");
-
+  printf(".");
   fflush(stdout);
 
   // collect evaluators
   while (!processedNodes.empty()) {
-    unsigned long nodeIdx = processedNodes.front();
+    int64_t nodeIdx = processedNodes.front();
     std::string nodeFunctionName = nameStub + std::to_string(nodeIdx);
 
     compiledNodeEvaluators[nodeIdx] =
         TheCompiler->getEvaluatorFnPtr(nodeFunctionName);
 
-    /*if (++nodesProcessed > quaterPercentStep) {
-      nodesProcessed -= quaterPercentStep;
-      printf(".");
-      fflush(stdout);
-    }*/
-
     processedNodes.pop_front();
   }
+
+  return compiledNodeEvaluators.size();
 }
 
-template <unsigned long DataSetFeatures_>
-unsigned long computeLeafNodeIdxForDataSetCompiled(
+template <int TreeDepth_>
+int64_t getNumCompiledEvaluators(int compiledFunctionDepth) {
+  int64_t expectedEvaluators = 0;
+  int evaluatorDepth =
+      ((TreeDepth_ + compiledFunctionDepth - 1) / compiledFunctionDepth);
+
+  for (int i = 0; i < evaluatorDepth; i++)
+    expectedEvaluators += 1 << (compiledFunctionDepth * i);
+
+  return expectedEvaluators;
+}
+
+template <int DataSetFeatures_>
+int64_t computeLeafNodeIdxForDataSetCompiled(
     const DecisionTree &tree,
     const std::array<float, DataSetFeatures_> &dataSet) {
   int64_t treeNodeIdx = 0;

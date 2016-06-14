@@ -57,7 +57,7 @@ public:
     return (Signature_t *)functionAddr;
   }
 
-  using Evaluator_f = unsigned long(const float *);
+  using Evaluator_f = int64_t(const float *);
   Evaluator_f *getEvaluatorFnPtr(std::string unmangledName) {
     auto jitSymbol = CompileLayer.findSymbol(mangle(unmangledName), false);
     auto functionAddr = jitSymbol.getAddress();
