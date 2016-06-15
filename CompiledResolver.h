@@ -185,8 +185,7 @@ emitNodeEvaluationsRecursively(const DecisionTree &tree, int64_t nodeIdx,
   }
 }
 
-template <int TreeDepth_>
-int64_t loadEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
+int64_t loadEvaluators(const DecisionTree &tree, int treeDepth, int nodeLevelsPerFunction) {
   using namespace llvm;
 
   // load module from cache
@@ -196,9 +195,9 @@ int64_t loadEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
   std::string nameStub = "nodeEvaluator_";
 
   int evaluatorDepth =
-      ((TreeDepth_ + nodeLevelsPerFunction - 1) / nodeLevelsPerFunction);
+      ((treeDepth + nodeLevelsPerFunction - 1) / nodeLevelsPerFunction);
 
-  for (int level = 0; level < TreeDepth_; level += nodeLevelsPerFunction) {
+  for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
     int64_t firstNodeIdxOnLevel = TreeSize(level);
     int numNodesOnLevel = (1 << level);
 
@@ -215,7 +214,6 @@ int64_t loadEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
   return compiledNodeEvaluators.size();
 }
 
-template <int TreeDepth_>
 int64_t compileEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
   using namespace llvm;
 
@@ -270,11 +268,10 @@ int64_t compileEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
   return compiledNodeEvaluators.size();
 }
 
-template <int TreeDepth_>
-int64_t getNumCompiledEvaluators(int compiledFunctionDepth) {
+int64_t getNumCompiledEvaluators(int treeDepth, int compiledFunctionDepth) {
   int64_t expectedEvaluators = 0;
   int evaluatorDepth =
-      ((TreeDepth_ + compiledFunctionDepth - 1) / compiledFunctionDepth);
+      ((treeDepth + compiledFunctionDepth - 1) / compiledFunctionDepth);
 
   for (int i = 0; i < evaluatorDepth; i++)
     expectedEvaluators += 1 << (compiledFunctionDepth * i);
@@ -282,7 +279,6 @@ int64_t getNumCompiledEvaluators(int compiledFunctionDepth) {
   return expectedEvaluators;
 }
 
-template <int DataSetFeatures_>
 int64_t computeLeafNodeIdxForDataSetCompiled(
     const DecisionTree &tree,
     const std::vector<float> &dataSet) {

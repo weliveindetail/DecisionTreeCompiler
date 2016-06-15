@@ -13,10 +13,10 @@ float makeRandomFloat() {
   return dist(engine);
 }
 
-template <int Min_, int Max_> int makeRandomInt() {
+int makeRandomInt(int min, int max) {
   static std::random_device rd;
   static std::default_random_engine engine(rd());
-  static std::uniform_int_distribution<int> dist(Min_, Max_);
+  std::uniform_int_distribution<int> dist(min, max);
   return dist(engine);
 }
 

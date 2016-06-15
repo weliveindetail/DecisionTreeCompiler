@@ -60,20 +60,19 @@ float makeBalancedBias(OperationType op) {
   };
 }
 
-template <int DataSetFeatures_> TreeNode makeDecisionTreeNode() {
-  auto op = (OperationType)makeRandomInt<0, 2>();
-  auto comp = (ComparatorType)makeRandomInt<0, 1>();
-  int featureIdx = makeRandomInt<0, DataSetFeatures_>();
+TreeNode makeDecisionTreeNode(int dataSetFeatures) {
+  auto op = (OperationType)makeRandomInt(0, 2);
+  auto comp = (ComparatorType)makeRandomInt(0, 1);
+  int featureIdx = makeRandomInt(0, dataSetFeatures);
   float bias = makeBalancedBias(op);
 
   return TreeNode(bias, op, comp, featureIdx);
 }
 
-template <int TreeDepth_, int DataSetFeatures_>
-DecisionTree makeDecisionTree(std::string fileName) {
+DecisionTree makeDecisionTree(int treeDepth, int dataSetFeatures, std::string fileName) {
   DecisionTree tree;
 
-  tree.reserve(TreeSize(TreeDepth_));
+  tree.reserve(TreeSize(treeDepth));
 
   /*int64_t parentIdx = 0;
   int parentBranch = 0;
@@ -89,16 +88,16 @@ DecisionTree makeDecisionTree(std::string fileName) {
   };*/
 
   nlohmann::json treeData = nlohmann::json::array();
-  constexpr int64_t nodes = TreeSize(TreeDepth_);
-  constexpr int64_t firstLeafIdx = TreeSize(TreeDepth_ - 1);
+  int64_t nodes = TreeSize(treeDepth);
+  int64_t firstLeafIdx = TreeSize(treeDepth - 1);
 
   int64_t nodeIdx = 0;
-  for (int level = 0; level < TreeDepth_; level++) {
+  for (int level = 0; level < treeDepth; level++) {
     int64_t firstChildNodeIdx = TreeSize(level + 1);
     int numNodesOnLevel = (1 << level);
 
     for (int offset = 0; offset < numNodesOnLevel; offset++) {
-      auto node = makeDecisionTreeNode<DataSetFeatures_>();
+      auto node = makeDecisionTreeNode(dataSetFeatures);
 
       if (nodeIdx < firstLeafIdx) {
         node.TrueChildNodesIdx = firstChildNodeIdx++;

@@ -2,7 +2,6 @@
 
 #include "DecisionTree.h"
 
-template <unsigned long DataSetFeatures_>
 int64_t
 computeChildNodeForDataSet(const TreeNode &currentNode,
                            const std::vector<float> &dataSet) {
@@ -44,14 +43,13 @@ computeChildNodeForDataSet(const TreeNode &currentNode,
                        : currentNode.getFalseChildIdx();
 }
 
-template <unsigned long DataSetFeatures_>
 int64_t computeLeafNodeIdxForDataSet(
     const DecisionTree &tree,
     const std::vector<float> dataSet) {
   int64_t treeNodeIdx = 0;
 
   while (!tree.at(treeNodeIdx).isLeaf()) {
-    treeNodeIdx = computeChildNodeForDataSet<DataSetFeatures_>(tree.at(treeNodeIdx), dataSet);
+    treeNodeIdx = computeChildNodeForDataSet(tree.at(treeNodeIdx), dataSet);
   }
 
   return treeNodeIdx;

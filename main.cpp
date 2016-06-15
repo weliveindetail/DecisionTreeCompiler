@@ -12,17 +12,15 @@
 
 void llvm::ObjectCache::anchor() {}
 
-template <int DataSetFeatures_>
-std::vector<float> makeRandomDataSet() {
-  std::vector<float> dataSet(DataSetFeatures_);
+std::vector<float> makeRandomDataSet(int features) {
+  std::vector<float> dataSet((size_t)features);
 
-  for (int i = 0; i < DataSetFeatures_; i++)
+  for (int i = 0; i < features; i++)
     dataSet[i] = makeRandomFloat(); // range [0, 1)
 
   return dataSet;
 };
 
-template <int DataSetFeatures_>
 std::tuple<int64_t, std::chrono::nanoseconds>
 runBenchmarkEvalRegular(const DecisionTree &tree,
                         const std::vector<float> &dataSet) {
@@ -30,13 +28,12 @@ runBenchmarkEvalRegular(const DecisionTree &tree,
   auto start = high_resolution_clock::now();
 
   int64_t leafIdx =
-      computeLeafNodeIdxForDataSet<DataSetFeatures_>(tree, dataSet);
+      computeLeafNodeIdxForDataSet(tree, dataSet);
 
   auto end = high_resolution_clock::now();
   return std::make_tuple(leafIdx, duration_cast<nanoseconds>(end - start));
 };
 
-template <int DataSetFeatures_>
 std::tuple<int64_t, std::chrono::nanoseconds>
 runBenchmarkEvalCompiled(const DecisionTree &tree,
                          const std::vector<float> &dataSet) {
@@ -44,7 +41,7 @@ runBenchmarkEvalCompiled(const DecisionTree &tree,
   auto start = high_resolution_clock::now();
 
   int64_t leafIdx =
-      computeLeafNodeIdxForDataSetCompiled<DataSetFeatures_>(tree, dataSet);
+      computeLeafNodeIdxForDataSetCompiled(tree, dataSet);
 
   auto end = high_resolution_clock::now();
   return std::make_tuple(leafIdx, duration_cast<nanoseconds>(end - start));
@@ -66,51 +63,50 @@ std::string makeObjFileName(int treeDepth, int dataSetFeatures,
   return osstr.str();
 }
 
-template <int TreeDepth_, int DataSetFeatures_>
-void runBenchmark(int repetitions, int compiledFunctionDepth) {
+void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures, int compiledFunctionDepth) {
   initializeLLVM();
 
   DecisionTree tree;
 
   int64_t actualEvaluators;
   int64_t expectedEvaluators =
-      getNumCompiledEvaluators<TreeDepth_>(compiledFunctionDepth);
+      getNumCompiledEvaluators(treeDepth, compiledFunctionDepth);
 
-  std::string cachedTreeFile = makeTreeFileName(TreeDepth_, DataSetFeatures_);
+  std::string cachedTreeFile = makeTreeFileName(treeDepth, dataSetFeatures);
   bool isTreeFileCached = isFileInCache(cachedTreeFile);
 
   if (isTreeFileCached) {
-    printf("Loading decision tree with depth %d from file %s\n", TreeDepth_,
+    printf("Loading decision tree with depth %d from file %s\n", treeDepth,
            cachedTreeFile.c_str());
     tree = loadDecisionTree(std::move(cachedTreeFile));
   } else {
     printf("Building decision tree with depth %d and cache it in file %s\n",
-           TreeDepth_, cachedTreeFile.c_str());
-    tree = makeDecisionTree<TreeDepth_, DataSetFeatures_>(
+           treeDepth, cachedTreeFile.c_str());
+    tree = makeDecisionTree(treeDepth, dataSetFeatures,
         std::move(cachedTreeFile));
   }
 
   std::string cachedObjFile =
-      makeObjFileName(TreeDepth_, DataSetFeatures_, compiledFunctionDepth);
+      makeObjFileName(treeDepth, dataSetFeatures, compiledFunctionDepth);
   bool isObjFileCached = isFileInCache(cachedObjFile);
   setupModule("file:" + cachedObjFile);
 
   if (isTreeFileCached && isObjFileCached) {
     printf("Loading %lld evaluators for %lu nodes from file %s",
            expectedEvaluators, tree.size(), cachedObjFile.c_str());
-    actualEvaluators = loadEvaluators<TreeDepth_>(tree, compiledFunctionDepth);
+    actualEvaluators = loadEvaluators(tree, treeDepth, compiledFunctionDepth);
   } else {
     printf("Generating %lld evaluators for %lu nodes and cache it in file %s",
            expectedEvaluators, tree.size(), cachedObjFile.c_str());
     actualEvaluators =
-        compileEvaluators<TreeDepth_>(tree, compiledFunctionDepth);
+        compileEvaluators(tree, compiledFunctionDepth);
   }
 
   assert(expectedEvaluators == actualEvaluators);
 
   {
     printf("\n\nBenchmarking: %d runs with %d features\n", repetitions,
-           DataSetFeatures_);
+           dataSetFeatures);
 
     int64_t resultRegular;
     int64_t resultCompiled;
@@ -122,13 +118,13 @@ void runBenchmark(int repetitions, int compiledFunctionDepth) {
     float totalRuntimeCompiled = 0;
 
     for (int i = 0; i < repetitions; i++) {
-      auto dataSet = makeRandomDataSet<DataSetFeatures_>();
+      auto dataSet = makeRandomDataSet(dataSetFeatures);
 
       std::tie(resultRegular, runtimeRegular) =
-          runBenchmarkEvalRegular<DataSetFeatures_>(tree, dataSet);
+          runBenchmarkEvalRegular(tree, dataSet);
 
       std::tie(resultCompiled, runtimeCompiled) =
-          runBenchmarkEvalCompiled<DataSetFeatures_>(tree, dataSet);
+          runBenchmarkEvalCompiled(tree, dataSet);
 
       assert(resultRegular == resultCompiled);
 
@@ -148,11 +144,12 @@ void runBenchmark(int repetitions, int compiledFunctionDepth) {
 
 int main() {
   int repetitions = 1000;
-  int compiledFunctionDepth = 10;
-  constexpr int treeDepth = 10; // depth 25 ~ 1GB data in memory
-  constexpr int dataSetFeatures = 100;
 
-  runBenchmark<treeDepth, dataSetFeatures>(repetitions, compiledFunctionDepth);
+  int treeDepth = 10; // depth 25 ~ 1GB data in memory
+  int dataSetFeatures = 100;
+  int compiledFunctionDepth = 10;
+
+  runBenchmark(repetitions, treeDepth, dataSetFeatures, compiledFunctionDepth);
 
   return 0;
 }
