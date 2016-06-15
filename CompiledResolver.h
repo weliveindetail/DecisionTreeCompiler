@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <forward_list>
 #include <queue>
 #include <string>
@@ -243,16 +244,25 @@ int64_t compileEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
     scheduledNodes.pop();
   }
 
-  printf("\nCompiling..");
-  fflush(stdout);
-
   // llvm::outs() << "We just constructed this LLVM module:\n\n";
   // llvm::outs() << *TheModule.get() << "\n\n";
 
-  // submit for jit compilation
-  TheCompiler->submitModule(std::move(TheModule));
-  printf(".");
-  fflush(stdout);
+  // submit module for jit compilation
+  {
+    printf("\nCompiling...");
+    fflush(stdout);
+
+    using namespace std::chrono;
+    auto start = high_resolution_clock::now();
+
+    TheCompiler->submitModule(std::move(TheModule));
+
+    auto end = high_resolution_clock::now();
+    auto dur = duration_cast<seconds>(end - start);
+
+    printf(" took %lld seconds\n", dur.count());
+    fflush(stdout);
+  }
 
   // collect evaluators
   while (!processedNodes.empty()) {

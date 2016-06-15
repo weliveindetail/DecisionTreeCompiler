@@ -65,6 +65,7 @@ public:
     // auto &modvec = ModuleSets[handle];
     // modvec.push_back(modulePtr);
 
+    OptimizeLayer.emitAndFinalize(handle);
     return handle;
   }
 
