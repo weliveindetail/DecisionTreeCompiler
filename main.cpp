@@ -1,10 +1,10 @@
-#include <vector>
 #include <cassert>
 #include <chrono>
 #include <cstdint>
 #include <cstdio>
 #include <sstream>
 #include <thread>
+#include <vector>
 
 #include "CompiledResolver.h"
 #include "RegularResolver.h"
@@ -27,8 +27,7 @@ runBenchmarkEvalRegular(const DecisionTree &tree,
   using namespace std::chrono;
   auto start = high_resolution_clock::now();
 
-  int64_t leafIdx =
-      computeLeafNodeIdxForDataSet(tree, dataSet);
+  int64_t leafIdx = computeLeafNodeIdxForDataSet(tree, dataSet);
 
   auto end = high_resolution_clock::now();
   return std::make_tuple(leafIdx, duration_cast<nanoseconds>(end - start));
@@ -40,8 +39,7 @@ runBenchmarkEvalCompiled(const DecisionTree &tree,
   using namespace std::chrono;
   auto start = high_resolution_clock::now();
 
-  int64_t leafIdx =
-      computeLeafNodeIdxForDataSetCompiled(tree, dataSet);
+  int64_t leafIdx = computeLeafNodeIdxForDataSetCompiled(tree, dataSet);
 
   auto end = high_resolution_clock::now();
   return std::make_tuple(leafIdx, duration_cast<nanoseconds>(end - start));
@@ -63,7 +61,8 @@ std::string makeObjFileName(int treeDepth, int dataSetFeatures,
   return osstr.str();
 }
 
-void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures, int compiledFunctionDepth) {
+void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
+                  int compiledFunctionDepth) {
   initializeLLVM();
 
   DecisionTree tree;
@@ -78,12 +77,12 @@ void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures, int compi
   if (isTreeFileCached) {
     printf("Loading decision tree with depth %d from file %s\n", treeDepth,
            cachedTreeFile.c_str());
-    tree = loadDecisionTree(std::move(cachedTreeFile));
+    tree = loadDecisionTree(treeDepth, std::move(cachedTreeFile));
   } else {
     printf("Building decision tree with depth %d and cache it in file %s\n",
            treeDepth, cachedTreeFile.c_str());
-    tree = makeDecisionTree(treeDepth, dataSetFeatures,
-        std::move(cachedTreeFile));
+    tree =
+        makeDecisionTree(treeDepth, dataSetFeatures, std::move(cachedTreeFile));
   }
 
   std::string cachedObjFile =
@@ -98,8 +97,7 @@ void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures, int compi
   } else {
     printf("Generating %lld evaluators for %lu nodes and cache it in file %s",
            expectedEvaluators, tree.size(), cachedObjFile.c_str());
-    actualEvaluators =
-        compileEvaluators(tree, compiledFunctionDepth);
+    actualEvaluators = compileEvaluators(tree, compiledFunctionDepth);
   }
 
   assert(expectedEvaluators == actualEvaluators);

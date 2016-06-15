@@ -62,25 +62,8 @@ public:
         std::make_unique<llvm::SectionMemoryManager>(),
         std::move(lambdaResolver));
 
-    // auto &modvec = ModuleSets[handle];
-    // modvec.push_back(modulePtr);
-
     OptimizeLayer.emitAndFinalize(handle);
     return handle;
-  }
-
-  bool isModuleCached(std::string moduleId) {
-    std::string cacheFile;
-    if (!ObjCache->getCacheFilename(moduleId, cacheFile))
-      return false;
-
-    int FD;
-    std::error_code EC = llvm::sys::fs::openFileForRead(cacheFile, FD);
-    if (EC)
-      return false;
-
-    close(FD);
-    return true;
   }
 
   using Evaluator_f = int64_t(const float *);
@@ -101,7 +84,6 @@ private:
   OptimizeLayer_t OptimizeLayer;
   llvm::DataLayout DataLayout;
   std::unique_ptr<SimpleObjectCache> ObjCache;
-  std::map<ModuleHandle_t, std::vector<llvm::Module *>> ModuleSets;
 
   std::unique_ptr<llvm::Module>
   optimizeModule(std::unique_ptr<llvm::Module> M) {

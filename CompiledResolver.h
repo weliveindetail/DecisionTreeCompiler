@@ -186,7 +186,8 @@ emitNodeEvaluationsRecursively(const DecisionTree &tree, int64_t nodeIdx,
   }
 }
 
-int64_t loadEvaluators(const DecisionTree &tree, int treeDepth, int nodeLevelsPerFunction) {
+int64_t loadEvaluators(const DecisionTree &tree, int treeDepth,
+                       int nodeLevelsPerFunction) {
   using namespace llvm;
 
   // load module from cache
@@ -199,8 +200,8 @@ int64_t loadEvaluators(const DecisionTree &tree, int treeDepth, int nodeLevelsPe
       ((treeDepth + nodeLevelsPerFunction - 1) / nodeLevelsPerFunction);
 
   for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
-    int64_t firstNodeIdxOnLevel = TreeSize(level);
-    int numNodesOnLevel = (1 << level);
+    int64_t firstNodeIdxOnLevel = TreeNodes(level);
+    int numNodesOnLevel = PowerOf2(level);
 
     for (int offset = 0; offset < numNodesOnLevel; offset++) {
       int64_t nodeIdx = firstNodeIdxOnLevel + offset;
@@ -260,7 +261,7 @@ int64_t compileEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
     auto end = high_resolution_clock::now();
     auto dur = duration_cast<seconds>(end - start);
 
-    printf(" took %lld seconds\n", dur.count());
+    printf(" took %lld seconds", dur.count());
     fflush(stdout);
   }
 
@@ -284,14 +285,14 @@ int64_t getNumCompiledEvaluators(int treeDepth, int compiledFunctionDepth) {
       ((treeDepth + compiledFunctionDepth - 1) / compiledFunctionDepth);
 
   for (int i = 0; i < evaluatorDepth; i++)
-    expectedEvaluators += 1 << (compiledFunctionDepth * i);
+    expectedEvaluators += PowerOf2(compiledFunctionDepth * i);
 
   return expectedEvaluators;
 }
 
-int64_t computeLeafNodeIdxForDataSetCompiled(
-    const DecisionTree &tree,
-    const std::vector<float> &dataSet) {
+int64_t
+computeLeafNodeIdxForDataSetCompiled(const DecisionTree &tree,
+                                     const std::vector<float> &dataSet) {
   int64_t treeNodeIdx = 0;
 
   while (!tree.at(treeNodeIdx).isLeaf()) {
