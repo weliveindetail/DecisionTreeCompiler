@@ -5,19 +5,20 @@
 #include <string>
 #include <unordered_map>
 
-#include "llvm/ExecutionEngine/ExecutionEngine.h"
-#include "llvm/ExecutionEngine/GenericValue.h"
-#include "llvm/IR/Constants.h"
-#include "llvm/IR/IRBuilder.h"
-#include "llvm/IR/Instructions.h"
-#include "llvm/IR/LLVMContext.h"
-#include "llvm/IR/Module.h"
-#include "llvm/IR/Verifier.h"
-#include "llvm/Support/ManagedStatic.h"
-#include "llvm/Support/TargetSelect.h"
-#include "llvm/Support/raw_ostream.h"
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/ExecutionEngine/GenericValue.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/ManagedStatic.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/raw_ostream.h>
 
 #include "DecisionTree.h"
+#include "SimpleObjectCache.h"
 #include "SimpleOrcJit.h"
 
 llvm::LLVMContext Ctx;
@@ -31,18 +32,18 @@ using compiledNodeEvaluatorsMap_t =
 
 compiledNodeEvaluatorsMap_t compiledNodeEvaluators;
 
-std::unique_ptr<llvm::Module> setupModule() {
-  auto module = std::make_unique<llvm::Module>("test", Ctx);
+void setupModule(std::string name) {
+  TheModule = std::make_unique<llvm::Module>(name, Ctx);
 
   auto *targetMachine = llvm::EngineBuilder().selectTarget();
-  module->setDataLayout(targetMachine->createDataLayout());
-
-  return module;
+  TheModule->setDataLayout(targetMachine->createDataLayout());
 }
 
 std::unique_ptr<SimpleOrcJit> setupCompiler() {
-  auto *targetMachine = llvm::EngineBuilder().selectTarget();
-  return std::make_unique<SimpleOrcJit>(*targetMachine);
+  auto targetMachine = llvm::EngineBuilder().selectTarget();
+  auto cache = std::make_unique<SimpleObjectCache>();
+
+  return std::make_unique<SimpleOrcJit>(*targetMachine, std::move(cache));
 }
 
 void initializeLLVM() {
@@ -50,7 +51,6 @@ void initializeLLVM() {
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
   TheCompiler = setupCompiler();
-  TheModule = setupModule();
 }
 
 void shutdownLLVM() {
@@ -185,12 +185,44 @@ emitNodeEvaluationsRecursively(const DecisionTree &tree, int64_t nodeIdx,
   }
 }
 
+template <int TreeDepth_>
+int64_t loadEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
+  using namespace llvm;
+
+  // load module from cache
+  TheCompiler->submitModule(std::move(TheModule));
+
+  // figure out which evaluator functions we expect and collect them
+  std::string nameStub = "nodeEvaluator_";
+
+  int evaluatorDepth =
+      ((TreeDepth_ + nodeLevelsPerFunction - 1) / nodeLevelsPerFunction);
+
+  for (int level = 0; level < TreeDepth_; level += nodeLevelsPerFunction) {
+    int64_t firstNodeIdxOnLevel = TreeSize(level);
+    int numNodesOnLevel = (1 << level);
+
+    for (int offset = 0; offset < numNodesOnLevel; offset++) {
+      int64_t nodeIdx = firstNodeIdxOnLevel + offset;
+
+      std::string nodeFunctionName = nameStub + std::to_string(nodeIdx);
+
+      compiledNodeEvaluators[nodeIdx] =
+          TheCompiler->getEvaluatorFnPtr(nodeFunctionName);
+    }
+  }
+
+  return compiledNodeEvaluators.size();
+}
+
+template <int TreeDepth_>
 int64_t compileEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
   using namespace llvm;
 
   std::string nameStub = "nodeEvaluator_";
-  std::queue<int64_t> scheduledNodes;
   std::forward_list<int64_t> processedNodes;
+
+  std::queue<int64_t> scheduledNodes;
   scheduledNodes.push(0);
 
   while (!scheduledNodes.empty()) {
@@ -213,7 +245,7 @@ int64_t compileEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
     scheduledNodes.pop();
   }
 
-  printf(".");
+  printf("\nCompiling..");
   fflush(stdout);
 
   // llvm::outs() << "We just constructed this LLVM module:\n\n";

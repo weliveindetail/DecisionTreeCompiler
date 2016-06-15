@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unistd.h>
+
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/Orc/CompileUtils.h>
 #include <llvm/ExecutionEngine/Orc/IRCompileLayer.h>
@@ -10,7 +12,10 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Mangler.h>
 #include <llvm/Support/DynamicLibrary.h>
+#include <llvm/Support/FileSystem.h>
 #include <llvm/Transforms/Scalar.h>
+
+#include "SimpleObjectCache.h"
 
 class SimpleOrcJit {
   using ObjectLayer_t = llvm::orc::ObjectLinkingLayer<>;
@@ -24,16 +29,21 @@ class SimpleOrcJit {
   using ModuleHandle_t = OptimizeLayer_t::ModuleSetHandleT;
 
 public:
-  SimpleOrcJit(llvm::TargetMachine &targetMachine)
-      : DataLayout(targetMachine.createDataLayout()),
+  SimpleOrcJit(llvm::TargetMachine &targetMachine,
+               std::unique_ptr<SimpleObjectCache> cache)
+      : ObjectLayer(),
         CompileLayer(ObjectLayer, llvm::orc::SimpleCompiler(targetMachine)),
-        OptimizeLayer(CompileLayer, [this](std::unique_ptr<llvm::Module> M) {
-          return optimizeModule(std::move(M));
-        }) {
+        OptimizeLayer(CompileLayer,
+                      [this](std::unique_ptr<llvm::Module> M) {
+                        return optimizeModule(std::move(M));
+                      }),
+        DataLayout(targetMachine.createDataLayout()),
+        ObjCache(std::move(cache)) {
+    CompileLayer.setObjectCache(ObjCache.get());
     llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
   }
 
-  void submitModule(std::unique_ptr<llvm::Module> module) {
+  ModuleHandle_t submitModule(std::unique_ptr<llvm::Module> module) {
     auto lambdaResolver = llvm::orc::createLambdaResolver(
         [&](const std::string &name) {
           if (auto Sym = findMangledSymbol(name))
@@ -44,17 +54,32 @@ public:
         },
         [](const std::string &S) { return nullptr; });
 
-    OptimizeLayer.addModuleSet(singletonSet(std::move(module)),
-                               std::make_unique<llvm::SectionMemoryManager>(),
-                               std::move(lambdaResolver));
+    llvm::Module *modulePtr = module.get();
+
+    // hand over ownership
+    ModuleHandle_t handle = OptimizeLayer.addModuleSet(
+        singletonSet(std::move(module)),
+        std::make_unique<llvm::SectionMemoryManager>(),
+        std::move(lambdaResolver));
+
+    // auto &modvec = ModuleSets[handle];
+    // modvec.push_back(modulePtr);
+
+    return handle;
   }
 
-  template <class Signature_t>
-  std::function<Signature_t> getFunction(std::string unmangledName) {
-    auto jitSymbol = CompileLayer.findSymbol(mangle(unmangledName), false);
-    auto functionAddr = jitSymbol.getAddress();
+  bool isModuleCached(std::string moduleId) {
+    std::string cacheFile;
+    if (!ObjCache->getCacheFilename(moduleId, cacheFile))
+      return false;
 
-    return (Signature_t *)functionAddr;
+    int FD;
+    std::error_code EC = llvm::sys::fs::openFileForRead(cacheFile, FD);
+    if (EC)
+      return false;
+
+    close(FD);
+    return true;
   }
 
   using Evaluator_f = int64_t(const float *);
@@ -70,10 +95,12 @@ public:
   }
 
 private:
-  llvm::DataLayout DataLayout;
   ObjectLayer_t ObjectLayer;
   CompileLayer_t CompileLayer;
   OptimizeLayer_t OptimizeLayer;
+  llvm::DataLayout DataLayout;
+  std::unique_ptr<SimpleObjectCache> ObjCache;
+  std::map<ModuleHandle_t, std::vector<llvm::Module *>> ModuleSets;
 
   std::unique_ptr<llvm::Module>
   optimizeModule(std::unique_ptr<llvm::Module> M) {

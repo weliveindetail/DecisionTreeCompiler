@@ -18,7 +18,8 @@ set(SOURCE_FILES
         DecisionTree.h
         RegularResolver.h
         CompiledResolver.h
-        SimpleOrcJit.h)
+        SimpleOrcJit.h
+        SimpleObjectCache.h)
 
 add_executable(EvalTreeJit ${SOURCE_FILES})
 

@@ -19,3 +19,13 @@ template <int Min_, int Max_> int makeRandomInt() {
   static std::uniform_int_distribution<int> dist(Min_, Max_);
   return dist(engine);
 }
+
+bool isFileInCache(std::string fileName) {
+  int FD;
+  std::error_code EC = llvm::sys::fs::openFileForRead(fileName, FD);
+  if (EC)
+    return false;
+
+  close(FD);
+  return true;
+}

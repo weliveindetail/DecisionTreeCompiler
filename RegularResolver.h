@@ -48,7 +48,7 @@ template <unsigned long DataSetFeatures_>
 int64_t computeLeafNodeIdxForDataSet(
     const DecisionTree &tree,
     const std::array<float, DataSetFeatures_> &dataSet) {
-  unsigned long treeNodeIdx = 0;
+  int64_t treeNodeIdx = 0;
 
   while (!tree.at(treeNodeIdx).isLeaf()) {
     treeNodeIdx = computeChildNodeForDataSet(tree.at(treeNodeIdx), dataSet);
