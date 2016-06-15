@@ -285,7 +285,7 @@ int64_t getNumCompiledEvaluators(int compiledFunctionDepth) {
 template <int DataSetFeatures_>
 int64_t computeLeafNodeIdxForDataSetCompiled(
     const DecisionTree &tree,
-    const std::array<float, DataSetFeatures_> &dataSet) {
+    const std::vector<float> &dataSet) {
   int64_t treeNodeIdx = 0;
 
   while (!tree.at(treeNodeIdx).isLeaf()) {

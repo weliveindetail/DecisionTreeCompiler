@@ -5,7 +5,7 @@
 template <unsigned long DataSetFeatures_>
 int64_t
 computeChildNodeForDataSet(const TreeNode &currentNode,
-                           const std::array<float, DataSetFeatures_> &dataSet) {
+                           const std::vector<float> &dataSet) {
 
   auto applyOperator = [](OperationType op, float value) {
     switch (op) {
@@ -47,11 +47,11 @@ computeChildNodeForDataSet(const TreeNode &currentNode,
 template <unsigned long DataSetFeatures_>
 int64_t computeLeafNodeIdxForDataSet(
     const DecisionTree &tree,
-    const std::array<float, DataSetFeatures_> &dataSet) {
+    const std::vector<float> dataSet) {
   int64_t treeNodeIdx = 0;
 
   while (!tree.at(treeNodeIdx).isLeaf()) {
-    treeNodeIdx = computeChildNodeForDataSet(tree.at(treeNodeIdx), dataSet);
+    treeNodeIdx = computeChildNodeForDataSet<DataSetFeatures_>(tree.at(treeNodeIdx), dataSet);
   }
 
   return treeNodeIdx;

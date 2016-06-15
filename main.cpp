@@ -1,4 +1,4 @@
-#include <array>
+#include <vector>
 #include <cassert>
 #include <chrono>
 #include <cstdint>
@@ -13,8 +13,8 @@
 void llvm::ObjectCache::anchor() {}
 
 template <int DataSetFeatures_>
-std::array<float, DataSetFeatures_> makeRandomDataSet() {
-  std::array<float, DataSetFeatures_> dataSet;
+std::vector<float> makeRandomDataSet() {
+  std::vector<float> dataSet(DataSetFeatures_);
 
   for (int i = 0; i < DataSetFeatures_; i++)
     dataSet[i] = makeRandomFloat(); // range [0, 1)
@@ -25,7 +25,7 @@ std::array<float, DataSetFeatures_> makeRandomDataSet() {
 template <int DataSetFeatures_>
 std::tuple<int64_t, std::chrono::nanoseconds>
 runBenchmarkEvalRegular(const DecisionTree &tree,
-                        const std::array<float, DataSetFeatures_> &dataSet) {
+                        const std::vector<float> &dataSet) {
   using namespace std::chrono;
   auto start = high_resolution_clock::now();
 
@@ -39,7 +39,7 @@ runBenchmarkEvalRegular(const DecisionTree &tree,
 template <int DataSetFeatures_>
 std::tuple<int64_t, std::chrono::nanoseconds>
 runBenchmarkEvalCompiled(const DecisionTree &tree,
-                         const std::array<float, DataSetFeatures_> &dataSet) {
+                         const std::vector<float> &dataSet) {
   using namespace std::chrono;
   auto start = high_resolution_clock::now();
 
@@ -149,7 +149,7 @@ void runBenchmark(int repetitions, int compiledFunctionDepth) {
 int main() {
   int repetitions = 1000;
   int compiledFunctionDepth = 10;
-  constexpr int treeDepth = 15; // depth 25 ~ 1GB data
+  constexpr int treeDepth = 10; // depth 25 ~ 1GB data in memory
   constexpr int dataSetFeatures = 100;
 
   runBenchmark<treeDepth, dataSetFeatures>(repetitions, compiledFunctionDepth);
