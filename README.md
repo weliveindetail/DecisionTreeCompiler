@@ -31,6 +31,11 @@ $ ./EvalTreeJit
 Loading decision tree with depth 20 from file cache/_td20_dsf100.t
 Generating 1 evaluators for 1048575 nodes and cache it in file cache/_td20_dsf100_cfd20.o
 Compiling... (never finished)
+
+$ ls -lh cache
+-rw-r--r--  1  151M 15 Jun 21:15 _td20_dsf100.t
+-rw-r--r--  1   14M 15 Jun 21:18 _td20_dsf100_cfd10.o
+-rw-r--r--  1   22M 15 Jun 23:49 _td20_dsf100_cfd15.o
 ```
 
 # Todo
