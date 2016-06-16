@@ -122,67 +122,132 @@ llvm::Value *emitSingleNodeEvaluaton(const TreeNode &node,
   return emitComparison(node.Comp, node.Bias, comparableFeatureVal);
 }
 
+void collectSubtreeNodeIdxsRecursively(
+    const DecisionTree &tree, int64_t nodeIdx, int remainingLevels,
+    std::vector<int64_t> &result) {
+  result.push_back(nodeIdx);
+
+  if (remainingLevels > 0) {
+    const TreeNode &node = tree.at(nodeIdx);
+    collectSubtreeNodeIdxsRecursively(tree, node.TrueChildNodeIdx, remainingLevels - 1, result);
+    collectSubtreeNodeIdxsRecursively(tree, node.FalseChildNodeIdx, remainingLevels - 1, result);
+  }
+}
+
+void collectSubtreeLeafNodePathNodeBitOffsetsRecursively(
+    const DecisionTree &tree, int64_t nodeIdx, int remainingLevels,
+    const std::unordered_map<int64_t, unsigned> &nodeIdxBitOffsets,
+    std::vector<std::vector<int64_t>> &result) {
+  if (remainingLevels == 0) {
+    // subtree leaf nodes create path vector
+    result.push_back({ nodeIdxBitOffsets.at(nodeIdx) });
+    return;
+  }
+
+  const TreeNode &node = tree.at(nodeIdx);
+  collectSubtreeLeafNodePathNodeBitOffsetsRecursively(
+      tree, node.TrueChildNodeIdx, remainingLevels - 1,
+      nodeIdxBitOffsets, result);
+  collectSubtreeLeafNodePathNodeBitOffsetsRecursively(
+      tree, node.FalseChildNodeIdx, remainingLevels - 1,
+      nodeIdxBitOffsets, result);
+
+  // subtree non-leaf nodes add their offsets to all of their own child leafs
+  unsigned thisBitOffset = nodeIdxBitOffsets.at(nodeIdx);
+  unsigned firstChildLeafPath = result.size() - PowerOf2(remainingLevels);
+  for (unsigned i = firstChildLeafPath; i < result.size(); i++) {
+    result[i].push_back(thisBitOffset);
+  }
+}
+/*{
+  if (remainingLevels == 0) {
+    result.push_back({ nodeIdx });
+    return;
+  }
+
+  const TreeNode &node = tree.at(nodeIdx);
+  collectSubtreeLeafNodePathNodeBitOffsetsRecursively(tree, node.TrueChildNodeIdx, remainingLevels - 1, result);
+  collectSubtreeLeafNodePathNodeBitOffsetsRecursively(tree, node.FalseChildNodeIdx, remainingLevels - 1, result);
+
+  unsigned firstChildLeafPath = result.size() - PowerOf2(remainingLevels - 1);
+  for (unsigned i = firstChildLeafPath; i < result.size(), i++) {
+    result[i].push_back(nodeIdx);
+  }
+}*/
+
+void buildCanonicalConditionVectorVariantsRecursively(
+    int subtreeNodes, const std::vector<int64_t> &leafNodePathIdxs,
+    std::vector<std::vector<int64_t>> &result) {
+  std::vector<int64_t> leafNodeNonPathIdxs;
+  for (int i = 0; i < subtreeNodes; i++) {
+    //if (leafNodePathIdxs.find(i))
+  }
+  for (int i = 0; i < subtreeNodes; i++) {
+    std::vector<int64_t> canonicalVariant = leafNodePathIdxs; // copy
+
+  }
+}
+
+
 llvm::Value *
-emitNodeEvaluationsRecursively(const DecisionTree &tree, int64_t nodeIdx,
-                               llvm::Function *function,
-                               llvm::Value *dataSetPtr, int remainingLevels,
-                               std::queue<int64_t> &scheduledNodes) {
+emitSubtreeEvaluation(const DecisionTree &tree, int64_t rootNodeIdx,
+                      llvm::Function *function,
+                      llvm::Value *dataSetPtr, int levels,
+                      std::queue<int64_t> &scheduledNodes) {
   using namespace llvm;
 
   Type *returnTy = Type::getInt64Ty(Ctx);
-  const TreeNode &node = tree.at(nodeIdx);
+  int64_t numNodes = TreeNodes(levels);
+  int64_t numLeafNodes = PowerOf2(levels - 1);
 
-  if (node.isLeaf()) {
-    return ConstantInt::get(returnTy, nodeIdx);
+  std::vector<int64_t> subtreeNodeIdxs;
+  subtreeNodeIdxs.reserve(numNodes);
+  collectSubtreeNodeIdxsRecursively(tree, rootNodeIdx, levels - 1, subtreeNodeIdxs);
+  assert(subtreeNodeIdxs.size() == numNodes);
+
+  std::unordered_map<int64_t, unsigned> subtreeNodeIdxBitOffsets;
+  subtreeNodeIdxBitOffsets.reserve(numNodes);
+
+  Value *conditionVector = Builder.CreateAlloca(returnTy);
+  for (unsigned bitOffset = 0; bitOffset < numNodes; bitOffset++) {
+    int64_t nodeIdx = subtreeNodeIdxs[bitOffset];
+
+    // remember nodeIdx at bit offset
+    subtreeNodeIdxBitOffsets[nodeIdx] = bitOffset;
+
+    const TreeNode &node = tree.at(nodeIdx);
+    Value *comparisonResult = emitSingleNodeEvaluaton(node, dataSetPtr);
+    Value *vectorBit = Builder.CreateShl(comparisonResult, APInt(6, bitOffset));
+
+    Value *conditionVectorOld = Builder.CreateLoad(conditionVector);
+    Value *conditionVectorNew = Builder.CreateOr(conditionVectorOld, vectorBit);
+    Builder.CreateStore(conditionVectorNew, conditionVector);
   }
 
-  Value *comparisonResult = emitSingleNodeEvaluaton(node, dataSetPtr);
+  auto *defaultBB = llvm::BasicBlock::Create(Ctx, "switch_default", function);
+  Value *conditionVectorVal = Builder.CreateLoad(conditionVector);
 
-  int64_t trueIdx = node.getTrueChildIdx();
-  int64_t falseIdx = node.getFalseChildIdx();
+  auto *switchInst = SwitchInst::Create(conditionVectorVal, defaultBB, PowerOf2(numNodes - 1));
 
-  if (remainingLevels == 0) {
-    scheduledNodes.push(trueIdx);
-    scheduledNodes.push(falseIdx);
+  std::vector<std::vector<int64_t>> leafNodePathsNodeBitOffsets;
+  leafNodePathsNodeBitOffsets.reserve(numLeafNodes);
+  collectSubtreeLeafNodePathNodeBitOffsetsRecursively(
+      tree, rootNodeIdx, levels - 1, subtreeNodeIdxBitOffsets,
+      leafNodePathsNodeBitOffsets);
+  assert(leafNodePathsNodeBitOffsets.size() == numLeafNodes);
 
-    return Builder.CreateSelect(comparisonResult,
-                                ConstantInt::get(returnTy, trueIdx),
-                                ConstantInt::get(returnTy, falseIdx));
-  } else {
-    std::string trueBBName = "node_" + std::to_string(trueIdx);
-    auto *trueBB = llvm::BasicBlock::Create(Ctx, trueBBName, function);
+  // iterate leaf numNodes
+  for (std::vector<int64_t> &leafNodePathNodeBitOffsets : leafNodePathsNodeBitOffsets) {
+    int64_t leafNodeIdx = subtreeNodeIdxs[leafNodePathNodeBitOffsets[0]];
 
-    std::string falseBBName = "node_" + std::to_string(falseIdx);
-    auto *falseBB = llvm::BasicBlock::Create(Ctx, falseBBName, function);
+    std::string nodeBBLabel = "switch_node_" + std::to_string(leafNodeIdx);
+    auto *nodeBB = llvm::BasicBlock::Create(Ctx, nodeBBLabel, function);
 
-    std::string mergeBBName =
-        "merge_" + std::to_string(trueIdx) + "_" + std::to_string(falseIdx);
-    auto *mergeBB = llvm::BasicBlock::Create(Ctx, mergeBBName, function);
+    std::vector<std::vector<int64_t>> canonicalVariants;
+    buildCanonicalConditionVectorVariantsRecursively(numNodes, leafNodePathNodeBitOffsets, canonicalVariants);
 
-    Builder.CreateCondBr(comparisonResult, trueBB, falseBB);
-
-    Builder.SetInsertPoint(trueBB);
-    Value *trueResult =
-        emitNodeEvaluationsRecursively(tree, trueIdx, function, dataSetPtr,
-                                       remainingLevels - 1, scheduledNodes);
-    Builder.CreateBr(mergeBB);
-    trueBB = Builder.GetInsertBlock();
-
-    Builder.SetInsertPoint(falseBB);
-    Value *falseResult =
-        emitNodeEvaluationsRecursively(tree, falseIdx, function, dataSetPtr,
-                                       remainingLevels - 1, scheduledNodes);
-    Builder.CreateBr(mergeBB);
-    falseBB = Builder.GetInsertBlock();
-
-    Builder.SetInsertPoint(mergeBB);
-    std::string mergeResultName = mergeBBName + "tmp";
-    PHINode *mergeResult = Builder.CreatePHI(returnTy, 2, mergeBBName);
-
-    mergeResult->addIncoming(trueResult, trueBB);
-    mergeResult->addIncoming(falseResult, falseBB);
-
-    return mergeResult;
+    //Constant *caseVal;
+    //switchInst->addCase(caseVal, nodeBB);
   }
 }
 
@@ -201,9 +266,9 @@ int64_t loadEvaluators(const DecisionTree &tree, int treeDepth,
 
   for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
     int64_t firstNodeIdxOnLevel = TreeNodes(level);
-    int numNodesOnLevel = PowerOf2(level);
+    int64_t numNodesOnLevel = PowerOf2(level);
 
-    for (int offset = 0; offset < numNodesOnLevel; offset++) {
+    for (int64_t offset = 0; offset < numNodesOnLevel; offset++) {
       int64_t nodeIdx = firstNodeIdxOnLevel + offset;
 
       std::string nodeFunctionName = nameStub + std::to_string(nodeIdx);
@@ -234,8 +299,8 @@ int64_t compileEvaluators(const DecisionTree &tree, int nodeLevelsPerFunction) {
     Value *dataSetPtr = &*evalFn->arg_begin();
 
     Builder.SetInsertPoint(llvm::BasicBlock::Create(Ctx, "entry", evalFn));
-    Value *nextNodeIdx = emitNodeEvaluationsRecursively(
-        tree, nodeIdx, evalFn, dataSetPtr, nodeLevelsPerFunction - 1,
+    Value *nextNodeIdx = emitSubtreeEvaluation(
+        tree, nodeIdx, evalFn, dataSetPtr, nodeLevelsPerFunction,
         scheduledNodes);
 
     Builder.CreateRet(nextNodeIdx);
