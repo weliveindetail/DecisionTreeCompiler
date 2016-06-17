@@ -97,7 +97,7 @@ void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
   } else {
     printf("Generating %lld evaluators for %lu nodes and cache it in file %s",
            expectedEvaluators, tree.size(), cachedObjFile.c_str());
-    actualEvaluators = compileEvaluators(tree, compiledFunctionDepth);
+    actualEvaluators = compileEvaluators(tree, treeDepth, compiledFunctionDepth);
   }
 
   assert(expectedEvaluators == actualEvaluators);
@@ -118,8 +118,8 @@ void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
     for (int i = 0; i < repetitions; i++) {
       auto dataSet = makeRandomDataSet(dataSetFeatures);
 
-      std::tie(resultRegular, runtimeRegular) =
-          runBenchmarkEvalRegular(tree, dataSet);
+      //std::tie(resultRegular, runtimeRegular) =
+      //    runBenchmarkEvalRegular(tree, dataSet);
 
       std::tie(resultCompiled, runtimeCompiled) =
           runBenchmarkEvalCompiled(tree, dataSet);

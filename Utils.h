@@ -2,6 +2,10 @@
 
 #include <random>
 
+constexpr bool isPowerOf2(const int n) {
+  return n == 1 || (n & (n-1)) == 0;
+}
+
 constexpr int64_t PowerOf2(const int exp) {
   return (int64_t)1 << exp;
 }
