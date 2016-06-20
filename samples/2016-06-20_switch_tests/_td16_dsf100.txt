@@ -1,0 +1,25 @@
+Building decision tree with depth 16 and cache it in file cache/_td16_dsf100.t
+Generating 4369 evaluators for 65535 nodes and cache it in file cache/_td16_dsf100_cfd4.o
+Composing... took 415 seconds
+Compiling... took 12 seconds
+Collecting... took 0 seconds
+
+Benchmarking: 1000 runs with 100 features
+Average evaluation time regular: 2850.979004ns
+Average evaluation time compiled: 1285.557983ns
+
+
+
+
+/Users/staehff/Library/Caches/CLion2016.1/cmake/generated/EvalTreeJit-e39494e8/e39494e8/Release/EvalTreeJit
+Loading decision tree with depth 16 from file cache/_td16_dsf100.t
+Loading 4369 evaluators for 65535 nodes from file cache/_td16_dsf100_cfd4.o
+
+Benchmarking: 1000 runs with 100 features
+Average evaluation time regular: 4080.843994ns
+Average evaluation time compiled: 1697.056030ns
+
+Process finished with exit code 0
+
+
+
