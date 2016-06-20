@@ -386,31 +386,45 @@ int64_t compileEvaluators(const DecisionTree &tree, int treeDepth, int nodeLevel
   std::string nameStub = "nodeEvaluator_";
   std::forward_list<int64_t> processedNodes;
 
-  for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
-    int64_t firstNodeIdxOnLevel = TreeNodes(level);
-    int64_t numNodesOnLevel = PowerOf2(level);
+  {
+    printf("\nComposing...");
+    fflush(stdout);
 
-    for (int64_t offset = 0; offset < numNodesOnLevel; offset++) {
-      int64_t nodeIdx = firstNodeIdxOnLevel + offset;
-      const TreeNode &node = tree.at(nodeIdx);
+    using namespace std::chrono;
+    auto start = high_resolution_clock::now();
 
-      std::string name = nameStub + std::to_string(nodeIdx);
-      Function *evalFn = emitFunctionDeclaration(std::move(name));
-      Value *dataSetPtr = &*evalFn->arg_begin();
+    for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
+      int64_t firstNodeIdxOnLevel = TreeNodes(level);
+      int64_t numNodesOnLevel = PowerOf2(level);
 
-      Builder.SetInsertPoint(llvm::BasicBlock::Create(Ctx, "entry", evalFn));
-      Value *nextNodeIdx = emitSubtreeEvaluation(
-          tree, nodeIdx, level, nodeLevelsPerFunction, evalFn, dataSetPtr);
+      for (int64_t offset = 0; offset < numNodesOnLevel; offset++) {
+        int64_t nodeIdx = firstNodeIdxOnLevel + offset;
+        const TreeNode &node = tree.at(nodeIdx);
 
-      Builder.CreateRet(nextNodeIdx);
-      llvm::verifyFunction(*evalFn);
+        std::string name = nameStub + std::to_string(nodeIdx);
+        Function *evalFn = emitFunctionDeclaration(std::move(name));
+        Value *dataSetPtr = &*evalFn->arg_begin();
 
-      processedNodes.push_front(nodeIdx);
+        Builder.SetInsertPoint(llvm::BasicBlock::Create(Ctx, "entry", evalFn));
+        Value *nextNodeIdx = emitSubtreeEvaluation(
+            tree, nodeIdx, level, nodeLevelsPerFunction, evalFn, dataSetPtr);
+
+        Builder.CreateRet(nextNodeIdx);
+        llvm::verifyFunction(*evalFn);
+
+        processedNodes.push_front(nodeIdx);
+      }
     }
+
+    auto end = high_resolution_clock::now();
+    auto dur = duration_cast<seconds>(end - start);
+
+    printf(" took %lld seconds", dur.count());
+    fflush(stdout);
   }
 
-  llvm::outs() << "We just constructed this LLVM module:\n\n";
-  llvm::outs() << *TheModule.get() << "\n\n";
+  // llvm::outs() << "\n\nWe just constructed this LLVM module:\n\n";
+  // llvm::outs() << *TheModule.get() << "\n\n";
 
   // submit module for jit compilation
   {
@@ -429,15 +443,29 @@ int64_t compileEvaluators(const DecisionTree &tree, int treeDepth, int nodeLevel
     fflush(stdout);
   }
 
-  // collect evaluators
-  while (!processedNodes.empty()) {
-    int64_t nodeIdx = processedNodes.front();
-    std::string nodeFunctionName = nameStub + std::to_string(nodeIdx);
+  {
+    printf("\nCollecting...");
+    fflush(stdout);
 
-    compiledNodeEvaluators[nodeIdx] =
-        TheCompiler->getEvaluatorFnPtr(nodeFunctionName);
+    using namespace std::chrono;
+    auto start = high_resolution_clock::now();
 
-    processedNodes.pop_front();
+    // collect evaluators
+    while (!processedNodes.empty()) {
+      int64_t nodeIdx = processedNodes.front();
+      std::string nodeFunctionName = nameStub + std::to_string(nodeIdx);
+
+      compiledNodeEvaluators[nodeIdx] =
+          TheCompiler->getEvaluatorFnPtr(nodeFunctionName);
+
+      processedNodes.pop_front();
+    }
+
+    auto end = high_resolution_clock::now();
+    auto dur = duration_cast<seconds>(end - start);
+
+    printf(" took %lld seconds", dur.count());
+    fflush(stdout);
   }
 
   return compiledNodeEvaluators.size();
