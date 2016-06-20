@@ -213,14 +213,15 @@ void buildCanonicalConditionVectorVariantsRecursively(
     assert((conditionVector & ~vectorTrueBit) == conditionVector);
 
     // true variation
-    result.push_back(conditionVector| vectorTrueBit);
     buildCanonicalConditionVectorVariantsRecursively(
-        conditionVector | vectorTrueBit, variableBitOffsets, bitToVary + 1, result);
+        conditionVector | vectorTrueBit, variableBitOffsets, bitToVaryIdx + 1, result);
 
     // false variation
-    result.push_back(conditionVector);
     buildCanonicalConditionVectorVariantsRecursively(
-        conditionVector, variableBitOffsets, bitToVary + 1, result);
+        conditionVector, variableBitOffsets, bitToVaryIdx + 1, result);
+  }
+  else {
+    result.push_back(conditionVector);
   }
 }
 
@@ -271,6 +272,8 @@ emitSubtreeEvaluation(const DecisionTree &tree, int64_t rootNodeIdx,
   subtreeNodeIdxBitOffsets.reserve(numNonLeafNodes);
 
   Value *conditionVector = Builder.CreateAlloca(returnTy, nullptr, "conditionVector");
+  Builder.CreateStore(ConstantInt::get(returnTy, 0), conditionVector);
+
   for (unsigned bitOffset = 0; bitOffset < numNonLeafNodes; bitOffset++) {
     int64_t nodeIdx = subtreeNodeIdxs[bitOffset];
 
@@ -292,10 +295,9 @@ emitSubtreeEvaluation(const DecisionTree &tree, int64_t rootNodeIdx,
 
   Value *evalResult = Builder.CreateAlloca(returnTy, nullptr, "result");
   Value *conditionVectorVal = Builder.CreateLoad(conditionVector);
+
   auto *switchInst = Builder.CreateSwitch(conditionVectorVal, returnBB,
                                           PowerOf2(numNodes - 1));
-
-  //auto *switchInst = SwitchInst::Create(conditionVectorVal, defaultBB, PowerOf2(numNodes - 1));
 
   using PathBitsMap_t = std::unordered_map<unsigned, bool>;
   using LeafNodePathBitsMap_t = std::pair<int64_t, PathBitsMap_t>;
@@ -361,9 +363,6 @@ int64_t loadEvaluators(const DecisionTree &tree, int treeDepth,
   // figure out which evaluator functions we expect and collect them
   std::string nameStub = "nodeEvaluator_";
 
-  int evaluatorDepth =
-      ((treeDepth + nodeLevelsPerFunction - 1) / nodeLevelsPerFunction);
-
   for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
     int64_t firstNodeIdxOnLevel = TreeNodes(level);
     int64_t numNodesOnLevel = PowerOf2(level);
@@ -386,10 +385,6 @@ int64_t compileEvaluators(const DecisionTree &tree, int treeDepth, int nodeLevel
 
   std::string nameStub = "nodeEvaluator_";
   std::forward_list<int64_t> processedNodes;
-
-  // figure out which evaluator functions we expect and collect them
-  int evaluatorDepth =
-      ((treeDepth + nodeLevelsPerFunction - 1) / nodeLevelsPerFunction);
 
   for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
     int64_t firstNodeIdxOnLevel = TreeNodes(level);
@@ -463,10 +458,11 @@ int64_t
 computeLeafNodeIdxForDataSetCompiled(const DecisionTree &tree,
                                      const std::vector<float> &dataSet) {
   int64_t treeNodeIdx = 0;
+  const float *data = dataSet.data();
 
   while (!tree.at(treeNodeIdx).isLeaf()) {
-    compiledNodeEvaluator_f *compiledEvaluator = compiledNodeEvaluators[treeNodeIdx];
-    treeNodeIdx = compiledEvaluator(dataSet.data());
+    compiledNodeEvaluator_f *compiledEvaluator = compiledNodeEvaluators.at(treeNodeIdx);
+    treeNodeIdx = compiledEvaluator(data);
   }
 
   return treeNodeIdx;

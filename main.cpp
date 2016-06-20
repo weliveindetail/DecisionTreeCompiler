@@ -118,8 +118,8 @@ void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
     for (int i = 0; i < repetitions; i++) {
       auto dataSet = makeRandomDataSet(dataSetFeatures);
 
-      //std::tie(resultRegular, runtimeRegular) =
-      //    runBenchmarkEvalRegular(tree, dataSet);
+      std::tie(resultRegular, runtimeRegular) =
+          runBenchmarkEvalRegular(tree, dataSet);
 
       std::tie(resultCompiled, runtimeCompiled) =
           runBenchmarkEvalCompiled(tree, dataSet);
@@ -143,9 +143,9 @@ void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
 int main() {
   int repetitions = 1000;
 
-  int treeDepth = 10; // depth 25 ~ 1GB data in memory
+  int treeDepth = 16; // depth 25 ~ 1GB data in memory
   int dataSetFeatures = 100;
-  int compiledFunctionDepth = 10;
+  int compiledFunctionDepth = 4;
 
   runBenchmark(repetitions, treeDepth, dataSetFeatures, compiledFunctionDepth);
 
