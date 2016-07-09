@@ -244,18 +244,16 @@ llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
 
   Type *returnTy = Type::getInt64Ty(Ctx);
   int64_t numNodes = TreeNodes(levels);
-  int64_t numLeafNodes = PowerOf2(levels - 1);
-  int64_t numNonLeafNodes = TreeNodes(levels - 1);
-  assert(numNodes == numLeafNodes + numNonLeafNodes);
+  int64_t numContinuations = PowerOf2(levels);
 
   std::unordered_map<int64_t, unsigned> subtreeNodeIdxBitOffsets;
-  subtreeNodeIdxBitOffsets.reserve(numNonLeafNodes);
+  subtreeNodeIdxBitOffsets.reserve(numNodes);
 
   Value *conditionVector =
       Builder.CreateAlloca(returnTy, nullptr, "conditionVector");
   Builder.CreateStore(ConstantInt::get(returnTy, 0), conditionVector);
 
-  for (unsigned bitOffset = 0; bitOffset < numNonLeafNodes; bitOffset++) {
+  for (unsigned bitOffset = 0; bitOffset < numNodes; bitOffset++) {
     int64_t nodeIdx =
         getNodeIdxForSubtreeBitOffset(rootNodeIdx, levels, bitOffset);
 
@@ -285,11 +283,11 @@ llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
   using LeafNodePathBitsMap_t = std::pair<int64_t, PathBitsMap_t>;
   std::vector<LeafNodePathBitsMap_t> leafNodePathBitsMaps;
 
-  leafNodePathBitsMaps.reserve(numLeafNodes);
-  buildSubtreeLeafNodePathsBitsMapsRecursively(tree, rootNodeIdx, levels - 1,
+  leafNodePathBitsMaps.reserve(numContinuations);
+  buildSubtreeLeafNodePathsBitsMapsRecursively(tree, rootNodeIdx, levels,
                                                subtreeNodeIdxBitOffsets,
                                                leafNodePathBitsMaps);
-  assert(leafNodePathBitsMaps.size() == numLeafNodes);
+  assert(leafNodePathBitsMaps.size() == numContinuations);
 
   // iterate leaf nodes
   for (const LeafNodePathBitsMap_t &leafNodePathBitsMap :
@@ -301,19 +299,7 @@ llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
     auto *nodeBB = llvm::BasicBlock::Create(Ctx, nodeBBLabel, function);
     {
       Builder.SetInsertPoint(nodeBB);
-      const TreeNode &node = tree.at(leafNodeIdx);
-
-      bool isSubtreeNodeIsTreeLeaf = node.isLeaf();
-      if (isSubtreeNodeIsTreeLeaf) {
-        Builder.CreateStore(ConstantInt::get(returnTy, leafNodeIdx),
-                            evalResult);
-      } else {
-        Value *comparisonResult = emitSingleNodeEvaluaton(node, dataSetPtr);
-        Value *nextSubtreeRoot = Builder.CreateSelect(
-            comparisonResult, ConstantInt::get(returnTy, node.TrueChildNodeIdx),
-            ConstantInt::get(returnTy, node.FalseChildNodeIdx));
-        Builder.CreateStore(nextSubtreeRoot, evalResult);
-      }
+      Builder.CreateStore(ConstantInt::get(returnTy, leafNodeIdx), evalResult);
       Builder.CreateBr(returnBB);
     }
 
@@ -321,12 +307,11 @@ llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
         buildFixedConditionVectorTemplate(pathBitsMap);
 
     std::vector<unsigned> canonicalVariants;
-    buildCanonicalConditionVectorVariants(numNonLeafNodes,
-                                          conditionVectorTemplate, pathBitsMap,
-                                          canonicalVariants);
+    buildCanonicalConditionVectorVariants(numNodes, conditionVectorTemplate,
+                                          pathBitsMap, canonicalVariants);
 
     Builder.SetInsertPoint(switchBB);
-    IntegerType *conditionVectorTy = IntegerType::get(Ctx, numNonLeafNodes + 1);
+    IntegerType *conditionVectorTy = IntegerType::get(Ctx, numNodes + 1);
     for (unsigned conditionVector : canonicalVariants) {
       ConstantInt *caseVal =
           ConstantInt::get(conditionVectorTy, conditionVector);
@@ -471,14 +456,14 @@ int64_t getNumCompiledEvaluators(int treeDepth, int compiledFunctionDepth) {
 int64_t
 computeLeafNodeIdxForDataSetCompiled(const DecisionTree &tree,
                                      const std::vector<float> &dataSet) {
-  int64_t treeNodeIdx = 0;
+  int64_t idx = 0;
+  int64_t firstResultIdx = tree.size();
   const float *data = dataSet.data();
 
-  while (!tree.at(treeNodeIdx).isLeaf()) {
-    compiledNodeEvaluator_f *compiledEvaluator =
-        compiledNodeEvaluators.at(treeNodeIdx);
-    treeNodeIdx = compiledEvaluator(data);
+  while (idx < firstResultIdx) {
+    compiledNodeEvaluator_f *compiledEvaluator = compiledNodeEvaluators.at(idx);
+    idx = compiledEvaluator(data);
   }
 
-  return treeNodeIdx;
+  return idx;
 }
