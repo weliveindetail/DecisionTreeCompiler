@@ -236,19 +236,12 @@ void buildCanonicalConditionVectorVariants(
   }
 }
 
-llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
-                                   int64_t rootNodeIdx, int subtreeLevels,
-                                   int switchLevels, llvm::Function *function,
-                                   llvm::Value *dataSetPtr) {
+llvm::Value *emitComputeConditionVector(
+    const DecisionTree &tree, int64_t rootNodeIdx, int subtreeLevels,
+    llvm::Value *dataSetPtr, int64_t numNodes,
+    std::unordered_map<int64_t, unsigned int> &bitOffsets) {
   using namespace llvm;
-  assert(subtreeLevels % switchLevels == 0);
-
   Type *returnTy = Type::getInt64Ty(Ctx);
-  int64_t numNodes = TreeNodes(subtreeLevels);
-  int64_t numContinuations = PowerOf2(subtreeLevels);
-
-  std::unordered_map<int64_t, unsigned> subtreeNodeIdxBitOffsets;
-  subtreeNodeIdxBitOffsets.reserve(numNodes);
 
   Value *conditionVector =
       Builder.CreateAlloca(returnTy, nullptr, "conditionVector");
@@ -258,8 +251,8 @@ llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
     int64_t nodeIdx =
         getNodeIdxForSubtreeBitOffset(rootNodeIdx, subtreeLevels, bitOffset);
 
-    // remember nodeIdx at bit offset
-    subtreeNodeIdxBitOffsets[nodeIdx] = bitOffset;
+    // remember bit offset for each node index
+    bitOffsets[nodeIdx] = bitOffset;
 
     const TreeNode &node = tree.at(nodeIdx);
     Value *evalResultBit = emitSingleNodeEvaluaton(node, dataSetPtr);
@@ -271,7 +264,26 @@ llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
     Builder.CreateStore(conditionVectorNew, conditionVector);
   }
 
-  auto *switchBB = Builder.GetInsertBlock();
+  return conditionVector;
+}
+
+llvm::Value *emitSubtreeSwitch(const DecisionTree &tree,
+                               int64_t switchRootNodeIdx, int switchLevels,
+                               llvm::Function *function,
+                               llvm::BasicBlock *switchBB,
+                               llvm::Value *dataSetPtr) {
+  using namespace llvm;
+  Type *returnTy = Type::getInt64Ty(Ctx);
+  int64_t numNodes = TreeNodes(switchLevels);
+  int64_t numContinuations = PowerOf2(switchLevels);
+
+  std::unordered_map<int64_t, unsigned> subtreeNodeIdxBitOffsets;
+  subtreeNodeIdxBitOffsets.reserve(numNodes);
+
+  llvm::Value *conditionVector = emitComputeConditionVector(
+      tree, switchRootNodeIdx, switchLevels, dataSetPtr, numNodes,
+      subtreeNodeIdxBitOffsets);
+
   auto *returnBB = BasicBlock::Create(Ctx, "return", function);
 
   Value *evalResult = Builder.CreateAlloca(returnTy, nullptr, "result");
@@ -285,9 +297,9 @@ llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
   std::vector<LeafNodePathBitsMap_t> leafNodePathBitsMaps;
 
   leafNodePathBitsMaps.reserve(numContinuations);
-  buildSubtreeLeafNodePathsBitsMapsRecursively(tree, rootNodeIdx, subtreeLevels,
-                                               subtreeNodeIdxBitOffsets,
-                                               leafNodePathBitsMaps);
+  buildSubtreeLeafNodePathsBitsMapsRecursively(
+      tree, switchRootNodeIdx, switchLevels, subtreeNodeIdxBitOffsets,
+      leafNodePathBitsMaps);
   assert(leafNodePathBitsMaps.size() == numContinuations);
 
   // iterate leaf nodes
@@ -322,6 +334,17 @@ llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
 
   Builder.SetInsertPoint(returnBB);
   return Builder.CreateLoad(evalResult);
+}
+
+llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
+                                   int64_t rootNodeIdx, int subtreeLevels,
+                                   int switchLevels, llvm::Function *function,
+                                   llvm::Value *dataSetPtr) {
+  assert(subtreeLevels % switchLevels == 0);
+
+  auto *entryBB = Builder.GetInsertBlock();
+  return emitSubtreeSwitch(tree, rootNodeIdx, subtreeLevels, function, entryBB,
+                           dataSetPtr);
 }
 
 int64_t loadEvaluators(const DecisionTree &tree, int treeDepth,
@@ -397,8 +420,8 @@ int64_t compileEvaluators(const DecisionTree &tree, int treeDepth,
     fflush(stdout);
   }
 
-  // llvm::outs() << "\n\nWe just constructed this LLVM module:\n\n";
-  // llvm::outs() << *TheModule.get() << "\n\n";
+  llvm::outs() << "\n\nWe just constructed this LLVM module:\n\n";
+  llvm::outs() << *TheModule.get() << "\n\n";
 
   // submit module for jit compilation
   {
