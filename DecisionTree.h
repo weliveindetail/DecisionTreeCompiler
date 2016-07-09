@@ -28,20 +28,12 @@ struct TreeNode {
         TrueChildNodeIdx(trueChildNodesIdx),
         FalseChildNodeIdx(falseChildNodesIdx) {}
 
-  int64_t getFalseChildIdx() const { return FalseChildNodeIdx; }
-
-  int64_t getTrueChildIdx() const { return TrueChildNodeIdx; }
-
-  bool isLeaf() const {
-    assert((getFalseChildIdx() == 0) == (getTrueChildIdx() == 0) &&
-           "There must either both or no child nodes");
-    return getFalseChildIdx() == 0;
-  }
-
   float Bias;
   OperationType Op;
   ComparatorType Comp;
   int DataSetFeatureIdx;
+
+  bool IsGlobalLeaf;
   int64_t TrueChildNodeIdx;
   int64_t FalseChildNodeIdx;
 };
@@ -80,16 +72,15 @@ DecisionTree makeDecisionTree(int treeDepth, int dataSetFeatures,
 
   int64_t nodeIdx = 0;
   for (int level = 0; level < treeDepth; level++) {
-    int64_t firstChildNodeIdx = TreeNodes(level + 1);
+    int64_t childNodeIdx = TreeNodes(level + 1);
     int numNodesOnLevel = PowerOf2(level);
 
     for (int offset = 0; offset < numNodesOnLevel; offset++) {
       auto node = makeDecisionTreeNode(dataSetFeatures);
 
-      if (nodeIdx < firstLeafIdx) {
-        node.TrueChildNodeIdx = firstChildNodeIdx++;
-        node.FalseChildNodeIdx = firstChildNodeIdx++;
-      }
+      node.TrueChildNodeIdx = childNodeIdx++;
+      node.FalseChildNodeIdx = childNodeIdx++;
+      node.IsGlobalLeaf = (level == treeDepth - 1);
 
       treeData.push_back({{"Bias", node.Bias},
                           {"Op", (int)node.Op},

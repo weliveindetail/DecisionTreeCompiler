@@ -2,9 +2,8 @@
 
 #include "DecisionTree.h"
 
-int64_t
-computeChildNodeForDataSet(const TreeNode &currentNode,
-                           const std::vector<float> &dataSet) {
+int64_t computeChildNodeForDataSet(const TreeNode &currentNode,
+                                   const std::vector<float> &dataSet) {
 
   auto applyOperator = [](OperationType op, float value) {
     switch (op) {
@@ -39,18 +38,18 @@ computeChildNodeForDataSet(const TreeNode &currentNode,
          evaluatesTrue ? "true" : "false");
   //*/
 
-  return evaluatesTrue ? currentNode.getTrueChildIdx()
-                       : currentNode.getFalseChildIdx();
+  return evaluatesTrue ? currentNode.TrueChildNodeIdx
+                       : currentNode.FalseChildNodeIdx;
 }
 
-int64_t computeLeafNodeIdxForDataSet(
-    const DecisionTree &tree,
-    const std::vector<float> dataSet) {
-  int64_t treeNodeIdx = 0;
+int64_t computeLeafNodeIdxForDataSet(const DecisionTree &tree,
+                                     const std::vector<float> dataSet) {
+  int64_t idx = 0;
+  int64_t firstResultIdx = tree.size();
 
-  while (!tree.at(treeNodeIdx).isLeaf()) {
-    treeNodeIdx = computeChildNodeForDataSet(tree.at(treeNodeIdx), dataSet);
+  while (idx < firstResultIdx) {
+    idx = computeChildNodeForDataSet(tree.at(idx), dataSet);
   }
 
-  return treeNodeIdx;
+  return idx;
 }

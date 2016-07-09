@@ -47,22 +47,32 @@ runBenchmarkEvalCompiled(const DecisionTree &tree,
 
 std::string makeTreeFileName(int treeDepth, int dataSetFeatures) {
   std::ostringstream osstr;
-  osstr << "cache/_td" << treeDepth << "_dsf" << dataSetFeatures << ".t";
+
+  osstr << "cache/";
+  osstr << "_td" << treeDepth;
+  osstr << "_dsf" << dataSetFeatures;
+  osstr << ".t";
 
   return osstr.str();
 }
 
 std::string makeObjFileName(int treeDepth, int dataSetFeatures,
-                            int compiledFunctionDepth) {
+                            int compiledFunctionDepth,
+                            int compiledFunctionSwitchDepth) {
   std::ostringstream osstr;
-  osstr << "cache/_td" << treeDepth << "_dsf" << dataSetFeatures << "_cfd"
-        << compiledFunctionDepth << ".o";
+
+  osstr << "cache/";
+  osstr << "_td" << treeDepth;
+  osstr << "_dsf" << dataSetFeatures;
+  osstr << "_cfd" << compiledFunctionDepth;
+  osstr << "_cfsd" << compiledFunctionSwitchDepth;
+  osstr << ".o";
 
   return osstr.str();
 }
 
 void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
-                  int compiledFunctionDepth) {
+                  int compiledFunctionDepth, int compiledFunctionSwitchDepth) {
   initializeLLVM();
 
   DecisionTree tree;
@@ -86,7 +96,8 @@ void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
   }
 
   std::string cachedObjFile =
-      makeObjFileName(treeDepth, dataSetFeatures, compiledFunctionDepth);
+      makeObjFileName(treeDepth, dataSetFeatures, compiledFunctionDepth,
+                      compiledFunctionSwitchDepth);
   bool isObjFileCached = isFileInCache(cachedObjFile);
   setupModule("file:" + cachedObjFile);
 
@@ -97,7 +108,8 @@ void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
   } else {
     printf("Generating %lld evaluators for %lu nodes and cache it in file %s",
            expectedEvaluators, tree.size(), cachedObjFile.c_str());
-    actualEvaluators = compileEvaluators(tree, compiledFunctionDepth);
+    actualEvaluators = compileEvaluators(tree, treeDepth, compiledFunctionDepth,
+                                         compiledFunctionSwitchDepth);
   }
 
   assert(expectedEvaluators == actualEvaluators);
@@ -142,12 +154,14 @@ void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
 
 int main() {
   int repetitions = 1000;
-
-  int treeDepth = 10; // depth 25 ~ 1GB data in memory
   int dataSetFeatures = 100;
-  int compiledFunctionDepth = 10;
 
-  runBenchmark(repetitions, treeDepth, dataSetFeatures, compiledFunctionDepth);
+  int treeDepth = 8; // depth 25 ~ 1GB data in memory
+  int compiledFunctionDepth = 4;
+  int compiledFunctionSwitchDepth = 2;
+
+  runBenchmark(repetitions, treeDepth, dataSetFeatures, compiledFunctionDepth,
+               compiledFunctionSwitchDepth);
 
   return 0;
 }

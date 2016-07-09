@@ -89,15 +89,18 @@ private:
   optimizeModule(std::unique_ptr<llvm::Module> M) {
     auto FPM = llvm::make_unique<llvm::legacy::FunctionPassManager>(M.get());
 
-    FPM->add(llvm::createInstructionCombiningPass());
+    //FPM->add(llvm::createInstructionCombiningPass());
     FPM->add(llvm::createReassociatePass());
-    FPM->add(llvm::createGVNPass());
+    //FPM->add(llvm::createGVNPass());
     FPM->add(llvm::createCFGSimplificationPass());
     FPM->doInitialization();
 
     // run on all functions in the module
     for (auto &F : *M)
       FPM->run(F);
+
+    // llvm::outs() << "\n\nOptimized the code:\n\n";
+    // llvm::outs() << *M.get() << "\n\n";
 
     return M;
   }
