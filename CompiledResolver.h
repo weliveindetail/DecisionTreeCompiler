@@ -267,11 +267,10 @@ llvm::Value *emitComputeConditionVector(
   return conditionVector;
 }
 
-llvm::Value *emitSubtreeSwitch(const DecisionTree &tree,
-                               int64_t switchRootNodeIdx, int switchLevels,
-                               llvm::Function *function,
-                               llvm::BasicBlock *switchBB,
-                               llvm::Value *dataSetPtr) {
+llvm::Value *emitSubtreeSwitchesRecursively(
+    const DecisionTree &tree, int64_t switchRootNodeIdx, int switchLevels,
+    llvm::Function *function, llvm::BasicBlock *switchBB,
+    llvm::Value *dataSetPtr, int nestedSwitches) {
   using namespace llvm;
   Type *returnTy = Type::getInt64Ty(Ctx);
   int64_t numNodes = TreeNodes(switchLevels);
@@ -284,9 +283,13 @@ llvm::Value *emitSubtreeSwitch(const DecisionTree &tree,
       tree, switchRootNodeIdx, switchLevels, dataSetPtr, numNodes,
       subtreeNodeIdxBitOffsets);
 
-  auto *returnBB = BasicBlock::Create(Ctx, "return", function);
+  std::string returnBBLabel =
+      "return_switch_node_" + std::to_string(switchRootNodeIdx);
+  auto *returnBB = BasicBlock::Create(Ctx, returnBBLabel, function);
 
-  Value *evalResult = Builder.CreateAlloca(returnTy, nullptr, "result");
+  std::string evalResultLabel =
+      "result_switch_node_" + std::to_string(switchRootNodeIdx);
+  Value *evalResult = Builder.CreateAlloca(returnTy, nullptr, evalResultLabel);
   Value *conditionVectorVal = Builder.CreateLoad(conditionVector);
 
   auto *switchInst = Builder.CreateSwitch(conditionVectorVal, returnBB,
@@ -312,7 +315,17 @@ llvm::Value *emitSubtreeSwitch(const DecisionTree &tree,
     auto *nodeBB = llvm::BasicBlock::Create(Ctx, nodeBBLabel, function);
     {
       Builder.SetInsertPoint(nodeBB);
-      Builder.CreateStore(ConstantInt::get(returnTy, leafNodeIdx), evalResult);
+
+      if (nestedSwitches > 0) {
+        Value *subSwitchResult = emitSubtreeSwitchesRecursively(
+            tree, leafNodeIdx, switchLevels, function, nodeBB, dataSetPtr,
+            nestedSwitches - 1);
+        Builder.CreateStore(subSwitchResult, evalResult);
+      } else {
+        Builder.CreateStore(ConstantInt::get(returnTy, leafNodeIdx),
+                            evalResult);
+      }
+
       Builder.CreateBr(returnBB);
     }
 
@@ -343,8 +356,9 @@ llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
   assert(subtreeLevels % switchLevels == 0);
 
   auto *entryBB = Builder.GetInsertBlock();
-  return emitSubtreeSwitch(tree, rootNodeIdx, subtreeLevels, function, entryBB,
-                           dataSetPtr);
+  return emitSubtreeSwitchesRecursively(tree, rootNodeIdx, switchLevels,
+                                        function, entryBB, dataSetPtr,
+                                        subtreeLevels / switchLevels - 1);
 }
 
 int64_t loadEvaluators(const DecisionTree &tree, int treeDepth,
