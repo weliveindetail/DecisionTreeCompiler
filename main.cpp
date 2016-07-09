@@ -62,7 +62,7 @@ std::string makeObjFileName(int treeDepth, int dataSetFeatures,
 }
 
 void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
-                  int compiledFunctionDepth) {
+                  int compiledFunctionDepth, int compiledFunctionSwitchDepth) {
   initializeLLVM();
 
   DecisionTree tree;
@@ -97,7 +97,8 @@ void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
   } else {
     printf("Generating %lld evaluators for %lu nodes and cache it in file %s",
            expectedEvaluators, tree.size(), cachedObjFile.c_str());
-    actualEvaluators = compileEvaluators(tree, treeDepth, compiledFunctionDepth);
+    actualEvaluators = compileEvaluators(tree, treeDepth, compiledFunctionDepth,
+                                         compiledFunctionSwitchDepth);
   }
 
   assert(expectedEvaluators == actualEvaluators);
@@ -142,12 +143,14 @@ void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
 
 int main() {
   int repetitions = 1000;
-
-  int treeDepth = 16; // depth 25 ~ 1GB data in memory
   int dataSetFeatures = 100;
-  int compiledFunctionDepth = 4;
 
-  runBenchmark(repetitions, treeDepth, dataSetFeatures, compiledFunctionDepth);
+  int treeDepth = 8; // depth 25 ~ 1GB data in memory
+  int compiledFunctionDepth = 4;
+  int compiledFunctionSwitchDepth = 2;
+
+  runBenchmark(repetitions, treeDepth, dataSetFeatures, compiledFunctionDepth,
+               compiledFunctionSwitchDepth);
 
   return 0;
 }

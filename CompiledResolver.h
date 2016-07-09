@@ -237,14 +237,15 @@ void buildCanonicalConditionVectorVariants(
 }
 
 llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
-                                   int64_t rootNodeIdx, int levels,
-                                   llvm::Function *function,
+                                   int64_t rootNodeIdx, int subtreeLevels,
+                                   int switchLevels, llvm::Function *function,
                                    llvm::Value *dataSetPtr) {
   using namespace llvm;
+  assert(subtreeLevels % switchLevels == 0);
 
   Type *returnTy = Type::getInt64Ty(Ctx);
-  int64_t numNodes = TreeNodes(levels);
-  int64_t numContinuations = PowerOf2(levels);
+  int64_t numNodes = TreeNodes(subtreeLevels);
+  int64_t numContinuations = PowerOf2(subtreeLevels);
 
   std::unordered_map<int64_t, unsigned> subtreeNodeIdxBitOffsets;
   subtreeNodeIdxBitOffsets.reserve(numNodes);
@@ -255,7 +256,7 @@ llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
 
   for (unsigned bitOffset = 0; bitOffset < numNodes; bitOffset++) {
     int64_t nodeIdx =
-        getNodeIdxForSubtreeBitOffset(rootNodeIdx, levels, bitOffset);
+        getNodeIdxForSubtreeBitOffset(rootNodeIdx, subtreeLevels, bitOffset);
 
     // remember nodeIdx at bit offset
     subtreeNodeIdxBitOffsets[nodeIdx] = bitOffset;
@@ -284,7 +285,7 @@ llvm::Value *emitSubtreeEvaluation(const DecisionTree &tree,
   std::vector<LeafNodePathBitsMap_t> leafNodePathBitsMaps;
 
   leafNodePathBitsMaps.reserve(numContinuations);
-  buildSubtreeLeafNodePathsBitsMapsRecursively(tree, rootNodeIdx, levels,
+  buildSubtreeLeafNodePathsBitsMapsRecursively(tree, rootNodeIdx, subtreeLevels,
                                                subtreeNodeIdxBitOffsets,
                                                leafNodePathBitsMaps);
   assert(leafNodePathBitsMaps.size() == numContinuations);
@@ -351,8 +352,9 @@ int64_t loadEvaluators(const DecisionTree &tree, int treeDepth,
 }
 
 int64_t compileEvaluators(const DecisionTree &tree, int treeDepth,
-                          int nodeLevelsPerFunction) {
+                          int nodeLevelsPerFunction, int nodeLevelsPerSwitch) {
   using namespace llvm;
+  assert(treeDepth % nodeLevelsPerFunction == 0);
 
   std::string nameStub = "nodeEvaluator_";
   std::forward_list<int64_t> processedNodes;
@@ -377,8 +379,9 @@ int64_t compileEvaluators(const DecisionTree &tree, int treeDepth,
         Value *dataSetPtr = &*evalFn->arg_begin();
 
         Builder.SetInsertPoint(llvm::BasicBlock::Create(Ctx, "entry", evalFn));
-        Value *nextNodeIdx = emitSubtreeEvaluation(
-            tree, nodeIdx, nodeLevelsPerFunction, evalFn, dataSetPtr);
+        Value *nextNodeIdx =
+            emitSubtreeEvaluation(tree, nodeIdx, nodeLevelsPerFunction,
+                                  nodeLevelsPerSwitch, evalFn, dataSetPtr);
 
         Builder.CreateRet(nextNodeIdx);
         llvm::verifyFunction(*evalFn);
