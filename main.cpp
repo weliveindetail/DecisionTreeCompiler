@@ -1,5 +1,4 @@
 #include <memory>
-#include <unordered_map>
 #include <vector>
 
 #include "benchmark/benchmark.h"
@@ -20,22 +19,32 @@ std::unique_ptr<RegularResolver> regularResolver;
 std::unique_ptr<CompiledResolver> compiledResolver;
 
 DecisionTree_t tree = prepareDecisionTree(treeDepth, dataSetFeatures);
-std::vector<DataSet_t> dataSets = prepareRandomDataSets(100, dataSetFeatures);
+std::vector<DataSet_t> dataSets = makeRandomDataSets(100, dataSetFeatures, tree); // hack
 
 DataSet_t& selectRandomDataSet() {
   return dataSets[makeRandomInt(0, dataSets.size() - 1)];
 };
 
 static void BM_RegularEvaluation(benchmark::State& state) {
+  DataSet_t& dataSet = selectRandomDataSet();
+  int64_t result = 0;
+
   while (state.KeepRunning()) {
-    regularResolver->run(tree, selectRandomDataSet());
+    result = regularResolver->run(tree, dataSet);
   }
+
+  assert(dataSet[dataSetFeatures] == (float)result);
 }
 
 static void BM_CompiledEvaluation(benchmark::State& state) {
+  DataSet_t& dataSet = selectRandomDataSet();
+  int64_t result = 0;
+
   while (state.KeepRunning()) {
-    compiledResolver->run(tree, selectRandomDataSet());
+    result = compiledResolver->run(tree, dataSet);
   }
+
+  assert(dataSet[dataSetFeatures] == (float)result);
 }
 
 BENCHMARK(BM_RegularEvaluation);

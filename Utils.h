@@ -95,20 +95,21 @@ static int makeRandomInt(int min, int max) {
   return dist(engine);
 }
 
-static std::vector<float> makeRandomDataSet(int features) {
-  std::vector<float> dataSet((size_t)features);
+// hack
+#include "DecisionTree.h"
+#include "RegularResolver.h"
 
-  for (int i = 0; i < features; i++)
-    dataSet[i] = makeRandomFloat(); // range [0, 1)
+static std::vector<std::vector<float>> makeRandomDataSets(size_t dataSets, size_t features, const DecisionTree_t& tree) {
+  std::vector<std::vector<float>> dataSetCollection(dataSets);
+  RegularResolver resolver;
 
-  return dataSet;
-};
+  auto makeRandomDataSet = [&]() {
+      std::vector<float> dataSet(features + 1);
+      std::generate(dataSet.begin(), dataSet.end() - 1, makeRandomFloat);
+      dataSet.back() = resolver.run(tree, dataSet); // extra slot for expected result index
+      return dataSet;
+  };
 
-static std::vector<std::vector<float>> prepareRandomDataSets(int num, int features) {
-  std::vector<std::vector<float>> dataSetCollection((size_t)num);
-
-  for (int i = 0; i < num; i++)
-    dataSetCollection[i] = makeRandomDataSet(features);
-
+  std::generate(dataSetCollection.begin(), dataSetCollection.end(), makeRandomDataSet);
   return dataSetCollection;
 }
