@@ -1,167 +1,52 @@
-#include <cassert>
-#include <chrono>
-#include <cstdint>
-#include <cstdio>
-#include <sstream>
-#include <thread>
+#include <memory>
+#include <unordered_map>
 #include <vector>
 
-#include "CompiledResolver.h"
-#include "RegularResolver.h"
+#include "benchmark/benchmark.h"
+
 #include "Utils.h"
+#include "DecisionTree.h"
+#include "RegularResolver.h"
+#include "CompiledResolver.h"
 
-void llvm::ObjectCache::anchor() {}
+int treeDepth = 6;
+int dataSetFeatures = 100;
+int compiledFunctionLevels = 6;
+int compiledFunctionSwitchLevels = 3;
 
-std::vector<float> makeRandomDataSet(int features) {
-  std::vector<float> dataSet((size_t)features);
+using DataSet_t = std::vector<float>;
 
-  for (int i = 0; i < features; i++)
-    dataSet[i] = makeRandomFloat(); // range [0, 1)
+std::unique_ptr<RegularResolver> regularResolver;
+std::unique_ptr<CompiledResolver> compiledResolver;
 
-  return dataSet;
+DecisionTree_t tree = prepareDecisionTree(treeDepth, dataSetFeatures);
+std::vector<DataSet_t> dataSets = prepareRandomDataSets(100, dataSetFeatures);
+
+DataSet_t& selectRandomDataSet() {
+  return dataSets[makeRandomInt(0, dataSets.size() - 1)];
 };
 
-std::tuple<int64_t, std::chrono::nanoseconds>
-runBenchmarkEvalRegular(const DecisionTree &tree,
-                        const std::vector<float> &dataSet) {
-  using namespace std::chrono;
-  auto start = high_resolution_clock::now();
-
-  int64_t leafIdx = computeLeafNodeIdxForDataSet(tree, dataSet);
-
-  auto end = high_resolution_clock::now();
-  return std::make_tuple(leafIdx, duration_cast<nanoseconds>(end - start));
-};
-
-std::tuple<int64_t, std::chrono::nanoseconds>
-runBenchmarkEvalCompiled(const DecisionTree &tree,
-                         const std::vector<float> &dataSet) {
-  using namespace std::chrono;
-  auto start = high_resolution_clock::now();
-
-  int64_t leafIdx = computeLeafNodeIdxForDataSetCompiled(tree, dataSet);
-
-  auto end = high_resolution_clock::now();
-  return std::make_tuple(leafIdx, duration_cast<nanoseconds>(end - start));
-};
-
-std::string makeTreeFileName(int treeDepth, int dataSetFeatures) {
-  std::ostringstream osstr;
-
-  osstr << "cache/";
-  osstr << "_td" << treeDepth;
-  osstr << "_dsf" << dataSetFeatures;
-  osstr << ".t";
-
-  return osstr.str();
+static void BM_RegularEvaluation(benchmark::State& state) {
+  while (state.KeepRunning()) {
+    regularResolver->run(tree, selectRandomDataSet());
+  }
 }
 
-std::string makeObjFileName(int treeDepth, int dataSetFeatures,
-                            int compiledFunctionDepth,
-                            int compiledFunctionSwitchDepth) {
-  std::ostringstream osstr;
-
-  osstr << "cache/";
-  osstr << "_td" << treeDepth;
-  osstr << "_dsf" << dataSetFeatures;
-  osstr << "_cfd" << compiledFunctionDepth;
-  osstr << "_cfsd" << compiledFunctionSwitchDepth;
-  osstr << ".o";
-
-  return osstr.str();
+static void BM_CompiledEvaluation(benchmark::State& state) {
+  while (state.KeepRunning()) {
+    compiledResolver->run(tree, selectRandomDataSet());
+  }
 }
 
-void runBenchmark(int repetitions, int treeDepth, int dataSetFeatures,
-                  int compiledFunctionDepth, int compiledFunctionSwitchDepth) {
-  initializeLLVM();
+BENCHMARK(BM_RegularEvaluation);
+BENCHMARK(BM_CompiledEvaluation);
 
-  DecisionTree tree;
+int main(int argc, char** argv) {
+  regularResolver = std::make_unique<RegularResolver>();
+  compiledResolver = std::make_unique<CompiledResolver>(
+      tree, dataSetFeatures, compiledFunctionLevels,
+      compiledFunctionSwitchLevels);
 
-  int64_t actualEvaluators;
-  int64_t expectedEvaluators =
-      getNumCompiledEvaluators(treeDepth, compiledFunctionDepth);
-
-  std::string cachedTreeFile = makeTreeFileName(treeDepth, dataSetFeatures);
-  bool isTreeFileCached = isFileInCache(cachedTreeFile);
-
-  if (isTreeFileCached) {
-    printf("Loading decision tree with depth %d from file %s\n", treeDepth,
-           cachedTreeFile.c_str());
-    tree = loadDecisionTree(treeDepth, std::move(cachedTreeFile));
-  } else {
-    printf("Building decision tree with depth %d and cache it in file %s\n",
-           treeDepth, cachedTreeFile.c_str());
-    tree =
-        makeDecisionTree(treeDepth, dataSetFeatures, std::move(cachedTreeFile));
-  }
-
-  std::string cachedObjFile =
-      makeObjFileName(treeDepth, dataSetFeatures, compiledFunctionDepth,
-                      compiledFunctionSwitchDepth);
-  bool isObjFileCached = isFileInCache(cachedObjFile);
-  setupModule("file:" + cachedObjFile);
-
-  if (isTreeFileCached && isObjFileCached) {
-    printf("Loading %lld evaluators for %lu nodes from file %s",
-           expectedEvaluators, tree.size(), cachedObjFile.c_str());
-    actualEvaluators = loadEvaluators(tree, treeDepth, compiledFunctionDepth);
-  } else {
-    printf("Generating %lld evaluators for %lu nodes and cache it in file %s",
-           expectedEvaluators, tree.size(), cachedObjFile.c_str());
-    actualEvaluators = compileEvaluators(tree, treeDepth, compiledFunctionDepth,
-                                         compiledFunctionSwitchDepth);
-  }
-
-  assert(expectedEvaluators == actualEvaluators);
-
-  {
-    printf("\n\nBenchmarking: %d runs with %d features\n", repetitions,
-           dataSetFeatures);
-
-    int64_t resultRegular;
-    int64_t resultCompiled;
-
-    std::chrono::nanoseconds runtimeRegular;
-    std::chrono::nanoseconds runtimeCompiled;
-
-    float totalRuntimeRegular = 0;
-    float totalRuntimeCompiled = 0;
-
-    for (int i = 0; i < repetitions; i++) {
-      auto dataSet = makeRandomDataSet(dataSetFeatures);
-
-      std::tie(resultRegular, runtimeRegular) =
-          runBenchmarkEvalRegular(tree, dataSet);
-
-      std::tie(resultCompiled, runtimeCompiled) =
-          runBenchmarkEvalCompiled(tree, dataSet);
-
-      assert(resultRegular == resultCompiled);
-
-      totalRuntimeRegular += runtimeRegular.count();
-      totalRuntimeCompiled += runtimeCompiled.count();
-    }
-
-    float averageRuntimeRegular = totalRuntimeRegular / repetitions;
-    printf("Average evaluation time regular: %fns\n", averageRuntimeRegular);
-
-    float averageRuntimeCompiled = totalRuntimeCompiled / repetitions;
-    printf("Average evaluation time compiled: %fns\n", averageRuntimeCompiled);
-  }
-
-  shutdownLLVM();
-}
-
-int main() {
-  int repetitions = 1000;
-  int dataSetFeatures = 100;
-
-  int treeDepth = 8; // depth 25 ~ 1GB data in memory
-  int compiledFunctionDepth = 4;
-  int compiledFunctionSwitchDepth = 2;
-
-  runBenchmark(repetitions, treeDepth, dataSetFeatures, compiledFunctionDepth,
-               compiledFunctionSwitchDepth);
-
-  return 0;
+  ::benchmark::Initialize(&argc, argv);
+  ::benchmark::RunSpecifiedBenchmarks();
 }

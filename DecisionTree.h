@@ -4,11 +4,16 @@
 #include <unistd.h>
 #include <unordered_map>
 
+#include <llvm/Support/ErrorOr.h>
 #include <llvm/Support/FileSystem.h>
+#include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/Path.h>
 
 #include "Utils.h"
 #include "json/src/json.hpp"
+
+struct TreeNode;
+using DecisionTree_t = std::unordered_map<int64_t, TreeNode>;
 
 enum class OperationType { Bypass, Sqrt, Ln };
 
@@ -38,10 +43,8 @@ struct TreeNode {
   int64_t FalseChildNodeIdx;
 };
 
-using DecisionTree = std::unordered_map<int64_t, TreeNode>;
-
 // for expected input range [0, 1)
-float makeBalancedBias(OperationType op) {
+static float makeBalancedBias(OperationType op) {
   switch (op) {
   case OperationType::Bypass:
     return 0.5f;
@@ -52,7 +55,7 @@ float makeBalancedBias(OperationType op) {
   };
 }
 
-TreeNode makeDecisionTreeNode(int dataSetFeatures) {
+static TreeNode makeDecisionTreeNode(int dataSetFeatures) {
   auto op = (OperationType)makeRandomInt(0, 2);
   auto comp = (ComparatorType)makeRandomInt(0, 1);
   int featureIdx = makeRandomInt(0, dataSetFeatures);
@@ -61,9 +64,9 @@ TreeNode makeDecisionTreeNode(int dataSetFeatures) {
   return TreeNode(bias, op, comp, featureIdx);
 }
 
-DecisionTree makeDecisionTree(int treeDepth, int dataSetFeatures,
-                              std::string fileName) {
-  DecisionTree tree;
+static DecisionTree_t makeDecisionTree(int treeDepth, int dataSetFeatures,
+                                     std::string fileName) {
+  DecisionTree_t tree;
   tree.reserve(TreeNodes(treeDepth));
 
   nlohmann::json treeData = nlohmann::json::array();
@@ -111,7 +114,7 @@ DecisionTree makeDecisionTree(int treeDepth, int dataSetFeatures,
   return tree;
 };
 
-TreeNode loadDecisionTreeNode(const nlohmann::json &nodeData) {
+static TreeNode loadDecisionTreeNode(const nlohmann::json &nodeData) {
   float bias = nodeData.at("Bias");
   int op = nodeData.at("Op");
   int comp = nodeData.at("Comp");
@@ -123,20 +126,20 @@ TreeNode loadDecisionTreeNode(const nlohmann::json &nodeData) {
                   trueChildNodeIdx, falseChildNodeIdx);
 }
 
-DecisionTree loadDecisionTree(int treeDepth, std::string fileName) {
+static DecisionTree_t loadDecisionTree(int treeDepth, std::string fileName) {
   llvm::ErrorOr<std::unique_ptr<llvm::MemoryBuffer>> fileBuffer =
       llvm::MemoryBuffer::getFile(fileName.c_str());
 
   if (!fileBuffer) {
     assert(false);
-    return (DecisionTree());
+    return (DecisionTree_t());
   }
 
   int64_t expectedNodes = TreeNodes(treeDepth);
   llvm::StringRef fileContents = fileBuffer.get()->getBuffer();
   nlohmann::json treeData = nlohmann::json::parse(fileContents.data());
 
-  DecisionTree tree;
+  DecisionTree_t tree;
   tree.reserve(expectedNodes);
 
   int64_t i = 0;
@@ -145,4 +148,20 @@ DecisionTree loadDecisionTree(int treeDepth, std::string fileName) {
 
   assert(i == expectedNodes);
   return tree;
+}
+
+static DecisionTree_t prepareDecisionTree(int treeDepth, int dataSetFeatures) {
+  std::string cachedTreeFile = makeTreeFileName(treeDepth, dataSetFeatures);
+  bool isTreeFileCached = isFileInCache(cachedTreeFile);
+
+  if (isTreeFileCached) {
+    printf("Loading decision tree with depth %d from file %s\n", treeDepth,
+           cachedTreeFile.c_str());
+    return loadDecisionTree(treeDepth, std::move(cachedTreeFile));
+  } else {
+    printf("Building decision tree with depth %d and cache it in file %s\n",
+           treeDepth, cachedTreeFile.c_str());
+    return
+        makeDecisionTree(treeDepth, dataSetFeatures, std::move(cachedTreeFile));
+  }
 }

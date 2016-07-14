@@ -20,6 +20,7 @@ set(SOURCE_FILES
         DecisionTree.h
         RegularResolver.h
         CompiledResolver.h
+        CompiledResolver.cpp
         SimpleOrcJit.h
         SimpleObjectCache.h)
 

@@ -1,6 +1,13 @@
 #pragma once
 
 #include <random>
+#include <sstream>
+#include <string>
+
+#include <unistd.h>
+
+#include <llvm/Support/FileSystem.h>
+#include <llvm/Support/raw_ostream.h>
 
 constexpr bool isPowerOf2(const int n) {
   return n == 1 || (n & (n-1)) == 0;
@@ -38,21 +45,7 @@ constexpr int Log2 (uint64_t value)
   return tab64[x >> 58];
 }
 
-float makeRandomFloat() {
-  static std::random_device rd;
-  static std::default_random_engine engine(rd());
-  static std::uniform_real_distribution<float> dist(0, 1);
-  return dist(engine);
-}
-
-int makeRandomInt(int min, int max) {
-  static std::random_device rd;
-  static std::default_random_engine engine(rd());
-  std::uniform_int_distribution<int> dist(min, max);
-  return dist(engine);
-}
-
-bool isFileInCache(std::string fileName) {
+static bool isFileInCache(std::string fileName) {
   int FD;
   std::error_code EC = llvm::sys::fs::openFileForRead(fileName, FD);
   if (EC)
@@ -60,4 +53,62 @@ bool isFileInCache(std::string fileName) {
 
   close(FD);
   return true;
+}
+
+static std::string makeTreeFileName(int treeDepth, int dataSetFeatures) {
+  std::ostringstream osstr;
+
+  osstr << "cache/";
+  osstr << "_td" << treeDepth;
+  osstr << "_dsf" << dataSetFeatures;
+  osstr << ".t";
+
+  return osstr.str();
+}
+
+static std::string makeObjFileName(int treeDepth, int dataSetFeatures,
+                            int compiledFunctionDepth,
+                            int compiledFunctionSwitchDepth) {
+  std::ostringstream osstr;
+
+  osstr << "cache/";
+  osstr << "_td" << treeDepth;
+  osstr << "_dsf" << dataSetFeatures;
+  osstr << "_cfd" << compiledFunctionDepth;
+  osstr << "_cfsd" << compiledFunctionSwitchDepth;
+  osstr << ".o";
+
+  return osstr.str();
+}
+
+static float makeRandomFloat() {
+  static std::random_device rd;
+  static std::default_random_engine engine(rd());
+  static std::uniform_real_distribution<float> dist(0, 1);
+  return dist(engine);
+}
+
+static int makeRandomInt(int min, int max) {
+  static std::random_device rd;
+  static std::default_random_engine engine(rd());
+  std::uniform_int_distribution<int> dist(min, max);
+  return dist(engine);
+}
+
+static std::vector<float> makeRandomDataSet(int features) {
+  std::vector<float> dataSet((size_t)features);
+
+  for (int i = 0; i < features; i++)
+    dataSet[i] = makeRandomFloat(); // range [0, 1)
+
+  return dataSet;
+};
+
+static std::vector<std::vector<float>> prepareRandomDataSets(int num, int features) {
+  std::vector<std::vector<float>> dataSetCollection((size_t)num);
+
+  for (int i = 0; i < num; i++)
+    dataSetCollection[i] = makeRandomDataSet(features);
+
+  return dataSetCollection;
 }
