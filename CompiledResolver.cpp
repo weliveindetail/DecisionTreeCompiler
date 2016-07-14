@@ -1,27 +1,20 @@
 #include "CompiledResolver.h"
 
-//#include <chrono>
-//#include <forward_list>
-//#include <queue>
-//#include <string>
-//#include <unordered_map>
-//#include <utility>
-//
-//#include <llvm/ExecutionEngine/ExecutionEngine.h>
-//#include <llvm/ExecutionEngine/GenericValue.h>
-//#include <llvm/IR/Constants.h>
-//#include <llvm/IR/IRBuilder.h>
-//#include <llvm/IR/Instructions.h>
-//#include <llvm/IR/LLVMContext.h>
-//#include <llvm/IR/Module.h>
-//#include <llvm/IR/Verifier.h>
-//#include <llvm/Support/ManagedStatic.h>
-//#include <llvm/Support/TargetSelect.h>
-//#include <llvm/Support/raw_ostream.h>
-//
-//#include "DecisionTree_t.h"
-//#include "SimpleObjectCache.h"
-//#include "SimpleOrcJit.h"
+#include <forward_list>
+#include <string>
+
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/ExecutionEngine/GenericValue.h>
+#include <llvm/IR/Constants.h>
+#include <llvm/IR/Instructions.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Support/ManagedStatic.h>
+#include <llvm/Support/TargetSelect.h>
+#include <llvm/Support/raw_ostream.h>
+
+#include "SimpleObjectCache.h"
+#include "SimpleOrcJit.h"
+#include "Utils.h"
 
 void llvm::ObjectCache::anchor() {}
 
