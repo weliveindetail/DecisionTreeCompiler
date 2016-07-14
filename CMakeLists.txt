@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.4)
 project(EvalTreeJit)
 
+add_subdirectory(benchmark)
+
 find_package(LLVM)
 
 llvm_map_components_to_libnames(LLVM_LIBS
@@ -24,7 +26,7 @@ set(SOURCE_FILES
 add_executable(EvalTreeJit ${SOURCE_FILES})
 
 target_include_directories(EvalTreeJit
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${LLVM_INCLUDE_DIRS})
+        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${LLVM_INCLUDE_DIRS} benchmark)
 
 target_link_libraries(EvalTreeJit
-        PUBLIC ${LLVM_LIBS})
+        PUBLIC ${LLVM_LIBS} benchmark)
