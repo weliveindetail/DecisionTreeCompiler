@@ -19,10 +19,11 @@
 #include <llvm/Support/TargetSelect.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "Utils.h"
+#include "DataSet.h"
 #include "DecisionTree.h"
 #include "SimpleObjectCache.h"
 #include "SimpleOrcJit.h"
+#include "Utils.h"
 
 class CompiledResolver {
 public:
@@ -33,7 +34,7 @@ public:
   ~CompiledResolver();
 
   int64_t run(const DecisionTree_t &tree,
-              const std::vector<float> &dataSet);
+              const DataSet_t &dataSet);
 
 private:
   llvm::LLVMContext Ctx;

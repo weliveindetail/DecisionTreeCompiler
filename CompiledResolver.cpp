@@ -78,7 +78,7 @@ CompiledResolver::~CompiledResolver() {
 }
 
 int64_t CompiledResolver::run(const DecisionTree_t &tree,
-            const std::vector<float> &dataSet) {
+            const DataSet_t &dataSet) {
   int64_t idx = 0;
   int64_t firstResultIdx = tree.size();
   const float *data = dataSet.data();

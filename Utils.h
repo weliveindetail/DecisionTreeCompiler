@@ -67,8 +67,8 @@ static std::string makeTreeFileName(int treeDepth, int dataSetFeatures) {
 }
 
 static std::string makeObjFileName(int treeDepth, int dataSetFeatures,
-                            int compiledFunctionDepth,
-                            int compiledFunctionSwitchDepth) {
+                                   int compiledFunctionDepth,
+                                   int compiledFunctionSwitchDepth) {
   std::ostringstream osstr;
 
   osstr << "cache/";
@@ -93,23 +93,4 @@ static int makeRandomInt(int min, int max) {
   static std::default_random_engine engine(rd());
   std::uniform_int_distribution<int> dist(min, max);
   return dist(engine);
-}
-
-// hack
-#include "DecisionTree.h"
-#include "RegularResolver.h"
-
-static std::vector<std::vector<float>> makeRandomDataSets(size_t dataSets, size_t features, const DecisionTree_t& tree) {
-  std::vector<std::vector<float>> dataSetCollection(dataSets);
-  RegularResolver resolver;
-
-  auto makeRandomDataSet = [&]() {
-      std::vector<float> dataSet(features + 1);
-      std::generate(dataSet.begin(), dataSet.end() - 1, makeRandomFloat);
-      dataSet.back() = resolver.run(tree, dataSet); // extra slot for expected result index
-      return dataSet;
-  };
-
-  std::generate(dataSetCollection.begin(), dataSetCollection.end(), makeRandomDataSet);
-  return dataSetCollection;
 }

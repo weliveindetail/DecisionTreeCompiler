@@ -16,13 +16,15 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_
 
 set(SOURCE_FILES
         main.cpp
-        Utils.h
-        DecisionTree.h
-        RegularResolver.h
         CompiledResolver.h
         CompiledResolver.cpp
+        DataSet.h
+        DataSet.cpp
+        DecisionTree.h
+        RegularResolver.h
         SimpleOrcJit.h
-        SimpleObjectCache.h)
+        SimpleObjectCache.h
+        Utils.h)
 
 add_executable(EvalTreeJit ${SOURCE_FILES})
 

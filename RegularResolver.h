@@ -1,9 +1,12 @@
 #pragma once
 
+#include "DataSet.h"
+#include "DecisionTree.h"
+
 class RegularResolver {
 public:
     int64_t run(const DecisionTree_t &tree,
-                const std::vector<float> &dataSet) {
+                const DataSet_t &dataSet) {
       int64_t idx = 0;
       int64_t firstResultIdx = tree.size();
 
@@ -16,7 +19,7 @@ public:
 
 private:
   int64_t computeChildNodeForDataSet(const TreeNode &currentNode,
-                                     const std::vector<float> &dataSet) {
+                                     const DataSet_t &dataSet) {
     float featureValue = dataSet[currentNode.DataSetFeatureIdx];
     float biasedFeatureValue = applyOperator(currentNode.Op, featureValue);
 

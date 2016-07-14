@@ -3,7 +3,7 @@
 
 #include "benchmark/benchmark.h"
 
-#include "Utils.h"
+#include "DataSet.h"
 #include "DecisionTree.h"
 #include "RegularResolver.h"
 #include "CompiledResolver.h"
@@ -12,8 +12,6 @@ int treeDepth = 6;
 int dataSetFeatures = 100;
 int compiledFunctionLevels = 6;
 int compiledFunctionSwitchLevels = 3;
-
-using DataSet_t = std::vector<float>;
 
 std::unique_ptr<RegularResolver> regularResolver;
 std::unique_ptr<CompiledResolver> compiledResolver;
