@@ -81,7 +81,7 @@ CompiledResolver::loadEvaluators(int nodeLevelsPerFunction,
   fflush(stdout);
 
   // load module from cache
-  TheCompiler->submitModule(std::move(TheModule));
+  TheCompiler->loadModuleFromCache(std::move(TheModule));
 
   return collectEvaluatorFunctions(nodeLevelsPerFunction, "nodeEvaluator_");
 }

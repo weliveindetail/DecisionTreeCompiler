@@ -21,6 +21,7 @@ set(SOURCE_FILES
         DataSet.h
         DataSet.cpp
         DecisionTree.h
+        OrcJitUtils.h
         RegularResolver.h
         SimpleOrcJit.h
         SimpleObjectCache.h

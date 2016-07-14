@@ -6,25 +6,25 @@
 #include <llvm/ExecutionEngine/Orc/CompileUtils.h>
 #include <llvm/ExecutionEngine/Orc/IRCompileLayer.h>
 #include <llvm/ExecutionEngine/Orc/IRTransformLayer.h>
-#include <llvm/ExecutionEngine/Orc/LambdaResolver.h>
 #include <llvm/ExecutionEngine/Orc/ObjectLinkingLayer.h>
-#include <llvm/ExecutionEngine/RTDyldMemoryManager.h>
-#include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Mangler.h>
 #include <llvm/Support/DynamicLibrary.h>
-#include <llvm/Support/FileSystem.h>
 #include <llvm/Transforms/Scalar.h>
 
+#include "OrcJitUtils.h"
 #include "SimpleObjectCache.h"
 
-class SimpleOrcJit {
-  using ObjectLayer_t = llvm::orc::ObjectLinkingLayer<>;
-  using CompileLayer_t = llvm::orc::IRCompileLayer<ObjectLayer_t>;
+using llvm::orc::ObjectLinkingLayer;
+using llvm::orc::IRCompileLayer;
+using llvm::orc::IRTransformLayer;
 
-  using OptimizeFunction_t = std::function<std::unique_ptr<llvm::Module>(
-      std::unique_ptr<llvm::Module>)>;
-  using OptimizeLayer_t =
-      llvm::orc::IRTransformLayer<CompileLayer_t, OptimizeFunction_t>;
+class SimpleOrcJit {
+  using ModulePtr_t = std::unique_ptr<llvm::Module>;
+  using OptimizeFunction_t = std::function<ModulePtr_t(ModulePtr_t)>;
+
+  using ObjectLayer_t = ObjectLinkingLayer<>;
+  using CompileLayer_t = IRCompileLayer<ObjectLayer_t>;
+  using OptimizeLayer_t = IRTransformLayer<CompileLayer_t, OptimizeFunction_t>;
 
   using ModuleHandle_t = OptimizeLayer_t::ModuleSetHandleT;
 
@@ -33,36 +33,30 @@ public:
                std::unique_ptr<SimpleObjectCache> cache)
       : ObjectLayer(),
         CompileLayer(ObjectLayer, llvm::orc::SimpleCompiler(targetMachine)),
-        OptimizeLayer(CompileLayer,
-                      [this](std::unique_ptr<llvm::Module> M) {
-                        return optimizeModule(std::move(M));
-                      }),
+        OptimizeLayer(
+            CompileLayer,
+            [this](ModulePtr_t M) { return optimizeModule(std::move(M)); }),
         DataLayout(targetMachine.createDataLayout()),
         ObjCache(std::move(cache)) {
     CompileLayer.setObjectCache(ObjCache.get());
     llvm::sys::DynamicLibrary::LoadLibraryPermanently(nullptr);
   }
 
-  ModuleHandle_t submitModule(std::unique_ptr<llvm::Module> module) {
-    auto lambdaResolver = llvm::orc::createLambdaResolver(
-        [&](const std::string &name) {
-          if (auto Sym = findMangledSymbol(name))
-            return llvm::RuntimeDyld::SymbolInfo(Sym.getAddress(),
-                                                 Sym.getFlags());
-
-          return llvm::RuntimeDyld::SymbolInfo(nullptr);
-        },
-        [](const std::string &S) { return nullptr; });
-
-    llvm::Module *modulePtr = module.get();
-
-    // hand over ownership
+  ModuleHandle_t submitModule(ModulePtr_t module) {
     ModuleHandle_t handle = OptimizeLayer.addModuleSet(
-        singletonSet(std::move(module)),
-        std::make_unique<llvm::SectionMemoryManager>(),
-        std::move(lambdaResolver));
+        singletonSet(std::move(module)), makeDefaultMemoryManager(),
+        makeDefaultLinkingResolver(OptimizeLayer));
 
     OptimizeLayer.emitAndFinalize(handle);
+    return handle;
+  }
+
+  ModuleHandle_t loadModuleFromCache(ModulePtr_t module) {
+    ModuleHandle_t handle = CompileLayer.addModuleSet(
+        singletonSet(std::move(module)), makeDefaultMemoryManager(),
+        makeDefaultLinkingResolver(CompileLayer));
+
+    CompileLayer.emitAndFinalize(handle);
     return handle;
   }
 
@@ -71,10 +65,7 @@ public:
     auto jitSymbol = CompileLayer.findSymbol(mangle(unmangledName), false);
     auto functionAddr = jitSymbol.getAddress();
 
-    // printf("Symbol %s resolved to %p\n", unmangledName.c_str(),
-    // (void*)functionAddr);
     assert(functionAddr != 0);
-
     return (Evaluator_f *)functionAddr;
   }
 
@@ -85,8 +76,7 @@ private:
   llvm::DataLayout DataLayout;
   std::unique_ptr<SimpleObjectCache> ObjCache;
 
-  std::unique_ptr<llvm::Module>
-  optimizeModule(std::unique_ptr<llvm::Module> M) {
+  ModulePtr_t optimizeModule(ModulePtr_t M) {
     auto FPM = llvm::make_unique<llvm::legacy::FunctionPassManager>(M.get());
 
     //FPM->add(llvm::createInstructionCombiningPass());
@@ -107,19 +97,6 @@ private:
     return M;
   }
 
-  llvm::orc::JITSymbol findMangledSymbol(const std::string &name) {
-    // local symbols first
-    if (auto symbol = CompileLayer.findSymbol(name, false))
-      return symbol;
-
-    // host process symbols otherwise
-    if (auto SymAddr =
-            llvm::RTDyldMemoryManager::getSymbolAddressInProcess(name))
-      return llvm::orc::JITSymbol(SymAddr, llvm::JITSymbolFlags::Exported);
-
-    return nullptr;
-  }
-
   std::string mangle(std::string name) {
     std::string mangledName;
     {
@@ -127,11 +104,5 @@ private:
       llvm::Mangler::getNameWithPrefix(ostream, std::move(name), DataLayout);
     }
     return mangledName;
-  }
-
-  template <typename T> static std::vector<T> singletonSet(T t) {
-    std::vector<T> vec;
-    vec.push_back(std::move(t));
-    return vec;
   }
 };
