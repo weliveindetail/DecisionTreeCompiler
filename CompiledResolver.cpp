@@ -18,17 +18,15 @@
 void llvm::ObjectCache::anchor() {}
 
 CompiledResolver::CompiledResolver(const DecisionTree_t &tree,
-                                   int dataSetFeatures,
-                                   int functionDepth,
+                                   int dataSetFeatures, int functionDepth,
                                    int switchDepth)
-    : Builder(Ctx)
-    , DecisionTree(tree) {
+    : Builder(Ctx), DecisionTree(tree) {
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
 
   assert(isPowerOf2(DecisionTree.size() + 1));
-  int treeDepth = Log2 (DecisionTree.size() + 1);
+  int treeDepth = Log2(DecisionTree.size() + 1);
 
   std::string cachedTreeFile = makeTreeFileName(treeDepth, dataSetFeatures);
   std::string cachedObjFile =
@@ -39,16 +37,15 @@ CompiledResolver::CompiledResolver(const DecisionTree_t &tree,
   TheModule = makeModule(cachedObjFile, Ctx);
   TheCompiler = makeCompiler();
 
-  CompiledEvaluators = (inCache)
-      ? loadEvaluators(functionDepth, cachedObjFile)
-      : compileEvaluators(functionDepth, switchDepth, cachedObjFile);
+  CompiledEvaluators =
+      (inCache) ? loadEvaluators(functionDepth, cachedObjFile)
+                : compileEvaluators(functionDepth, switchDepth, cachedObjFile);
 }
 
-CompiledResolver::~CompiledResolver() {
-  llvm::llvm_shutdown();
-}
+CompiledResolver::~CompiledResolver() { llvm::llvm_shutdown(); }
 
-std::unique_ptr<llvm::Module> CompiledResolver::makeModule(std::string name, llvm::LLVMContext& ctx) {
+std::unique_ptr<llvm::Module>
+CompiledResolver::makeModule(std::string name, llvm::LLVMContext &ctx) {
   auto M = std::make_unique<llvm::Module>("file:" + name, ctx);
 
   auto *targetMachine = llvm::EngineBuilder().selectTarget();
@@ -67,20 +64,20 @@ std::unique_ptr<SimpleOrcJit> CompiledResolver::makeCompiler() {
 int64_t CompiledResolver::getNumCompiledEvaluators(int nodeLevelsPerFunction) {
   int64_t expectedEvaluators = 0;
 
-  int treeDepth = Log2 (DecisionTree.size() + 1);
+  int treeDepth = Log2(DecisionTree.size() + 1);
   for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction)
     expectedEvaluators += PowerOf2(level);
 
   return expectedEvaluators;
 }
 
-CompiledResolver::SubtreeEvals_t CompiledResolver::loadEvaluators(
-    int nodeLevelsPerFunction, std::string objFileName) {
-  int64_t evaluators =
-      getNumCompiledEvaluators(nodeLevelsPerFunction);
+CompiledResolver::SubtreeEvals_t
+CompiledResolver::loadEvaluators(int nodeLevelsPerFunction,
+                                 std::string objFileName) {
+  int64_t evaluators = getNumCompiledEvaluators(nodeLevelsPerFunction);
 
-  printf("Loading %lld evaluators for %lu nodes from file %s\n\n",
-         evaluators, DecisionTree.size(), objFileName.c_str());
+  printf("Loading %lld evaluators for %lu nodes from file %s\n\n", evaluators,
+         DecisionTree.size(), objFileName.c_str());
   fflush(stdout);
 
   // load module from cache
@@ -89,10 +86,11 @@ CompiledResolver::SubtreeEvals_t CompiledResolver::loadEvaluators(
   return collectEvaluatorFunctions(nodeLevelsPerFunction, "nodeEvaluator_");
 }
 
-CompiledResolver::SubtreeEvals_t CompiledResolver::compileEvaluators(
-    int nodeLevelsPerFunction, int nodeLevelsPerSwitch, std::string objFileName) {
-  int64_t evaluators =
-      getNumCompiledEvaluators(nodeLevelsPerFunction);
+CompiledResolver::SubtreeEvals_t
+CompiledResolver::compileEvaluators(int nodeLevelsPerFunction,
+                                    int nodeLevelsPerSwitch,
+                                    std::string objFileName) {
+  int64_t evaluators = getNumCompiledEvaluators(nodeLevelsPerFunction);
 
   printf("Generating %lld evaluators for %lu nodes and cache it in file %s",
          evaluators, DecisionTree.size(), objFileName.c_str());
@@ -143,10 +141,11 @@ CompiledResolver::SubtreeEvals_t CompiledResolver::compileEvaluators(
   return collectEvaluatorFunctions(nodeLevelsPerFunction, nameStub);
 }
 
-CompiledResolver::SubtreeEvals_t CompiledResolver::collectEvaluatorFunctions(
-    int nodeLevelsPerFunction, std::string functionNameStub) {
+CompiledResolver::SubtreeEvals_t
+CompiledResolver::collectEvaluatorFunctions(int nodeLevelsPerFunction,
+                                            std::string functionNameStub) {
   SubtreeEvals_t evaluators;
-  int treeDepth = Log2 (DecisionTree.size() + 1);
+  int treeDepth = Log2(DecisionTree.size() + 1);
 
   for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
     int64_t firstNodeIdxOnLevel = TreeNodes(level);
@@ -164,11 +163,12 @@ CompiledResolver::SubtreeEvals_t CompiledResolver::collectEvaluatorFunctions(
   return evaluators;
 }
 
-void CompiledResolver::emitSubtreeEvaluators(int subtreeLevels, int switchLevels,
+void CompiledResolver::emitSubtreeEvaluators(int subtreeLevels,
+                                             int switchLevels,
                                              const std::string &nameStub) {
   assert(subtreeLevels % switchLevels == 0);
 
-  int treeDepth = Log2 (DecisionTree.size() + 1);
+  int treeDepth = Log2(DecisionTree.size() + 1);
   assert(treeDepth % subtreeLevels == 0);
 
   for (int level = 0; level < treeDepth; level += subtreeLevels) {
@@ -186,10 +186,9 @@ void CompiledResolver::emitSubtreeEvaluators(int subtreeLevels, int switchLevels
       Builder.SetInsertPoint(llvm::BasicBlock::Create(Ctx, "entry", evalFn));
       auto *entryBB = Builder.GetInsertBlock();
 
-      llvm::Value *nextNodeIdx =
-          emitSubtreeSwitchesRecursively(nodeIdx, switchLevels,
-                                         evalFn, entryBB, dataSetPtr,
-                                         subtreeLevels / switchLevels - 1);
+      llvm::Value *nextNodeIdx = emitSubtreeSwitchesRecursively(
+          nodeIdx, switchLevels, evalFn, entryBB, dataSetPtr,
+          subtreeLevels / switchLevels - 1);
 
       Builder.CreateRet(nextNodeIdx);
       verifyFunction(*evalFn);
@@ -212,8 +211,9 @@ llvm::Function *CompiledResolver::emitFunctionDeclaration(std::string name) {
   return evalFn;
 }
 
-llvm::Value *CompiledResolver::emitSingleNodeEvaluaton(const TreeNode &node,
-                                                       llvm::Value *dataSetPtr) {
+llvm::Value *
+CompiledResolver::emitSingleNodeEvaluaton(const TreeNode &node,
+                                          llvm::Value *dataSetPtr) {
   using namespace llvm;
 
   Value *dataSetFeaturePtr =
@@ -224,45 +224,46 @@ llvm::Value *CompiledResolver::emitSingleNodeEvaluaton(const TreeNode &node,
   return emitComparison(node.Comp, node.Bias, comparableFeatureVal);
 }
 
-llvm::Value *CompiledResolver::emitOperator(OperationType op, llvm::Value *value) {
+llvm::Value *CompiledResolver::emitOperator(OperationType op,
+                                            llvm::Value *value) {
   switch (op) {
-    case OperationType::Bypass:
-      return value;
+  case OperationType::Bypass:
+    return value;
 
-    case OperationType::Sqrt: {
-      llvm::Function *sqrtFn =
-          getUnaryIntrinsic(llvm::Intrinsic::sqrt, value->getType());
-      return Builder.CreateCall(sqrtFn, {value});
-    }
+  case OperationType::Sqrt: {
+    llvm::Function *sqrtFn =
+        getUnaryIntrinsic(llvm::Intrinsic::sqrt, value->getType());
+    return Builder.CreateCall(sqrtFn, {value});
+  }
 
-    case OperationType::Ln: {
-      llvm::Function *lnFn =
-          getUnaryIntrinsic(llvm::Intrinsic::log, value->getType());
-      return Builder.CreateCall(lnFn, {value});
-    }
+  case OperationType::Ln: {
+    llvm::Function *lnFn =
+        getUnaryIntrinsic(llvm::Intrinsic::log, value->getType());
+    return Builder.CreateCall(lnFn, {value});
+  }
   }
 };
 
-llvm::Function *CompiledResolver::getUnaryIntrinsic(llvm::Intrinsic::ID id, llvm::Type *opTy) {
+llvm::Function *CompiledResolver::getUnaryIntrinsic(llvm::Intrinsic::ID id,
+                                                    llvm::Type *opTy) {
   return llvm::Intrinsic::getDeclaration(TheModule.get(), id, {opTy});
 }
 
 llvm::Value *CompiledResolver::emitComparison(ComparatorType comp, float bias,
-                            llvm::Value *value) {
+                                              llvm::Value *value) {
   llvm::Constant *biasConst = llvm::ConstantFP::get(value->getType(), bias);
   switch (comp) {
-    case ComparatorType::LessThan:
-      return Builder.CreateFCmpOLT(value, biasConst);
+  case ComparatorType::LessThan:
+    return Builder.CreateFCmpOLT(value, biasConst);
 
-    case ComparatorType::GreaterThan:
-      return Builder.CreateFCmpOGT(value, biasConst);
+  case ComparatorType::GreaterThan:
+    return Builder.CreateFCmpOGT(value, biasConst);
   }
 }
 
 llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
-    int64_t switchRootNodeIdx, int switchLevels,
-    llvm::Function *function, llvm::BasicBlock *switchBB,
-    llvm::Value *dataSetPtr, int nestedSwitches) {
+    int64_t switchRootNodeIdx, int switchLevels, llvm::Function *function,
+    llvm::BasicBlock *switchBB, llvm::Value *dataSetPtr, int nestedSwitches) {
   using namespace llvm;
   Type *returnTy = Type::getInt64Ty(Ctx);
   int64_t numNodes = TreeNodes(switchLevels);
@@ -271,9 +272,9 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
   std::unordered_map<int64_t, unsigned> subtreeNodeIdxBitOffsets;
   subtreeNodeIdxBitOffsets.reserve(numNodes);
 
-  llvm::Value *conditionVector = emitComputeConditionVector(
-      switchRootNodeIdx, switchLevels, dataSetPtr, numNodes,
-      subtreeNodeIdxBitOffsets);
+  llvm::Value *conditionVector =
+      emitComputeConditionVector(switchRootNodeIdx, switchLevels, dataSetPtr,
+                                 numNodes, subtreeNodeIdxBitOffsets);
 
   std::string returnBBLabel =
       "return_switch_node_" + std::to_string(switchRootNodeIdx);
@@ -292,9 +293,9 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
   std::vector<LeafNodePathBitsMap_t> leafNodePathBitsMaps;
 
   leafNodePathBitsMaps.reserve(numContinuations);
-  buildSubtreeLeafNodePathsBitsMapsRecursively(
-      switchRootNodeIdx, switchLevels, subtreeNodeIdxBitOffsets,
-      leafNodePathBitsMaps);
+  buildSubtreeLeafNodePathsBitsMapsRecursively(switchRootNodeIdx, switchLevels,
+                                               subtreeNodeIdxBitOffsets,
+                                               leafNodePathBitsMaps);
   assert(leafNodePathBitsMaps.size() == numContinuations);
 
   // iterate leaf nodes
@@ -341,9 +342,8 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
 }
 
 llvm::Value *CompiledResolver::emitComputeConditionVector(
-    int64_t rootNodeIdx, int subtreeLevels,
-    llvm::Value *dataSetPtr, int64_t numNodes,
-    std::unordered_map<int64_t, unsigned int> &bitOffsets) {
+    int64_t rootNodeIdx, int subtreeLevels, llvm::Value *dataSetPtr,
+    int64_t numNodes, std::unordered_map<int64_t, unsigned int> &bitOffsets) {
   using namespace llvm;
   Type *returnTy = Type::getInt64Ty(Ctx);
 
@@ -371,8 +371,9 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
   return conditionVector;
 }
 
-int64_t CompiledResolver::getNodeIdxForSubtreeBitOffset(int64_t subtreeRootIdx, int subtreeLevels,
-                                      unsigned bitOffset) {
+int64_t CompiledResolver::getNodeIdxForSubtreeBitOffset(int64_t subtreeRootIdx,
+                                                        int subtreeLevels,
+                                                        unsigned bitOffset) {
   int subtreeRootIdxLevel = Log2(subtreeRootIdx + 1);
   int nodeLevelInSubtree = Log2(bitOffset + 1);
 
@@ -393,7 +394,7 @@ void CompiledResolver::buildSubtreeLeafNodePathsBitsMapsRecursively(
     int64_t nodeIdx, int remainingLevels,
     const std::unordered_map<int64_t, unsigned> &nodeIdxBitOffsets,
     std::vector<std::pair<int64_t, std::unordered_map<unsigned, bool>>>
-    &result) {
+        &result) {
   if (remainingLevels == 0) {
     // subtree leaf nodes create empty path maps
     std::unordered_map<unsigned, bool> pathBitsMap;

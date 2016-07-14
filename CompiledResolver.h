@@ -19,14 +19,11 @@ class SimpleOrcJit;
 
 class CompiledResolver {
 public:
-  CompiledResolver(const DecisionTree_t &tree,
-                   int dataSetFeatures,
-                   int compiledFunctionDepth,
-                   int compiledFunctionSwitchDepth);
+  CompiledResolver(const DecisionTree_t &tree, int dataSetFeatures,
+                   int compiledFunctionDepth, int compiledFunctionSwitchDepth);
   ~CompiledResolver();
 
-  int64_t run(const DecisionTree_t &tree,
-              const DataSet_t &dataSet);
+  int64_t run(const DecisionTree_t &tree, const DataSet_t &dataSet);
 
 private:
   llvm::LLVMContext Ctx;
@@ -40,18 +37,20 @@ private:
   using SubtreeEvals_t = std::unordered_map<int64_t, SubtreeEvaluator_f *>;
   SubtreeEvals_t CompiledEvaluators;
 
-  SubtreeEvals_t loadEvaluators(
-      int nodeLevelsPerFunction, std::string objFileName);
+  int64_t getNumCompiledEvaluators(int compiledFunctionDepth);
 
-  SubtreeEvals_t compileEvaluators(
-      int nodeLevelsPerFunction, int nodeLevelsPerSwitch, std::string objFileName);
+  SubtreeEvals_t loadEvaluators(int nodeLevelsPerFunction,
+                                std::string objFileName);
 
-  SubtreeEvals_t collectEvaluatorFunctions(
-      int nodeLevelsPerFunction, std::string nameStub);
+  SubtreeEvals_t compileEvaluators(int nodeLevelsPerFunction,
+                                   int nodeLevelsPerSwitch,
+                                   std::string objFileName);
 
-  int64_t getNodeIdxForSubtreeBitOffset(
-      int64_t subtreeRootIdx, int subtreeLevels,
-      unsigned bitOffset);
+  SubtreeEvals_t collectEvaluatorFunctions(int nodeLevelsPerFunction,
+                                           std::string nameStub);
+
+  int64_t getNodeIdxForSubtreeBitOffset(int64_t subtreeRootIdx,
+                                        int subtreeLevels, unsigned bitOffset);
 
   void buildSubtreeLeafNodePathsBitsMapsRecursively(
       int64_t nodeIdx, int remainingLevels,
@@ -75,23 +74,23 @@ private:
 
   llvm::Function *emitFunctionDeclaration(std::string name);
   llvm::Value *emitOperator(OperationType op, llvm::Value *value);
-  llvm::Value *emitComparison(ComparatorType comp, float bias, llvm::Value *value);
-  llvm::Value *emitSingleNodeEvaluaton(const TreeNode &node, llvm::Value *dataSetPtr);
+  llvm::Value *emitComparison(ComparatorType comp, float bias,
+                              llvm::Value *value);
+  llvm::Value *emitSingleNodeEvaluaton(const TreeNode &node,
+                                       llvm::Value *dataSetPtr);
 
   llvm::Value *emitComputeConditionVector(
-      int64_t rootNodeIdx, int subtreeLevels,
-      llvm::Value *dataSetPtr, int64_t numNodes,
-      std::unordered_map<int64_t, unsigned int> &bitOffsets);
+      int64_t rootNodeIdx, int subtreeLevels, llvm::Value *dataSetPtr,
+      int64_t numNodes, std::unordered_map<int64_t, unsigned int> &bitOffsets);
 
   llvm::Value *emitSubtreeSwitchesRecursively(
-      int64_t switchRootNodeIdx, int switchLevels,
-      llvm::Function *function, llvm::BasicBlock *switchBB,
-      llvm::Value *dataSetPtr, int nestedSwitches);
+      int64_t switchRootNodeIdx, int switchLevels, llvm::Function *function,
+      llvm::BasicBlock *switchBB, llvm::Value *dataSetPtr, int nestedSwitches);
 
-  void emitSubtreeEvaluators(
-      int subtreeLevels, int switchLevels, const std::string &nameStub);
+  void emitSubtreeEvaluators(int subtreeLevels, int switchLevels,
+                             const std::string &nameStub);
 
   static std::unique_ptr<SimpleOrcJit> makeCompiler();
-  static std::unique_ptr<llvm::Module> makeModule(std::string name, llvm::LLVMContext& ctx);
-  int64_t getNumCompiledEvaluators(int compiledFunctionDepth);
+  static std::unique_ptr<llvm::Module> makeModule(std::string name,
+                                                  llvm::LLVMContext &ctx);
 };
