@@ -1,6 +1,5 @@
 #include "CompiledResolver.h"
 
-#include <forward_list>
 #include <string>
 
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
@@ -368,66 +367,30 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
   return Builder.CreateLoad(evalResult);
 }
 
-llvm::Value *CompiledResolver::emitSubtreeEvaluation(
-    int64_t rootNodeIdx, int subtreeLevels,
-    int switchLevels, llvm::Function *function,
-    llvm::Value *dataSetPtr) {
-  assert(subtreeLevels % switchLevels == 0);
-
-  auto *entryBB = Builder.GetInsertBlock();
-  return emitSubtreeSwitchesRecursively(rootNodeIdx, switchLevels,
-                                        function, entryBB, dataSetPtr,
-                                        subtreeLevels / switchLevels - 1);
-}
-
 CompiledResolver::SubtreeEvals_t CompiledResolver::loadEvaluators(
     int nodeLevelsPerFunction, std::string objFileName) {
-  int treeDepth = Log2 (DecisionTree.size() + 1);
-  int64_t expectedEvaluators =
-      getNumCompiledEvaluators(treeDepth, nodeLevelsPerFunction);
+  int64_t evaluators =
+      getNumCompiledEvaluators(nodeLevelsPerFunction);
 
-  printf("Loading %lld evaluators for %lu nodes from file %s",
-         expectedEvaluators, DecisionTree.size(), objFileName.c_str());
+  printf("Loading %lld evaluators for %lu nodes from file %s\n\n",
+         evaluators, DecisionTree.size(), objFileName.c_str());
+  fflush(stdout);
 
   // load module from cache
   TheCompiler->submitModule(std::move(TheModule));
 
-  // figure out which evaluator functions we expect and collect them
-  std::string nameStub = "nodeEvaluator_";
-  SubtreeEvals_t evaluators;
-
-  for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
-    int64_t firstNodeIdxOnLevel = TreeNodes(level);
-    int64_t numNodesOnLevel = PowerOf2(level);
-
-    for (int64_t offset = 0; offset < numNodesOnLevel; offset++) {
-      int64_t nodeIdx = firstNodeIdxOnLevel + offset;
-
-      evaluators[nodeIdx] =
-          TheCompiler->getEvaluatorFnPtr(nameStub + std::to_string(nodeIdx));
-    }
-  }
-
-  printf("\n\n");
-  fflush(stdout);
-
-  assert(expectedEvaluators == evaluators.size());
-  return evaluators;
+  return collectEvaluatorFunctions(nodeLevelsPerFunction, "nodeEvaluator_");
 }
 
 CompiledResolver::SubtreeEvals_t CompiledResolver::compileEvaluators(
     int nodeLevelsPerFunction, int nodeLevelsPerSwitch, std::string objFileName) {
-  int treeDepth = Log2 (DecisionTree.size() + 1);
-  assert(treeDepth % nodeLevelsPerFunction == 0);
-
-  int64_t expectedEvaluators =
-      getNumCompiledEvaluators(treeDepth, nodeLevelsPerFunction);
+  int64_t evaluators =
+      getNumCompiledEvaluators(nodeLevelsPerFunction);
 
   printf("Generating %lld evaluators for %lu nodes and cache it in file %s",
-         expectedEvaluators, DecisionTree.size(), objFileName.c_str());
+         evaluators, DecisionTree.size(), objFileName.c_str());
 
   std::string nameStub = "nodeEvaluator_";
-  std::forward_list<int64_t> processedNodes;
 
   {
     printf("\nComposing...");
@@ -436,29 +399,7 @@ CompiledResolver::SubtreeEvals_t CompiledResolver::compileEvaluators(
     using namespace std::chrono;
     auto start = high_resolution_clock::now();
 
-    for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
-      int64_t firstIdxOnLevel = TreeNodes(level);
-      int64_t firstIdxOnNextLevel = TreeNodes(level + 1);
-
-      for (int64_t nodeIdx = firstIdxOnLevel; nodeIdx < firstIdxOnNextLevel;
-           nodeIdx++) {
-        const TreeNode &node = DecisionTree.at(nodeIdx);
-
-        std::string name = nameStub + std::to_string(nodeIdx);
-        llvm::Function *evalFn = emitFunctionDeclaration(std::move(name));
-        llvm::Value *dataSetPtr = &*evalFn->arg_begin();
-
-        Builder.SetInsertPoint(llvm::BasicBlock::Create(Ctx, "entry", evalFn));
-        llvm::Value *nextNodeIdx =
-            emitSubtreeEvaluation(nodeIdx, nodeLevelsPerFunction,
-                                  nodeLevelsPerSwitch, evalFn, dataSetPtr);
-
-        Builder.CreateRet(nextNodeIdx);
-        llvm::verifyFunction(*evalFn);
-
-        processedNodes.push_front(nodeIdx);
-      }
-    }
+    emitSubtreeEvaluators(nodeLevelsPerFunction, nodeLevelsPerSwitch, nameStub);
 
     auto end = high_resolution_clock::now();
     auto dur = duration_cast<seconds>(end - start);
@@ -489,46 +430,72 @@ CompiledResolver::SubtreeEvals_t CompiledResolver::compileEvaluators(
     fflush(stdout);
   }
 
-  SubtreeEvals_t evaluators;
-  {
-    printf("\nCollecting...");
-    fflush(stdout);
-
-    using namespace std::chrono;
-    auto start = high_resolution_clock::now();
-
-    // collect evaluators
-    while (!processedNodes.empty()) {
-      int64_t nodeIdx = processedNodes.front();
-      std::string nodeFunctionName = nameStub + std::to_string(nodeIdx);
-
-      evaluators[nodeIdx] =
-          TheCompiler->getEvaluatorFnPtr(nodeFunctionName);
-
-      processedNodes.pop_front();
-    }
-
-    auto end = high_resolution_clock::now();
-    auto dur = duration_cast<seconds>(end - start);
-
-    printf(" took %lld seconds", dur.count());
-    fflush(stdout);
-  }
-
-  printf("\n\n");
+  printf("\nCollecting...");
   fflush(stdout);
 
-  assert(expectedEvaluators == evaluators.size());
+  return collectEvaluatorFunctions(nodeLevelsPerFunction, nameStub);
+}
+
+void CompiledResolver::emitSubtreeEvaluators(int subtreeLevels, int switchLevels,
+                                             const std::string &nameStub) {
+  assert(subtreeLevels % switchLevels == 0);
+
+  int treeDepth = Log2 (DecisionTree.size() + 1);
+  assert(treeDepth % subtreeLevels == 0);
+
+  for (int level = 0; level < treeDepth; level += subtreeLevels) {
+    int64_t firstIdxOnLevel = TreeNodes(level);
+    int64_t firstIdxOnNextLevel = TreeNodes(level + 1);
+
+    for (int64_t nodeIdx = firstIdxOnLevel; nodeIdx < firstIdxOnNextLevel;
+         nodeIdx++) {
+      const TreeNode &node = DecisionTree.at(nodeIdx);
+
+      std::string name = nameStub + std::to_string(nodeIdx);
+      llvm::Function *evalFn = emitFunctionDeclaration(move(name));
+      llvm::Value *dataSetPtr = &*evalFn->arg_begin();
+
+      Builder.SetInsertPoint(llvm::BasicBlock::Create(Ctx, "entry", evalFn));
+      auto *entryBB = Builder.GetInsertBlock();
+
+      llvm::Value *nextNodeIdx =
+          emitSubtreeSwitchesRecursively(nodeIdx, switchLevels,
+                                         evalFn, entryBB, dataSetPtr,
+                                         subtreeLevels / switchLevels - 1);
+
+      Builder.CreateRet(nextNodeIdx);
+      verifyFunction(*evalFn);
+    }
+  }
+}
+
+CompiledResolver::SubtreeEvals_t CompiledResolver::collectEvaluatorFunctions(
+    int nodeLevelsPerFunction, std::string functionNameStub) {
+  SubtreeEvals_t evaluators;
+  int treeDepth = Log2 (DecisionTree.size() + 1);
+
+  for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
+    int64_t firstNodeIdxOnLevel = TreeNodes(level);
+    int64_t numNodesOnLevel = PowerOf2(level);
+
+    for (int64_t offset = 0; offset < numNodesOnLevel; offset++) {
+      int64_t nodeIdx = firstNodeIdxOnLevel + offset;
+
+      std::string name = functionNameStub + std::to_string(nodeIdx);
+      evaluators[nodeIdx] = TheCompiler->getEvaluatorFnPtr(name);
+    }
+  }
+
+  assert(evaluators.size() == getNumCompiledEvaluators(nodeLevelsPerFunction));
   return evaluators;
 }
 
-int64_t CompiledResolver::getNumCompiledEvaluators(int treeDepth, int compiledFunctionDepth) {
+int64_t CompiledResolver::getNumCompiledEvaluators(int nodeLevelsPerFunction) {
   int64_t expectedEvaluators = 0;
-  int evaluatorDepth =
-      ((treeDepth + compiledFunctionDepth - 1) / compiledFunctionDepth);
 
-  for (int i = 0; i < evaluatorDepth; i++)
-    expectedEvaluators += PowerOf2(compiledFunctionDepth * i);
+  int treeDepth = Log2 (DecisionTree.size() + 1);
+  for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction)
+    expectedEvaluators += PowerOf2(level);
 
   return expectedEvaluators;
 }

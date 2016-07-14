@@ -46,6 +46,9 @@ private:
   SubtreeEvals_t compileEvaluators(
       int nodeLevelsPerFunction, int nodeLevelsPerSwitch, std::string objFileName);
 
+  SubtreeEvals_t collectEvaluatorFunctions(
+      int nodeLevelsPerFunction, std::string nameStub);
+
   int64_t getNodeIdxForSubtreeBitOffset(
       int64_t subtreeRootIdx, int subtreeLevels,
       unsigned bitOffset);
@@ -85,11 +88,10 @@ private:
       llvm::Function *function, llvm::BasicBlock *switchBB,
       llvm::Value *dataSetPtr, int nestedSwitches);
 
-  llvm::Value *emitSubtreeEvaluation(
-      int64_t rootNodeIdx, int subtreeLevels,
-      int switchLevels, llvm::Function *function, llvm::Value *dataSetPtr);
+  void emitSubtreeEvaluators(
+      int subtreeLevels, int switchLevels, const std::string &nameStub);
 
   static std::unique_ptr<SimpleOrcJit> makeCompiler();
   static std::unique_ptr<llvm::Module> makeModule(std::string name, llvm::LLVMContext& ctx);
-  static int64_t getNumCompiledEvaluators(int treeDepth, int compiledFunctionDepth);
+  int64_t getNumCompiledEvaluators(int compiledFunctionDepth);
 };
