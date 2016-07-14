@@ -471,8 +471,10 @@ int64_t CompiledResolver::compileEvaluators(const DecisionTree_t &tree, int tree
     fflush(stdout);
   }
 
-  // llvm::outs() << "\n\nWe just constructed this LLVM module:\n\n";
-  // llvm::outs() << *TheModule.get() << "\n\n";
+ #ifndef NDEBUG
+  llvm::outs() << "\n\nWe just constructed this LLVM module:\n\n";
+  llvm::outs() << *TheModule.get() << "\n\n";
+ #endif
 
   // submit module for jit compilation
   {

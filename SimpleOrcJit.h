@@ -99,8 +99,10 @@ private:
     for (auto &F : *M)
       FPM->run(F);
 
-    // llvm::outs() << "\n\nOptimized the code:\n\n";
-    // llvm::outs() << *M.get() << "\n\n";
+   #ifndef NDEBUG
+    llvm::outs() << "\n\nOptimized the code:\n\n";
+    llvm::outs() << *M.get() << "\n\n";
+   #endif
 
     return M;
   }
