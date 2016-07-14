@@ -34,16 +34,16 @@ private:
   std::unique_ptr<llvm::Module> TheModule;
   std::unique_ptr<SimpleOrcJit> TheCompiler;
 
+  const DecisionTree_t &DecisionTree;
+
   using SubtreeEvaluator_f = int64_t(const float *);
   using SubtreeEvals_t = std::unordered_map<int64_t, SubtreeEvaluator_f *>;
   SubtreeEvals_t CompiledEvaluators;
 
   SubtreeEvals_t loadEvaluators(
-      const DecisionTree_t &tree, int treeDepth,
       int nodeLevelsPerFunction, std::string objFileName);
 
   SubtreeEvals_t compileEvaluators(
-      const DecisionTree_t &tree, int treeDepth,
       int nodeLevelsPerFunction, int nodeLevelsPerSwitch, std::string objFileName);
 
   int64_t getNodeIdxForSubtreeBitOffset(
@@ -51,7 +51,7 @@ private:
       unsigned bitOffset);
 
   void buildSubtreeLeafNodePathsBitsMapsRecursively(
-      const DecisionTree_t &tree, int64_t nodeIdx, int remainingLevels,
+      int64_t nodeIdx, int remainingLevels,
       const std::unordered_map<int64_t, unsigned> &nodeIdxBitOffsets,
       std::vector<std::pair<int64_t, std::unordered_map<unsigned, bool>>>
           &result);
@@ -76,17 +76,17 @@ private:
   llvm::Value *emitSingleNodeEvaluaton(const TreeNode &node, llvm::Value *dataSetPtr);
 
   llvm::Value *emitComputeConditionVector(
-      const DecisionTree_t &tree, int64_t rootNodeIdx, int subtreeLevels,
+      int64_t rootNodeIdx, int subtreeLevels,
       llvm::Value *dataSetPtr, int64_t numNodes,
       std::unordered_map<int64_t, unsigned int> &bitOffsets);
 
   llvm::Value *emitSubtreeSwitchesRecursively(
-      const DecisionTree_t &tree, int64_t switchRootNodeIdx, int switchLevels,
+      int64_t switchRootNodeIdx, int switchLevels,
       llvm::Function *function, llvm::BasicBlock *switchBB,
       llvm::Value *dataSetPtr, int nestedSwitches);
 
   llvm::Value *emitSubtreeEvaluation(
-      const DecisionTree_t &tree, int64_t rootNodeIdx, int subtreeLevels,
+      int64_t rootNodeIdx, int subtreeLevels,
       int switchLevels, llvm::Function *function, llvm::Value *dataSetPtr);
 
   static std::unique_ptr<SimpleOrcJit> makeCompiler();
