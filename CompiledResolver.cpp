@@ -20,50 +20,28 @@ void llvm::ObjectCache::anchor() {}
 
 CompiledResolver::CompiledResolver(const DecisionTree_t &tree,
                                    int dataSetFeatures,
-                                   int compiledFunctionDepth,
-                                   int compiledFunctionSwitchDepth)
+                                   int functionDepth,
+                                   int switchDepth)
     : Builder(Ctx) {
   llvm::InitializeNativeTarget();
   llvm::InitializeNativeTargetAsmPrinter();
   llvm::InitializeNativeTargetAsmParser();
 
-  auto targetMachine = llvm::EngineBuilder().selectTarget();
-  auto cache = std::make_unique<SimpleObjectCache>();
-
-  TheCompiler = std::make_unique<SimpleOrcJit>(*targetMachine, std::move(cache));
-
   assert(isPowerOf2(tree.size() + 1));
   int treeDepth = Log2 (tree.size() + 1);
 
   std::string cachedTreeFile = makeTreeFileName(treeDepth, dataSetFeatures);
-  bool isTreeFileCached = isFileInCache(cachedTreeFile);
-
   std::string cachedObjFile =
-      makeObjFileName(treeDepth, dataSetFeatures, compiledFunctionDepth,
-                      compiledFunctionSwitchDepth);
+      makeObjFileName(treeDepth, dataSetFeatures, functionDepth, switchDepth);
 
-  bool isObjFileCached = isFileInCache(cachedObjFile);
-  setupModule("file:" + cachedObjFile);
+  bool inCache = isFileInCache(cachedTreeFile) && isFileInCache(cachedObjFile);
 
-  int64_t actualEvaluators;
-  int64_t expectedEvaluators =
-      getNumCompiledEvaluators(treeDepth, compiledFunctionDepth);
+  TheModule = makeModule(cachedObjFile, Ctx);
+  TheCompiler = makeCompiler();
 
-  if (isTreeFileCached && isObjFileCached) {
-    printf("Loading %lld evaluators for %lu nodes from file %s",
-           expectedEvaluators, tree.size(), cachedObjFile.c_str());
-    actualEvaluators = loadEvaluators(tree, treeDepth, compiledFunctionDepth);
-  } else {
-    printf("Generating %lld evaluators for %lu nodes and cache it in file %s",
-           expectedEvaluators, tree.size(), cachedObjFile.c_str());
-    actualEvaluators = compileEvaluators(tree, treeDepth, compiledFunctionDepth,
-                                         compiledFunctionSwitchDepth);
-  }
-
-  printf("\n\n");
-  fflush(stdout);
-
-  assert(expectedEvaluators == actualEvaluators);
+  CompiledEvaluators = (inCache)
+      ? loadEvaluators(tree, treeDepth, functionDepth, cachedObjFile)
+      : compileEvaluators(tree, treeDepth, functionDepth, switchDepth, cachedObjFile);
 }
 
 CompiledResolver::~CompiledResolver() {
@@ -77,19 +55,27 @@ int64_t CompiledResolver::run(const DecisionTree_t &tree,
   const float *data = dataSet.data();
 
   while (idx < firstResultIdx) {
-    compiledNodeEvaluator_f *compiledEvaluator = CompiledNodeEvaluators.at(idx);
+    SubtreeEvaluator_f *compiledEvaluator = CompiledEvaluators.at(idx);
     idx = compiledEvaluator(data);
   }
 
   return idx;
 }
 
-
-void CompiledResolver::setupModule(std::string name) {
-  TheModule = std::make_unique<llvm::Module>(name, Ctx);
+std::unique_ptr<llvm::Module> CompiledResolver::makeModule(std::string name, llvm::LLVMContext& ctx) {
+  auto M = std::make_unique<llvm::Module>("file:" + name, ctx);
 
   auto *targetMachine = llvm::EngineBuilder().selectTarget();
-  TheModule->setDataLayout(targetMachine->createDataLayout());
+  M->setDataLayout(targetMachine->createDataLayout());
+
+  return M;
+}
+
+std::unique_ptr<SimpleOrcJit> CompiledResolver::makeCompiler() {
+  auto targetMachine = llvm::EngineBuilder().selectTarget();
+  auto cache = std::make_unique<SimpleObjectCache>();
+
+  return std::make_unique<SimpleOrcJit>(*targetMachine, std::move(cache));
 }
 
 llvm::Function *CompiledResolver::emitFunctionDeclaration(std::string name) {
@@ -391,15 +377,23 @@ llvm::Value *CompiledResolver::emitSubtreeEvaluation(const DecisionTree_t &tree,
                                         subtreeLevels / switchLevels - 1);
 }
 
-int64_t CompiledResolver::loadEvaluators(const DecisionTree_t &tree, int treeDepth,
-                       int nodeLevelsPerFunction) {
+CompiledResolver::SubtreeEvals_t CompiledResolver::loadEvaluators(
+    const DecisionTree_t &tree, int treeDepth, int nodeLevelsPerFunction,
+    std::string objFileName) {
   using namespace llvm;
+
+  int64_t expectedEvaluators =
+      getNumCompiledEvaluators(treeDepth, nodeLevelsPerFunction);
+
+  printf("Loading %lld evaluators for %lu nodes from file %s",
+         expectedEvaluators, tree.size(), objFileName.c_str());
 
   // load module from cache
   TheCompiler->submitModule(std::move(TheModule));
 
   // figure out which evaluator functions we expect and collect them
   std::string nameStub = "nodeEvaluator_";
+  SubtreeEvals_t evaluators;
 
   for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
     int64_t firstNodeIdxOnLevel = TreeNodes(level);
@@ -408,20 +402,29 @@ int64_t CompiledResolver::loadEvaluators(const DecisionTree_t &tree, int treeDep
     for (int64_t offset = 0; offset < numNodesOnLevel; offset++) {
       int64_t nodeIdx = firstNodeIdxOnLevel + offset;
 
-      std::string nodeFunctionName = nameStub + std::to_string(nodeIdx);
-
-      CompiledNodeEvaluators[nodeIdx] =
-          TheCompiler->getEvaluatorFnPtr(nodeFunctionName);
+      evaluators[nodeIdx] =
+          TheCompiler->getEvaluatorFnPtr(nameStub + std::to_string(nodeIdx));
     }
   }
 
-  return CompiledNodeEvaluators.size();
+  printf("\n\n");
+  fflush(stdout);
+
+  assert(expectedEvaluators == evaluators.size());
+  return evaluators;
 }
 
-int64_t CompiledResolver::compileEvaluators(const DecisionTree_t &tree, int treeDepth,
-                          int nodeLevelsPerFunction, int nodeLevelsPerSwitch) {
+CompiledResolver::SubtreeEvals_t CompiledResolver::compileEvaluators(
+    const DecisionTree_t &tree, int treeDepth,
+    int nodeLevelsPerFunction, int nodeLevelsPerSwitch, std::string objFileName) {
   using namespace llvm;
   assert(treeDepth % nodeLevelsPerFunction == 0);
+
+  int64_t expectedEvaluators =
+      getNumCompiledEvaluators(treeDepth, nodeLevelsPerFunction);
+
+  printf("Generating %lld evaluators for %lu nodes and cache it in file %s",
+         expectedEvaluators, tree.size(), objFileName.c_str());
 
   std::string nameStub = "nodeEvaluator_";
   std::forward_list<int64_t> processedNodes;
@@ -486,6 +489,7 @@ int64_t CompiledResolver::compileEvaluators(const DecisionTree_t &tree, int tree
     fflush(stdout);
   }
 
+  SubtreeEvals_t evaluators;
   {
     printf("\nCollecting...");
     fflush(stdout);
@@ -498,7 +502,7 @@ int64_t CompiledResolver::compileEvaluators(const DecisionTree_t &tree, int tree
       int64_t nodeIdx = processedNodes.front();
       std::string nodeFunctionName = nameStub + std::to_string(nodeIdx);
 
-      CompiledNodeEvaluators[nodeIdx] =
+      evaluators[nodeIdx] =
           TheCompiler->getEvaluatorFnPtr(nodeFunctionName);
 
       processedNodes.pop_front();
@@ -511,7 +515,11 @@ int64_t CompiledResolver::compileEvaluators(const DecisionTree_t &tree, int tree
     fflush(stdout);
   }
 
-  return CompiledNodeEvaluators.size();
+  printf("\n\n");
+  fflush(stdout);
+
+  assert(expectedEvaluators == evaluators.size());
+  return evaluators;
 }
 
 int64_t CompiledResolver::getNumCompiledEvaluators(int treeDepth, int compiledFunctionDepth) {
