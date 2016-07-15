@@ -2,44 +2,29 @@
 
 ```
 $ ./EvalTreeJit
-Building decision tree with depth 20 and cache it in file cache/_td20_dsf100.t
-Generating 1025 evaluators for 1048575 nodes and cache it in file cache/_td20_dsf100_cfd10.o
-Compiling... took 128 seconds
+Building decision tree with depth 15 and cache it in file cache/_td15_dsf100.t
+Generating 1 evaluators for 32767 nodes and cache it in file cache/_td15_dsf100_cfd15_cfsd3.o
 
-Benchmarking: 1000 runs with 100 features
-Average evaluation time regular: 4006.025879ns
-Average evaluation time compiled: 1025.645020ns
-
-$ ./EvalTreeJit
-Loading decision tree with depth 20 from file cache/_td20_dsf100.t
-Loading 1025 evaluators for 1048575 nodes from file cache/_td20_dsf100_cfd10.o
-
-Benchmarking: 1000 runs with 100 features
-Average evaluation time regular: 4597.800781ns
-Average evaluation time compiled: 1265.265015ns
+Run on (4 X 1000 MHz CPU s)
+2016-07-15 01:55:19
+Benchmark                      Time           CPU Iterations
+------------------------------------------------------------
+BM_RegularEvaluation         813 ns        680 ns    1038514
+BM_CompiledEvaluation        377 ns        316 ns    2353558
 
 $ ./EvalTreeJit
-Loading decision tree with depth 20 from file cache/_td20_dsf100.t
-Generating 32769 evaluators for 1048575 nodes and cache it in file cache/_td20_dsf100_cfd15.o
-Compiling... took 400 seconds
+Loading decision tree with depth 15 from file cache/_td15_dsf100.t
+Loading 1 evaluators for 32767 nodes from file cache/_td15_dsf100_cfd15_cfsd3.o
 
-Benchmarking: 1000 runs with 100 features
-Average evaluation time regular: 3656.186035ns
-Average evaluation time compiled: 1079.397949ns
-
-$ ./EvalTreeJit
-Loading decision tree with depth 20 from file cache/_td20_dsf100.t
-Generating 1 evaluators for 1048575 nodes and cache it in file cache/_td20_dsf100_cfd20.o
-Compiling... (never finished)
-
-$ ls -lh cache
--rw-r--r--  1  151M 15 Jun 21:15 _td20_dsf100.t
--rw-r--r--  1   14M 15 Jun 21:18 _td20_dsf100_cfd10.o
--rw-r--r--  1   22M 15 Jun 23:49 _td20_dsf100_cfd15.o
+Run on (4 X 1000 MHz CPU s)
+2016-07-15 02:02:18
+Benchmark                      Time           CPU Iterations
+------------------------------------------------------------
+BM_RegularEvaluation         773 ns        658 ns    1086771
+BM_CompiledEvaluation        271 ns        251 ns    2612242
 ```
 
 # Todo
-* refactoring
 * command line interface
-* improve compile times
-* optimize runtime-compiled code
+* fix failing optimization passes (currently inactive)
+* SIMD optimize node evaluation groups
