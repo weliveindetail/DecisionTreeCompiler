@@ -272,20 +272,26 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
   std::unordered_map<int64_t, unsigned> subtreeNodeIdxBitOffsets;
   subtreeNodeIdxBitOffsets.reserve(numNodes);
 
-  llvm::Value *conditionVector =
+  Value *conditionVector =
       emitComputeConditionVector(switchRootNodeIdx, switchLevels, dataSetPtr,
                                  numNodes, subtreeNodeIdxBitOffsets);
 
   std::string returnBBLabel =
-      "return_switch_node_" + std::to_string(switchRootNodeIdx);
+      "switch" + std::to_string(switchRootNodeIdx) + "_return";
   auto *returnBB = BasicBlock::Create(Ctx, returnBBLabel, function);
 
+  std::string defaultBBLabel =
+      "switch" + std::to_string(switchRootNodeIdx) + "_default";
+  auto *defaultBB = BasicBlock::Create(Ctx, defaultBBLabel, function);
+
   std::string evalResultLabel =
-      "result_switch_node_" + std::to_string(switchRootNodeIdx);
+      "switch_" + std::to_string(switchRootNodeIdx) + "_value";
   Value *evalResult = Builder.CreateAlloca(returnTy, nullptr, evalResultLabel);
+  Builder.CreateStore(ConstantInt::get(returnTy, 0), evalResult);
+
   Value *conditionVectorVal = Builder.CreateLoad(conditionVector);
 
-  auto *switchInst = Builder.CreateSwitch(conditionVectorVal, returnBB,
+  auto *switchInst = Builder.CreateSwitch(conditionVectorVal, defaultBB,
                                           PowerOf2(numNodes - 1));
 
   using PathBitsMap_t = std::unordered_map<unsigned, bool>;
@@ -299,12 +305,13 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
   assert(leafNodePathBitsMaps.size() == numContinuations);
 
   // iterate leaf nodes
+  BasicBlock *nodeBB;
   for (const auto &leafNodeInfo : leafNodePathBitsMaps) {
     int64_t leafNodeIdx = leafNodeInfo.first;
     const PathBitsMap_t &pathBitsMap = leafNodeInfo.second;
 
-    std::string nodeBBLabel = "switch_node_" + std::to_string(leafNodeIdx);
-    auto *nodeBB = llvm::BasicBlock::Create(Ctx, nodeBBLabel, function);
+    std::string nodeBBLabel = "n" + std::to_string(leafNodeIdx);
+    nodeBB = BasicBlock::Create(Ctx, nodeBBLabel, function);
     {
       Builder.SetInsertPoint(nodeBB);
 
@@ -336,6 +343,12 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
       switchInst->addCase(caseVal, nodeBB);
     }
   }
+
+  defaultBB->moveAfter(nodeBB);
+  returnBB->moveAfter(defaultBB);
+
+  Builder.SetInsertPoint(defaultBB);
+  Builder.CreateBr(returnBB);
 
   Builder.SetInsertPoint(returnBB);
   return Builder.CreateLoad(evalResult);
