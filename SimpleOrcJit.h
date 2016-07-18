@@ -11,6 +11,8 @@
 #include <llvm/Support/DynamicLibrary.h>
 #include <llvm/Transforms/Scalar.h>
 
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
+
 #include "OrcJitUtils.h"
 #include "SimpleObjectCache.h"
 
@@ -76,25 +78,33 @@ private:
   llvm::DataLayout DataLayout;
   std::unique_ptr<SimpleObjectCache> ObjCache;
 
-  ModulePtr_t optimizeModule(ModulePtr_t M) {
-    auto FPM = llvm::make_unique<llvm::legacy::FunctionPassManager>(M.get());
+  ModulePtr_t optimizeModule(ModulePtr_t module) {
+    llvm::PassManagerBuilder PMBuilder;
+    PMBuilder.BBVectorize = true;
+    PMBuilder.SLPVectorize = true;
+    PMBuilder.VerifyInput = true;
+    PMBuilder.VerifyOutput = true;
 
-    //FPM->add(llvm::createInstructionCombiningPass());
-    FPM->add(llvm::createReassociatePass());
-    //FPM->add(llvm::createGVNPass());
-    FPM->add(llvm::createCFGSimplificationPass());
-    FPM->doInitialization();
+    llvm::legacy::FunctionPassManager perFunctionPasses(module.get());
+    PMBuilder.populateFunctionPassManager(perFunctionPasses);
 
-    // run on all functions in the module
-    for (auto &F : *M)
-      FPM->run(F);
+    perFunctionPasses.doInitialization();
+
+    for (llvm::Function &function : *module)
+      perFunctionPasses.run(function);
+
+    perFunctionPasses.doFinalization();
+
+    llvm::legacy::PassManager perModulePasses;
+    PMBuilder.populateModulePassManager(perModulePasses);
+    perModulePasses.run(*module);
 
    #ifndef NDEBUG
     llvm::outs() << "\n\nOptimized the code:\n\n";
-    llvm::outs() << *M.get() << "\n\n";
+    llvm::outs() << *module.get() << "\n\n";
    #endif
 
-    return M;
+    return module;
   }
 
   std::string mangle(std::string name) {

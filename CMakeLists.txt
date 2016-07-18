@@ -7,7 +7,9 @@ find_package(LLVM)
 
 llvm_map_components_to_libnames(LLVM_LIBS
         core
+        ipo
         orcjit
+        transformutils
         x86asmparser
         x86codegen)
 
