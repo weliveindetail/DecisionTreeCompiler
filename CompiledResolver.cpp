@@ -336,10 +336,10 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
                                           pathBitsMap, canonicalVariants);
 
     Builder.SetInsertPoint(switchBB);
-    IntegerType *conditionVectorTy = IntegerType::get(Ctx, numNodes + 1);
+    IntegerType *switchTy = IntegerType::get(Ctx, numNodes + 1);
     for (unsigned conditionVector : canonicalVariants) {
       ConstantInt *caseVal =
-          ConstantInt::get(conditionVectorTy, conditionVector);
+          ConstantInt::get(switchTy, conditionVector);
       switchInst->addCase(caseVal, nodeBB);
     }
   }
@@ -358,11 +358,11 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
     int64_t rootNodeIdx, int subtreeLevels, llvm::Value *dataSetPtr,
     int64_t numNodes, std::unordered_map<int64_t, unsigned int> &bitOffsets) {
   using namespace llvm;
-  Type *returnTy = Type::getInt64Ty(Ctx);
+  IntegerType *switchTy = IntegerType::get(Ctx, numNodes + 1);
 
   Value *conditionVector =
-      Builder.CreateAlloca(returnTy, nullptr, "conditionVector");
-  Builder.CreateStore(ConstantInt::get(returnTy, 0), conditionVector);
+      Builder.CreateAlloca(switchTy, nullptr, "conditionVector");
+  Builder.CreateStore(ConstantInt::get(switchTy, 0), conditionVector);
 
   for (unsigned bitOffset = 0; bitOffset < numNodes; bitOffset++) {
     int64_t nodeIdx =
@@ -373,8 +373,8 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
 
     const TreeNode &node = DecisionTree.at(nodeIdx);
     Value *evalResultBit = emitSingleNodeEvaluaton(node, dataSetPtr);
-    Value *evalResultInt = Builder.CreateZExt(evalResultBit, returnTy);
-    Value *vectorBit = Builder.CreateShl(evalResultInt, APInt(6, bitOffset));
+    Value *evalResultInt = Builder.CreateZExt(evalResultBit, switchTy);
+    Value *vectorBit = Builder.CreateShl(evalResultInt, APInt(8, bitOffset));
 
     Value *conditionVectorOld = Builder.CreateLoad(conditionVector);
     Value *conditionVectorNew = Builder.CreateOr(conditionVectorOld, vectorBit);
