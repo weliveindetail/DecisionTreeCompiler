@@ -2,7 +2,7 @@
 #include "RegularResolver.h"
 #include "Utils.h"
 
-std::vector<DataSet_t> makeRandomDataSets(size_t dataSets, size_t features, const DecisionTree_t& tree) {
+std::vector<DataSet_t> makeRandomDataSets(uint32_t dataSets, uint32_t features, const DecisionTree_t& tree) {
   std::vector<DataSet_t> dataSetCollection(dataSets);
   RegularResolver resolver;
 

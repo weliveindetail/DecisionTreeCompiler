@@ -13,7 +13,7 @@
 #include "json/src/json.hpp"
 
 struct TreeNode;
-using DecisionTree_t = std::unordered_map<int64_t, TreeNode>;
+using DecisionTree_t = std::unordered_map<uint64_t, TreeNode>;
 
 enum class OperationType { Bypass, Sqrt, Ln };
 
@@ -23,12 +23,12 @@ struct TreeNode {
   TreeNode() = default;
   ~TreeNode() = default;
 
-  TreeNode(float bias, OperationType op, ComparatorType comp, int featureIdx)
+  TreeNode(float bias, OperationType op, ComparatorType comp, uint32_t featureIdx)
       : Bias(bias), Op(op), Comp(comp), DataSetFeatureIdx(featureIdx),
         TrueChildNodeIdx(0), FalseChildNodeIdx(0) {}
 
-  TreeNode(float bias, OperationType op, ComparatorType comp, int featureIdx,
-           int64_t trueChildNodesIdx, int64_t falseChildNodesIdx)
+  TreeNode(float bias, OperationType op, ComparatorType comp, uint32_t featureIdx,
+           uint64_t trueChildNodesIdx, uint64_t falseChildNodesIdx)
       : Bias(bias), Op(op), Comp(comp), DataSetFeatureIdx(featureIdx),
         TrueChildNodeIdx(trueChildNodesIdx),
         FalseChildNodeIdx(falseChildNodesIdx) {}
@@ -36,11 +36,11 @@ struct TreeNode {
   float Bias;
   OperationType Op;
   ComparatorType Comp;
-  int DataSetFeatureIdx;
+  uint32_t DataSetFeatureIdx;
 
   bool IsGlobalLeaf;
-  int64_t TrueChildNodeIdx;
-  int64_t FalseChildNodeIdx;
+  uint64_t TrueChildNodeIdx;
+  uint64_t FalseChildNodeIdx;
 };
 
 // for expected input range [0, 1)
@@ -55,30 +55,30 @@ static float makeBalancedBias(OperationType op) {
   };
 }
 
-static TreeNode makeDecisionTreeNode(int dataSetFeatures) {
+static TreeNode makeDecisionTreeNode(uint32_t dataSetFeatures) {
   auto op = (OperationType)makeRandomInt(0, 2);
   auto comp = (ComparatorType)makeRandomInt(0, 1);
-  int featureIdx = makeRandomInt(0, dataSetFeatures);
+  auto featureIdx = makeRandomInt<uint32_t>(0, dataSetFeatures);
   float bias = makeBalancedBias(op);
 
   return TreeNode(bias, op, comp, featureIdx);
 }
 
-static DecisionTree_t makeDecisionTree(int treeDepth, int dataSetFeatures,
-                                     std::string fileName) {
+static DecisionTree_t makeDecisionTree(uint32_t treeDepth, uint32_t dataSetFeatures,
+                                       std::string fileName) {
   DecisionTree_t tree;
   tree.reserve(TreeNodes(treeDepth));
 
   nlohmann::json treeData = nlohmann::json::array();
-  int64_t nodes = TreeNodes(treeDepth);
-  int64_t firstLeafIdx = TreeNodes(treeDepth - 1);
+  uint64_t nodes = TreeNodes(treeDepth);
+  uint64_t firstLeafIdx = TreeNodes(treeDepth - 1);
 
-  int64_t nodeIdx = 0;
-  for (int level = 0; level < treeDepth; level++) {
-    int64_t childNodeIdx = TreeNodes(level + 1);
-    int numNodesOnLevel = PowerOf2(level);
+  uint64_t nodeIdx = 0;
+  for (uint32_t level = 0; level < treeDepth; level++) {
+    uint64_t childNodeIdx = TreeNodes(level + 1);
+    uint64_t numNodesOnLevel = PowerOf2(level);
 
-    for (int offset = 0; offset < numNodesOnLevel; offset++) {
+    for (uint64_t offset = 0; offset < numNodesOnLevel; offset++) {
       auto node = makeDecisionTreeNode(dataSetFeatures);
 
       node.TrueChildNodeIdx = childNodeIdx++;
@@ -118,9 +118,9 @@ static TreeNode loadDecisionTreeNode(const nlohmann::json &nodeData) {
   float bias = nodeData.at("Bias");
   int op = nodeData.at("Op");
   int comp = nodeData.at("Comp");
-  int featureIdx = nodeData.at("DataSetFeatureIdx");
-  int64_t trueChildNodeIdx = nodeData.at("TrueChildNodeIdx");
-  int64_t falseChildNodeIdx = nodeData.at("FalseChildNodeIdx");
+  uint32_t featureIdx = nodeData.at("DataSetFeatureIdx");
+  uint64_t trueChildNodeIdx = nodeData.at("TrueChildNodeIdx");
+  uint64_t falseChildNodeIdx = nodeData.at("FalseChildNodeIdx");
 
   return TreeNode(bias, (OperationType)op, (ComparatorType)comp, featureIdx,
                   trueChildNodeIdx, falseChildNodeIdx);
@@ -135,14 +135,14 @@ static DecisionTree_t loadDecisionTree(int treeDepth, std::string fileName) {
     return (DecisionTree_t());
   }
 
-  int64_t expectedNodes = TreeNodes(treeDepth);
+  uint64_t expectedNodes = TreeNodes(treeDepth);
   llvm::StringRef fileContents = fileBuffer.get()->getBuffer();
   nlohmann::json treeData = nlohmann::json::parse(fileContents.data());
 
   DecisionTree_t tree;
   tree.reserve(expectedNodes);
 
-  int64_t i = 0;
+  uint64_t i = 0;
   for (const auto &nodeData : treeData)
     tree[i++] = loadDecisionTreeNode(nodeData);
 
@@ -150,7 +150,7 @@ static DecisionTree_t loadDecisionTree(int treeDepth, std::string fileName) {
   return tree;
 }
 
-static DecisionTree_t prepareDecisionTree(int treeDepth, int dataSetFeatures) {
+static DecisionTree_t prepareDecisionTree(uint32_t treeDepth, uint32_t dataSetFeatures) {
   std::string cachedTreeFile = makeTreeFileName(treeDepth, dataSetFeatures);
   bool isTreeFileCached = isFileInCache(cachedTreeFile);
 

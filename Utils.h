@@ -9,21 +9,25 @@
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/raw_ostream.h>
 
-constexpr bool isPowerOf2(const int n) {
+template<typename T>
+constexpr bool isPowerOf2(const T n) {
   return n == 1 || (n & (n-1)) == 0;
 }
 
-constexpr int64_t PowerOf2(const int exp) {
-  return (int64_t)1 << exp;
+template<typename Res_t=uint64_t, typename Exp_t>
+constexpr Res_t PowerOf2(const Exp_t exp) {
+  assert(exp >= 0 && exp < sizeof(Res_t) * 8);
+  return (Res_t)1 << exp;
 }
 
-constexpr int64_t TreeNodes(const int depth) {
+template<typename Res_t=uint64_t>
+constexpr Res_t TreeNodes(const int depth) {
   return PowerOf2(depth) - 1;
 }
 
-constexpr int Log2 (uint64_t value)
+constexpr uint8_t Log2 (uint64_t value)
 {
-  constexpr int tab64[64] = {
+  constexpr uint8_t tab64[64] = {
       63,  0, 58,  1, 59, 47, 53,  2,
       60, 39, 48, 27, 54, 33, 42,  3,
       61, 51, 37, 40, 49, 18, 28, 20,
@@ -88,9 +92,10 @@ static float makeRandomFloat() {
   return dist(engine);
 }
 
-static int makeRandomInt(int min, int max) {
+template<typename T>
+static T makeRandomInt(T min, T max) {
   static std::random_device rd;
   static std::default_random_engine engine(rd());
-  std::uniform_int_distribution<int> dist(min, max);
+  std::uniform_int_distribution<T> dist(min, max);
   return dist(engine);
 }

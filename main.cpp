@@ -20,7 +20,8 @@ DecisionTree_t tree = prepareDecisionTree(treeDepth, dataSetFeatures);
 std::vector<DataSet_t> dataSets = makeRandomDataSets(100, dataSetFeatures, tree); // hack
 
 DataSet_t& selectRandomDataSet() {
-  return dataSets[makeRandomInt(0, dataSets.size() - 1)];
+  assert(!dataSets.empty());
+  return dataSets[makeRandomInt(0ul, dataSets.size() - 1)];
 };
 
 static void BM_RegularEvaluation(benchmark::State& state) {

@@ -23,7 +23,7 @@ public:
                    int compiledFunctionDepth, int compiledFunctionSwitchDepth);
   ~CompiledResolver();
 
-  int64_t run(const DecisionTree_t &tree, const DataSet_t &dataSet);
+  uint64_t run(const DecisionTree_t &tree, const DataSet_t &dataSet);
 
 private:
   llvm::LLVMContext Ctx;
@@ -33,42 +33,48 @@ private:
 
   const DecisionTree_t &DecisionTree;
 
-  using SubtreeEvaluator_f = int64_t(const float *);
-  using SubtreeEvals_t = std::unordered_map<int64_t, SubtreeEvaluator_f *>;
+  using SubtreeEvaluator_f = uint64_t(const float *);
+  using SubtreeEvals_t = std::unordered_map<uint64_t, SubtreeEvaluator_f *>;
   SubtreeEvals_t CompiledEvaluators;
 
-  int64_t getNumCompiledEvaluators(int compiledFunctionDepth);
+  // switching over 5 tree levels involves 31 nodes
+  // and results in 2.14 mio switch cases
+  constexpr static uint8_t MaxSwitchLevels = 5;
 
-  SubtreeEvals_t loadEvaluators(int nodeLevelsPerFunction,
+  using PathBitsMap_t = std::unordered_map<uint8_t, bool>;
+  using LeafNodePathBitsMap_t = std::pair<uint64_t, PathBitsMap_t>;
+
+  uint64_t getNumCompiledEvaluators(uint8_t nodeLevelsPerFunction);
+
+  SubtreeEvals_t loadEvaluators(uint8_t nodeLevelsPerFunction,
                                 std::string objFileName);
 
-  SubtreeEvals_t compileEvaluators(int nodeLevelsPerFunction,
-                                   int nodeLevelsPerSwitch,
+  SubtreeEvals_t compileEvaluators(uint8_t nodeLevelsPerFunction,
+                                   uint8_t nodeLevelsPerSwitch,
                                    std::string objFileName);
 
   SubtreeEvals_t collectEvaluatorFunctions(int nodeLevelsPerFunction,
                                            std::string nameStub);
 
-  int64_t getNodeIdxForSubtreeBitOffset(int64_t subtreeRootIdx,
-                                        int subtreeLevels, unsigned bitOffset);
+  uint64_t getNodeIdxForSubtreeBitOffset(uint64_t subtreeRootIdx,
+                                         uint32_t bitOffset);
 
   void buildSubtreeLeafNodePathsBitsMapsRecursively(
-      int64_t nodeIdx, int remainingLevels,
-      const std::unordered_map<int64_t, unsigned> &nodeIdxBitOffsets,
-      std::vector<std::pair<int64_t, std::unordered_map<unsigned, bool>>>
-          &result);
+      uint64_t nodeIdx, uint8_t remainingLevels,
+      const std::unordered_map<uint64_t, uint8_t> &nodeIdxBitOffsets,
+      std::vector<LeafNodePathBitsMap_t> &result);
 
-  unsigned buildFixedConditionVectorTemplate(
-      const std::unordered_map<unsigned, bool> &leafNodePathBitsMap);
+  uint32_t buildFixedBitsConditionVectorTemplate(
+      const PathBitsMap_t &leafNodePathBitsMap);
 
   void buildCanonicalConditionVectorVariants(
-      int64_t conditionVectorSize, unsigned fixedBitsTemplate,
-      const std::unordered_map<unsigned, bool> &leafNodePathBitsMap,
-      std::vector<unsigned> &result);
+      uint8_t numNodes, uint32_t fixedBitsTemplate,
+      const PathBitsMap_t &leafNodePathBitsMap,
+      std::vector<uint32_t> &result);
 
   void buildCanonicalConditionVectorVariantsRecursively(
-      unsigned conditionVector, const std::vector<unsigned> &variableBitOffsets,
-      int bitToVaryIdx, std::vector<unsigned> &result);
+      uint32_t conditionVector, const std::vector<uint8_t> &variableBitOffsets,
+      uint8_t bitToVaryIdx, std::vector<uint32_t> &result);
 
   llvm::Function *getUnaryIntrinsic(llvm::Intrinsic::ID id, llvm::Type *opTy);
 
@@ -80,14 +86,14 @@ private:
                                        llvm::Value *dataSetPtr);
 
   llvm::Value *emitComputeConditionVector(
-      int64_t rootNodeIdx, int subtreeLevels, llvm::Value *dataSetPtr,
-      int64_t numNodes, std::unordered_map<int64_t, unsigned int> &bitOffsets);
+      uint64_t rootNodeIdx, llvm::Value *dataSetPtr, uint8_t numNodes,
+      std::unordered_map<uint64_t, uint8_t> &bitOffsets);
 
   llvm::Value *emitSubtreeSwitchesRecursively(
-      int64_t switchRootNodeIdx, int switchLevels, llvm::Function *function,
-      llvm::BasicBlock *switchBB, llvm::Value *dataSetPtr, int nestedSwitches);
+      uint64_t switchRootNodeIdx, uint8_t switchLevels, llvm::Function *function,
+      llvm::BasicBlock *switchBB, llvm::Value *dataSetPtr, uint8_t remainingNestedSwitches);
 
-  void emitSubtreeEvaluators(int subtreeLevels, int switchLevels,
+  void emitSubtreeEvaluators(uint8_t subtreeLevels, uint8_t switchLevels,
                              const std::string &nameStub);
 
   static std::unique_ptr<SimpleOrcJit> makeCompiler();

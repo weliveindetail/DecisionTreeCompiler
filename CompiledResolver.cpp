@@ -26,7 +26,15 @@ CompiledResolver::CompiledResolver(const DecisionTree_t &tree,
   llvm::InitializeNativeTargetAsmParser();
 
   assert(isPowerOf2(DecisionTree.size() + 1));
-  int treeDepth = Log2(DecisionTree.size() + 1);
+  uint8_t treeDepth = Log2(DecisionTree.size() + 1);
+
+  assert(dataSetFeatures > 0);
+  assert(functionDepth > 0 && functionDepth <= treeDepth);
+  assert(switchDepth > 0 && switchDepth <= MaxSwitchLevels);
+
+  // current restrictions:
+  assert(treeDepth % functionDepth == 0);
+  assert(functionDepth % switchDepth == 0);
 
   std::string cachedTreeFile = makeTreeFileName(treeDepth, dataSetFeatures);
   std::string cachedObjFile =
@@ -61,22 +69,22 @@ std::unique_ptr<SimpleOrcJit> CompiledResolver::makeCompiler() {
   return std::make_unique<SimpleOrcJit>(*targetMachine, std::move(cache));
 }
 
-int64_t CompiledResolver::getNumCompiledEvaluators(int nodeLevelsPerFunction) {
-  int64_t expectedEvaluators = 0;
+uint64_t CompiledResolver::getNumCompiledEvaluators(uint8_t nodeLevelsPerFunction) {
+  uint64_t expectedEvaluators = 0;
 
-  int treeDepth = Log2(DecisionTree.size() + 1);
-  for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction)
+  uint8_t treeDepth = Log2(DecisionTree.size() + 1);
+  for (uint8_t level = 0; level < treeDepth; level += nodeLevelsPerFunction)
     expectedEvaluators += PowerOf2(level);
 
   return expectedEvaluators;
 }
 
 CompiledResolver::SubtreeEvals_t
-CompiledResolver::loadEvaluators(int nodeLevelsPerFunction,
+CompiledResolver::loadEvaluators(uint8_t nodeLevelsPerFunction,
                                  std::string objFileName) {
-  int64_t evaluators = getNumCompiledEvaluators(nodeLevelsPerFunction);
+  uint64_t evaluators = getNumCompiledEvaluators(nodeLevelsPerFunction);
 
-  printf("Loading %lld evaluators for %lu nodes from file %s\n\n", evaluators,
+  printf("Loading %llu evaluators for %lu nodes from file %s\n\n", evaluators,
          DecisionTree.size(), objFileName.c_str());
   fflush(stdout);
 
@@ -87,12 +95,12 @@ CompiledResolver::loadEvaluators(int nodeLevelsPerFunction,
 }
 
 CompiledResolver::SubtreeEvals_t
-CompiledResolver::compileEvaluators(int nodeLevelsPerFunction,
-                                    int nodeLevelsPerSwitch,
+CompiledResolver::compileEvaluators(uint8_t nodeLevelsPerFunction,
+                                    uint8_t nodeLevelsPerSwitch,
                                     std::string objFileName) {
-  int64_t evaluators = getNumCompiledEvaluators(nodeLevelsPerFunction);
+  uint64_t evaluators = getNumCompiledEvaluators(nodeLevelsPerFunction);
 
-  printf("Generating %lld evaluators for %lu nodes and cache it in file %s",
+  printf("Generating %llu evaluators for %lu nodes and cache it in file %s",
          evaluators, DecisionTree.size(), objFileName.c_str());
 
   std::string nameStub = "nodeEvaluator_";
@@ -148,14 +156,14 @@ CompiledResolver::collectEvaluatorFunctions(int nodeLevelsPerFunction,
   int treeDepth = Log2(DecisionTree.size() + 1);
 
   for (int level = 0; level < treeDepth; level += nodeLevelsPerFunction) {
-    int64_t firstNodeIdxOnLevel = TreeNodes(level);
-    int64_t numNodesOnLevel = PowerOf2(level);
+    uint64_t firstNodeIdxOnLevel = TreeNodes(level);
+    uint64_t numNodesOnLevel = PowerOf2(level);
 
-    for (int64_t offset = 0; offset < numNodesOnLevel; offset++) {
-      int64_t nodeIdx = firstNodeIdxOnLevel + offset;
+    for (uint64_t offset = 0; offset < numNodesOnLevel; offset++) {
+      uint64_t nodeIdx = firstNodeIdxOnLevel + offset;
 
       std::string name = functionNameStub + std::to_string(nodeIdx);
-      evaluators[nodeIdx] = TheCompiler->getEvaluatorFnPtr(name);
+      evaluators[nodeIdx] = TheCompiler->getFnPtr<SubtreeEvaluator_f>(name);
     }
   }
 
@@ -163,19 +171,16 @@ CompiledResolver::collectEvaluatorFunctions(int nodeLevelsPerFunction,
   return evaluators;
 }
 
-void CompiledResolver::emitSubtreeEvaluators(int subtreeLevels,
-                                             int switchLevels,
+void CompiledResolver::emitSubtreeEvaluators(uint8_t subtreeLevels,
+                                             uint8_t switchLevels,
                                              const std::string &nameStub) {
-  assert(subtreeLevels % switchLevels == 0);
+  uint8_t treeDepth = Log2(DecisionTree.size() + 1);
 
-  int treeDepth = Log2(DecisionTree.size() + 1);
-  assert(treeDepth % subtreeLevels == 0);
+  for (uint8_t level = 0; level < treeDepth; level += subtreeLevels) {
+    uint64_t firstIdxOnLevel = TreeNodes(level);
+    uint64_t firstIdxOnNextLevel = TreeNodes(level + 1);
 
-  for (int level = 0; level < treeDepth; level += subtreeLevels) {
-    int64_t firstIdxOnLevel = TreeNodes(level);
-    int64_t firstIdxOnNextLevel = TreeNodes(level + 1);
-
-    for (int64_t nodeIdx = firstIdxOnLevel; nodeIdx < firstIdxOnNextLevel;
+    for (uint64_t nodeIdx = firstIdxOnLevel; nodeIdx < firstIdxOnNextLevel;
          nodeIdx++) {
       const TreeNode &node = DecisionTree.at(nodeIdx);
 
@@ -186,9 +191,10 @@ void CompiledResolver::emitSubtreeEvaluators(int subtreeLevels,
       Builder.SetInsertPoint(llvm::BasicBlock::Create(Ctx, "entry", evalFn));
       auto *entryBB = Builder.GetInsertBlock();
 
+      int numNestedSwitches = subtreeLevels / switchLevels - 1;
       llvm::Value *nextNodeIdx = emitSubtreeSwitchesRecursively(
           nodeIdx, switchLevels, evalFn, entryBB, dataSetPtr,
-          subtreeLevels / switchLevels - 1);
+          (uint8_t)numNestedSwitches);
 
       Builder.CreateRet(nextNodeIdx);
       verifyFunction(*evalFn);
@@ -262,18 +268,18 @@ llvm::Value *CompiledResolver::emitComparison(ComparatorType comp, float bias,
 }
 
 llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
-    int64_t switchRootNodeIdx, int switchLevels, llvm::Function *function,
-    llvm::BasicBlock *switchBB, llvm::Value *dataSetPtr, int nestedSwitches) {
+    uint64_t switchRootNodeIdx, uint8_t switchLevels, llvm::Function *function,
+    llvm::BasicBlock *switchBB, llvm::Value *dataSetPtr, uint8_t remainingNestedSwitches) {
   using namespace llvm;
   Type *returnTy = Type::getInt64Ty(Ctx);
-  int64_t numNodes = TreeNodes(switchLevels);
-  int64_t numContinuations = PowerOf2(switchLevels);
+  auto numNodes = TreeNodes<uint8_t>(switchLevels);
+  auto numContinuations = PowerOf2<uint8_t>(switchLevels);
 
-  std::unordered_map<int64_t, unsigned> subtreeNodeIdxBitOffsets;
+  std::unordered_map<uint64_t, uint8_t> subtreeNodeIdxBitOffsets;
   subtreeNodeIdxBitOffsets.reserve(numNodes);
 
   Value *conditionVector =
-      emitComputeConditionVector(switchRootNodeIdx, switchLevels, dataSetPtr,
+      emitComputeConditionVector(switchRootNodeIdx, dataSetPtr,
                                  numNodes, subtreeNodeIdxBitOffsets);
 
   std::string returnBBLabel =
@@ -292,10 +298,8 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
   Value *conditionVectorVal = Builder.CreateLoad(conditionVector);
 
   auto *switchInst = Builder.CreateSwitch(conditionVectorVal, defaultBB,
-                                          PowerOf2(numNodes - 1));
+                                          PowerOf2<uint32_t>(numNodes - 1));
 
-  using PathBitsMap_t = std::unordered_map<unsigned, bool>;
-  using LeafNodePathBitsMap_t = std::pair<int64_t, PathBitsMap_t>;
   std::vector<LeafNodePathBitsMap_t> leafNodePathBitsMaps;
 
   leafNodePathBitsMaps.reserve(numContinuations);
@@ -307,7 +311,7 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
   // iterate leaf nodes
   BasicBlock *nodeBB;
   for (const auto &leafNodeInfo : leafNodePathBitsMaps) {
-    int64_t leafNodeIdx = leafNodeInfo.first;
+    uint64_t leafNodeIdx = leafNodeInfo.first;
     const PathBitsMap_t &pathBitsMap = leafNodeInfo.second;
 
     std::string nodeBBLabel = "n" + std::to_string(leafNodeIdx);
@@ -315,10 +319,10 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
     {
       Builder.SetInsertPoint(nodeBB);
 
-      if (nestedSwitches > 0) {
+      if (remainingNestedSwitches > 0) {
         Value *subSwitchResult = emitSubtreeSwitchesRecursively(
             leafNodeIdx, switchLevels, function, nodeBB, dataSetPtr,
-            nestedSwitches - 1);
+            remainingNestedSwitches - 1);
         Builder.CreateStore(subSwitchResult, evalResult);
       } else {
         Builder.CreateStore(ConstantInt::get(returnTy, leafNodeIdx),
@@ -328,18 +332,17 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
       Builder.CreateBr(returnBB);
     }
 
-    unsigned conditionVectorTemplate =
-        buildFixedConditionVectorTemplate(pathBitsMap);
+    uint32_t conditionVectorTemplate =
+        buildFixedBitsConditionVectorTemplate(pathBitsMap);
 
-    std::vector<unsigned> canonicalVariants;
+    std::vector<uint32_t> canonicalVariants;
     buildCanonicalConditionVectorVariants(numNodes, conditionVectorTemplate,
                                           pathBitsMap, canonicalVariants);
 
     Builder.SetInsertPoint(switchBB);
     IntegerType *switchTy = IntegerType::get(Ctx, numNodes + 1);
-    for (unsigned conditionVector : canonicalVariants) {
-      ConstantInt *caseVal =
-          ConstantInt::get(switchTy, conditionVector);
+    for (uint32_t variant : canonicalVariants) {
+      ConstantInt *caseVal = ConstantInt::get(switchTy, variant);
       switchInst->addCase(caseVal, nodeBB);
     }
   }
@@ -355,8 +358,8 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
 }
 
 llvm::Value *CompiledResolver::emitComputeConditionVector(
-    int64_t rootNodeIdx, int subtreeLevels, llvm::Value *dataSetPtr,
-    int64_t numNodes, std::unordered_map<int64_t, unsigned int> &bitOffsets) {
+    uint64_t rootNodeIdx, llvm::Value *dataSetPtr, uint8_t numNodes,
+    std::unordered_map<uint64_t, uint8_t> &bitOffsets) {
   using namespace llvm;
   IntegerType *switchTy = IntegerType::get(Ctx, numNodes + 1);
 
@@ -364,9 +367,9 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
       Builder.CreateAlloca(switchTy, nullptr, "conditionVector");
   Builder.CreateStore(ConstantInt::get(switchTy, 0), conditionVector);
 
-  for (unsigned bitOffset = 0; bitOffset < numNodes; bitOffset++) {
-    int64_t nodeIdx =
-        getNodeIdxForSubtreeBitOffset(rootNodeIdx, subtreeLevels, bitOffset);
+  for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
+    uint64_t nodeIdx =
+        getNodeIdxForSubtreeBitOffset(rootNodeIdx, bitOffset);
 
     // remember bit offset for each node index
     bitOffsets[nodeIdx] = bitOffset;
@@ -384,47 +387,45 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
   return conditionVector;
 }
 
-int64_t CompiledResolver::getNodeIdxForSubtreeBitOffset(int64_t subtreeRootIdx,
-                                                        int subtreeLevels,
-                                                        unsigned bitOffset) {
+uint64_t CompiledResolver::getNodeIdxForSubtreeBitOffset(uint64_t subtreeRootIdx,
+                                                         uint32_t bitOffset) {
   int subtreeRootIdxLevel = Log2(subtreeRootIdx + 1);
   int nodeLevelInSubtree = Log2(bitOffset + 1);
 
-  int64_t firstIdxOnRootLevel = TreeNodes(subtreeRootIdxLevel);
-  int64_t firstIdxOnNodeLevel =
+  uint64_t firstIdxOnRootLevel = TreeNodes(subtreeRootIdxLevel);
+  uint64_t firstIdxOnNodeLevel =
       TreeNodes(subtreeRootIdxLevel + nodeLevelInSubtree);
 
-  int64_t subtreeRootIdxOffset = subtreeRootIdx - firstIdxOnRootLevel;
-  int64_t numSubtreeNodesOnLevel = PowerOf2(nodeLevelInSubtree);
-  int64_t firstSubtreeIdxOnNodeLevel =
+  uint64_t subtreeRootIdxOffset = subtreeRootIdx - firstIdxOnRootLevel;
+  uint64_t numSubtreeNodesOnLevel = PowerOf2(nodeLevelInSubtree);
+  uint64_t firstSubtreeIdxOnNodeLevel =
       firstIdxOnNodeLevel + subtreeRootIdxOffset * numSubtreeNodesOnLevel;
 
-  int nodeOffsetInSubtreeLevel = bitOffset - (PowerOf2(nodeLevelInSubtree) - 1);
+  uint32_t nodeOffsetInSubtreeLevel = bitOffset - (PowerOf2<uint32_t>(nodeLevelInSubtree) - 1);
   return firstSubtreeIdxOnNodeLevel + nodeOffsetInSubtreeLevel;
 }
 
 void CompiledResolver::buildSubtreeLeafNodePathsBitsMapsRecursively(
-    int64_t nodeIdx, int remainingLevels,
-    const std::unordered_map<int64_t, unsigned> &nodeIdxBitOffsets,
-    std::vector<std::pair<int64_t, std::unordered_map<unsigned, bool>>>
-        &result) {
+    uint64_t nodeIdx, uint8_t remainingLevels,
+    const std::unordered_map<uint64_t, uint8_t> &nodeIdxBitOffsets,
+    std::vector<LeafNodePathBitsMap_t> &result) {
   if (remainingLevels == 0) {
     // subtree leaf nodes create empty path maps
-    std::unordered_map<unsigned, bool> pathBitsMap;
+    std::unordered_map<uint8_t, bool> pathBitsMap;
     result.push_back({nodeIdx, pathBitsMap});
   } else {
     // subtree non-leaf nodes add their offsets to their leafs' path maps
     const TreeNode &node = DecisionTree.at(nodeIdx);
-    unsigned thisBitOffset = nodeIdxBitOffsets.at(nodeIdx);
-    unsigned numChildLeafPaths = PowerOf2(remainingLevels);
-    unsigned numChildsPerCond = numChildLeafPaths / 2;
+    uint8_t thisBitOffset = nodeIdxBitOffsets.at(nodeIdx);
+    uint8_t numChildLeafPaths = PowerOf2<uint8_t>(remainingLevels);
+    uint8_t numChildsPerCond = numChildLeafPaths / 2;
 
     {
       buildSubtreeLeafNodePathsBitsMapsRecursively(node.TrueChildNodeIdx,
                                                    remainingLevels - 1,
                                                    nodeIdxBitOffsets, result);
 
-      for (unsigned i = 0; i < numChildsPerCond; i++) {
+      for (uint8_t i = 0; i < numChildsPerCond; i++) {
         result[result.size() - i - 1].second[thisBitOffset] = true;
       }
     }
@@ -433,19 +434,19 @@ void CompiledResolver::buildSubtreeLeafNodePathsBitsMapsRecursively(
                                                    remainingLevels - 1,
                                                    nodeIdxBitOffsets, result);
 
-      for (unsigned i = 0; i < numChildsPerCond; i++) {
+      for (uint8_t i = 0; i < numChildsPerCond; i++) {
         result[result.size() - i - 1].second[thisBitOffset] = false;
       }
     }
   }
 }
 
-unsigned CompiledResolver::buildFixedConditionVectorTemplate(
-    const std::unordered_map<unsigned, bool> &leafNodePathBitsMap) {
-  unsigned fixedBitsVector = 0;
+uint32_t CompiledResolver::buildFixedBitsConditionVectorTemplate(
+    const PathBitsMap_t &leafNodePathBitsMap) {
+  uint32_t fixedBitsVector = 0;
   for (const auto &mapEntry : leafNodePathBitsMap) {
-    unsigned bit = mapEntry.second ? 1 : 0;
-    unsigned vectorBit = bit << mapEntry.first;
+    uint32_t bit = mapEntry.second ? 1 : 0;
+    uint32_t vectorBit = bit << mapEntry.first;
     fixedBitsVector |= vectorBit;
   }
 
@@ -453,19 +454,19 @@ unsigned CompiledResolver::buildFixedConditionVectorTemplate(
 }
 
 void CompiledResolver::buildCanonicalConditionVectorVariants(
-    int64_t conditionVectorSize, unsigned fixedBitsTemplate,
-    const std::unordered_map<unsigned, bool> &leafNodePathBitsMap,
-    std::vector<unsigned> &result) {
-  std::vector<unsigned> variableBitOffsets;
-  for (int i = 0; i < conditionVectorSize; i++) {
-    if (leafNodePathBitsMap.find(i) == leafNodePathBitsMap.end())
-      variableBitOffsets.push_back(i);
+    uint8_t numNodes, uint32_t fixedBitsTemplate,
+    const PathBitsMap_t &leafNodePathBitsMap,
+    std::vector<uint32_t> &result) {
+  std::vector<uint8_t> variableBitOffsets;
+  for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
+    if (leafNodePathBitsMap.find(bitOffset) == leafNodePathBitsMap.end())
+      variableBitOffsets.push_back(bitOffset);
   }
 
   if (variableBitOffsets.empty()) {
     result.push_back(fixedBitsTemplate);
   } else {
-    unsigned expectedVariants = PowerOf2(variableBitOffsets.size());
+    auto expectedVariants = PowerOf2<uint32_t>(variableBitOffsets.size());
     result.reserve(expectedVariants);
 
     buildCanonicalConditionVectorVariantsRecursively(
@@ -476,34 +477,35 @@ void CompiledResolver::buildCanonicalConditionVectorVariants(
 }
 
 void CompiledResolver::buildCanonicalConditionVectorVariantsRecursively(
-    unsigned conditionVector, const std::vector<unsigned> &variableBitOffsets,
-    int bitToVaryIdx, std::vector<unsigned> &result) {
+    uint32_t conditionVector, const std::vector<uint8_t> &variableBitOffsets,
+    uint8_t bitToVaryIdx, std::vector<uint32_t> &result) {
   if (bitToVaryIdx < variableBitOffsets.size()) {
-    unsigned bitToVary = variableBitOffsets.at(bitToVaryIdx);
-    unsigned vectorTrueBit = 1u << bitToVary;
+    uint8_t bitToVary = variableBitOffsets.at(bitToVaryIdx);
+    uint32_t vectorTrueBit = 1u << bitToVary;
 
     // bit must still be in default zero state
     assert((conditionVector & ~vectorTrueBit) == conditionVector);
+    auto nextBitIdx = (uint8_t)(bitToVaryIdx + 1);
 
     // true variation
     buildCanonicalConditionVectorVariantsRecursively(
-        conditionVector | vectorTrueBit, variableBitOffsets, bitToVaryIdx + 1,
+        conditionVector | vectorTrueBit, variableBitOffsets, nextBitIdx,
         result);
 
     // false variation
     buildCanonicalConditionVectorVariantsRecursively(
-        conditionVector, variableBitOffsets, bitToVaryIdx + 1, result);
+        conditionVector, variableBitOffsets, nextBitIdx, result);
   } else {
     result.push_back(conditionVector);
   }
 }
 
-int64_t CompiledResolver::run(const DecisionTree_t &tree,
-                              const DataSet_t &dataSet) {
+uint64_t CompiledResolver::run(const DecisionTree_t &tree,
+                               const DataSet_t &dataSet) {
   assert(&tree == &DecisionTree);
 
-  int64_t idx = 0;
-  int64_t firstResultIdx = DecisionTree.size();
+  uint64_t idx = 0;
+  uint64_t firstResultIdx = DecisionTree.size();
   const float *data = dataSet.data();
 
   while (idx < firstResultIdx) {

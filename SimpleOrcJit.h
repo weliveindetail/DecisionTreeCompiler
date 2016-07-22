@@ -62,8 +62,8 @@ public:
     return handle;
   }
 
-  using Evaluator_f = int64_t(const float *);
-  Evaluator_f *getEvaluatorFnPtr(std::string unmangledName) {
+  template<typename Evaluator_f>
+  Evaluator_f *getFnPtr(std::string unmangledName) {
     auto jitSymbol = CompileLayer.findSymbol(mangle(unmangledName), false);
     auto functionAddr = jitSymbol.getAddress();
 
