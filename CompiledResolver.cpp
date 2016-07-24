@@ -218,14 +218,18 @@ llvm::Function *CompiledResolver::emitFunctionDeclaration(std::string name) {
 }
 
 llvm::Value *
-CompiledResolver::emitSingleNodeEvaluaton(const TreeNode &node,
-                                          llvm::Value *dataSetPtr) {
-  using namespace llvm;
-
-  Value *dataSetFeaturePtr =
+CompiledResolver::emitNodeLoad(const TreeNode &node,
+                               llvm::Value *dataSetPtr) {
+  llvm::Value *dataSetFeaturePtr =
       Builder.CreateConstGEP1_32(dataSetPtr, node.DataSetFeatureIdx);
-  Value *dataSetFeatureVal = Builder.CreateLoad(dataSetFeaturePtr);
-  Constant *bias = ConstantFP::get(dataSetFeatureVal->getType(), node.Bias);
+
+  return Builder.CreateLoad(dataSetFeaturePtr);
+}
+
+llvm::Value *
+CompiledResolver::emitNodeCompare(const TreeNode &node,
+                                  llvm::Value *dataSetFeatureVal) {
+  llvm::Constant *bias = llvm::ConstantFP::get(dataSetFeatureVal->getType(), node.Bias);
 
   return Builder.CreateFCmpOGT(dataSetFeatureVal, bias);
 }
@@ -326,19 +330,47 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
   using namespace llvm;
   IntegerType *switchTy = IntegerType::get(Ctx, numNodes + 1);
 
-  Value *conditionVector =
-      Builder.CreateAlloca(switchTy, nullptr, "conditionVector");
-  Builder.CreateStore(ConstantInt::get(switchTy, 0), conditionVector);
+  Type *featureValTy = Type::getFloatTy(Ctx);
+  ConstantInt *numNodesConst = ConstantInt::get(switchTy, numNodes);
 
+  std::unordered_map<uint8_t, uint64_t> nodeIdxs;
+
+  // remember bit offset for each node index and vice versa
   for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
     uint64_t nodeIdx =
         getNodeIdxForSubtreeBitOffset(rootNodeIdx, bitOffset);
 
-    // remember bit offset for each node index
     bitOffsets[nodeIdx] = bitOffset;
+    nodeIdxs[bitOffset] = nodeIdx;
+  }
 
-    const TreeNode &node = DecisionTree.at(nodeIdx);
-    Value *evalResultBit = emitSingleNodeEvaluaton(node, dataSetPtr);
+  Value *featureValues = Builder.CreateAlloca(
+      featureValTy, numNodesConst, "featureValues");
+
+  // load feature values for all nodes in the subtree
+  for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
+    const TreeNode &node = DecisionTree.at(nodeIdxs[bitOffset]);
+    Value *dataSetFeatureVal = emitNodeLoad(node, dataSetPtr);
+
+    llvm::Value *featureValuePtr =
+        Builder.CreateConstGEP1_32(featureValues, bitOffset);
+
+    Builder.CreateStore(dataSetFeatureVal, featureValuePtr);
+  }
+
+  Value *conditionVector =
+      Builder.CreateAlloca(switchTy, nullptr, "conditionVector");
+  Builder.CreateStore(ConstantInt::get(switchTy, 0), conditionVector);
+
+  // compare feature values for all nodes in the subtree
+  for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
+    const TreeNode &node = DecisionTree.at(nodeIdxs[bitOffset]);
+
+    llvm::Value *featureValuePtr =
+        Builder.CreateConstGEP1_32(featureValues, bitOffset);
+
+    Value *featureVal = Builder.CreateLoad(featureValuePtr);
+    Value *evalResultBit = emitNodeCompare(node, featureVal);
     Value *evalResultInt = Builder.CreateZExt(evalResultBit, switchTy);
     Value *vectorBit = Builder.CreateShl(evalResultInt, APInt(8, bitOffset));
 

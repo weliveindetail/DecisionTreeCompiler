@@ -77,8 +77,9 @@ private:
       uint8_t bitToVaryIdx, std::vector<uint32_t> &result);
 
   llvm::Function *emitFunctionDeclaration(std::string name);
-  llvm::Value *emitSingleNodeEvaluaton(const TreeNode &node,
-                                       llvm::Value *dataSetPtr);
+
+  llvm::Value *emitNodeLoad(const TreeNode &node, llvm::Value *dataSetPtr);
+  llvm::Value *emitNodeCompare(const TreeNode &node, llvm::Value *dataSetFeatureVal);
 
   llvm::Value *emitComputeConditionVector(
       uint64_t rootNodeIdx, llvm::Value *dataSetPtr, uint8_t numNodes,
