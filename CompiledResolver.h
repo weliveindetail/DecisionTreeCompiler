@@ -76,12 +76,7 @@ private:
       uint32_t conditionVector, const std::vector<uint8_t> &variableBitOffsets,
       uint8_t bitToVaryIdx, std::vector<uint32_t> &result);
 
-  llvm::Function *getUnaryIntrinsic(llvm::Intrinsic::ID id, llvm::Type *opTy);
-
   llvm::Function *emitFunctionDeclaration(std::string name);
-  llvm::Value *emitOperator(OperationType op, llvm::Value *value);
-  llvm::Value *emitComparison(ComparatorType comp, float bias,
-                              llvm::Value *value);
   llvm::Value *emitSingleNodeEvaluaton(const TreeNode &node,
                                        llvm::Value *dataSetPtr);
 

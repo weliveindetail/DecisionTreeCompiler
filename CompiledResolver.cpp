@@ -225,46 +225,9 @@ CompiledResolver::emitSingleNodeEvaluaton(const TreeNode &node,
   Value *dataSetFeaturePtr =
       Builder.CreateConstGEP1_32(dataSetPtr, node.DataSetFeatureIdx);
   Value *dataSetFeatureVal = Builder.CreateLoad(dataSetFeaturePtr);
+  Constant *bias = ConstantFP::get(dataSetFeatureVal->getType(), node.Bias);
 
-  Value *comparableFeatureVal = emitOperator(node.Op, dataSetFeatureVal);
-  return emitComparison(node.Comp, node.Bias, comparableFeatureVal);
-}
-
-llvm::Value *CompiledResolver::emitOperator(OperationType op,
-                                            llvm::Value *value) {
-  switch (op) {
-  case OperationType::Bypass:
-    return value;
-
-  case OperationType::Sqrt: {
-    llvm::Function *sqrtFn =
-        getUnaryIntrinsic(llvm::Intrinsic::sqrt, value->getType());
-    return Builder.CreateCall(sqrtFn, {value});
-  }
-
-  case OperationType::Ln: {
-    llvm::Function *lnFn =
-        getUnaryIntrinsic(llvm::Intrinsic::log, value->getType());
-    return Builder.CreateCall(lnFn, {value});
-  }
-  }
-};
-
-llvm::Function *CompiledResolver::getUnaryIntrinsic(llvm::Intrinsic::ID id,
-                                                    llvm::Type *opTy) {
-  return llvm::Intrinsic::getDeclaration(TheModule.get(), id, {opTy});
-}
-
-llvm::Value *CompiledResolver::emitComparison(ComparatorType comp, float bias,
-                                              llvm::Value *value) {
-  llvm::Constant *biasConst = llvm::ConstantFP::get(value->getType(), bias);
-  switch (comp) {
-  case ComparatorType::LessThan:
-    return Builder.CreateFCmpOLT(value, biasConst);
-
-  case ComparatorType::GreaterThan:
-    return Builder.CreateFCmpOGT(value, biasConst);
-  }
+  return Builder.CreateFCmpOGT(dataSetFeatureVal, bias);
 }
 
 llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
