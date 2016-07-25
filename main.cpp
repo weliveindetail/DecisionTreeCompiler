@@ -8,9 +8,9 @@
 #include "RegularResolver.h"
 #include "CompiledResolver.h"
 
-int treeDepth = 15;
+int treeDepth = 3;
 int dataSetFeatures = 100;
-int compiledFunctionLevels = 15;
+int compiledFunctionLevels = 3;
 int compiledFunctionSwitchLevels = 3;
 
 std::unique_ptr<RegularResolver> regularResolver;

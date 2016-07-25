@@ -336,9 +336,6 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
   using namespace llvm;
   IntegerType *switchTy = IntegerType::get(Ctx, numNodes + 1);
 
-  Type *featureValTy = Type::getFloatTy(Ctx);
-  ConstantInt *numNodesConst = ConstantInt::get(switchTy, numNodes);
-
   std::unordered_map<uint8_t, uint64_t> nodeIdxs;
 
   // remember bit offset for each node index and vice versa
@@ -350,8 +347,12 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
     nodeIdxs[bitOffset] = nodeIdx;
   }
 
+  Type *featureValTy = Type::getFloatTy(Ctx);
+  ConstantInt *numNodeAllocs = ConstantInt::get(switchTy, numNodes + 1);
+
+  // -------------------------------------------------------
   Value *featureValues = Builder.CreateAlloca(
-      featureValTy, numNodesConst, "featureValues");
+      featureValTy, numNodeAllocs, "featureValues");
 
   // load feature values for all nodes in the subtree
   for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
@@ -364,20 +365,77 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
     Builder.CreateStore(dataSetFeatureVal, featureValuePtr);
   }
 
+  // -------------------------------------------------------
+  Value *compareValues = Builder.CreateAlloca(
+      featureValTy, numNodeAllocs, "compareValues");
+
+  // load values to compare features against for all nodes in the subtree
+  for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
+    const TreeNode &node = DecisionTree.at(nodeIdxs[bitOffset]);
+
+    llvm::Value *compareValuePtr =
+        Builder.CreateConstGEP1_32(compareValues, bitOffset);
+
+    Builder.CreateStore(
+        ConstantFP::get(featureValTy, node.Bias), compareValuePtr);
+  }
+
+  // -------------------------------------------------------
+  Type *avxFloatsTy = VectorType::get(featureValTy, numNodes + 1);
+  Type *avxFloatsPtrTy = avxFloatsTy->getPointerTo();
+  Type *avxCmpOpTy = Type::getInt8Ty(Ctx);
+
+  Value *avxFeatureValuesPtr = Builder.CreateBitCast(featureValues, avxFloatsPtrTy);
+  Value *avxCompareValuesPtr = Builder.CreateBitCast(compareValues, avxFloatsPtrTy);
+
+  Value *avxFeatureValues = Builder.CreateLoad(avxFeatureValuesPtr);
+  Value *avxCompareValues = Builder.CreateLoad(avxCompareValuesPtr);
+
+  Value *avxCmpOp = ConstantInt::get(avxCmpOpTy, 14); // _CMP_GT_OS
+
+  Function *avxCmp = Intrinsic::getDeclaration(
+      TheModule.get(), Intrinsic::ID::x86_avx_cmp_ps_256);
+
+  Value *avxCmpRes =
+    Builder.CreateCall(avxCmp, {avxFeatureValues, avxCompareValues, avxCmpOp});
+
+  Type *avxStoreOpResTy = Type::getInt8PtrTy(Ctx);
+  Function *avxStore = Intrinsic::getDeclaration(
+      TheModule.get(), Intrinsic::ID::x86_avx_storeu_ps_256);
+
+  Type* compareResultsTy =
+      ArrayType::get(featureValTy, numNodes + 1);
+
+  Value* compareResults =
+      Builder.CreateAlloca(compareResultsTy, nullptr, "compareResults");
+
+  Value* compareResultsCasted =
+      Builder.CreateBitCast(compareResults, avxStoreOpResTy);
+
+  Builder.CreateCall(avxStore, {compareResultsCasted, avxCmpRes});
+
+  // -------------------------------------------------------
   Value *conditionVector =
       Builder.CreateAlloca(switchTy, nullptr, "conditionVector");
   Builder.CreateStore(ConstantInt::get(switchTy, 0), conditionVector);
 
+  Value *nullVal = ConstantFP::get(featureValTy, 0.0);
+
+  Value *nullInt = ConstantInt::get(switchTy, 0);
+  Value *oneInt = ConstantInt::get(switchTy, 1);
+
+  Value* compareResultsFloatPtr =
+      Builder.CreateBitCast(compareResults, featureValTy->getPointerTo());
+
   // compare feature values for all nodes in the subtree
   for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
-    const TreeNode &node = DecisionTree.at(nodeIdxs[bitOffset]);
+    Value *compareResultsPtr =
+        Builder.CreateConstGEP1_32(compareResultsFloatPtr, bitOffset);
 
-    llvm::Value *featureValuePtr =
-        Builder.CreateConstGEP1_32(featureValues, bitOffset);
-
-    Value *featureVal = Builder.CreateLoad(featureValuePtr);
-    Value *evalResultBit = emitNodeCompare(node, featureVal);
-    Value *evalResultInt = Builder.CreateZExt(evalResultBit, switchTy);
+    //Value *compareResultsFloatPtr = Builder.CreateBitCast(compareResultsPtr, );
+    Value *compareResVal = Builder.CreateLoad(compareResultsPtr);
+    Value *compareResValIsNull = Builder.CreateFCmpOEQ(compareResVal, nullVal);
+    Value *evalResultInt = Builder.CreateSelect(compareResValIsNull, nullInt, oneInt);
     Value *vectorBit = Builder.CreateShl(evalResultInt, APInt(8, bitOffset));
 
     Value *conditionVectorOld = Builder.CreateLoad(conditionVector);

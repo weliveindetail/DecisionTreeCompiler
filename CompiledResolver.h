@@ -37,9 +37,9 @@ private:
   using SubtreeEvals_t = std::unordered_map<uint64_t, SubtreeEvaluator_f *>;
   SubtreeEvals_t CompiledEvaluators;
 
-  // switching over 5 tree levels involves 31 nodes
-  // and results in 2.14 mio switch cases
-  constexpr static uint8_t MaxSwitchLevels = 5;
+  // 3 tree levels = 7 nodes = 128 switch cases
+  // 5 tree levels = 31 nodes = 2.14 mio switch cases
+  constexpr static uint8_t MaxSwitchLevels = 3;
 
   using PathBitsMap_t = std::unordered_map<uint8_t, bool>;
   using LeafNodePathBitsMap_t = std::pair<uint64_t, PathBitsMap_t>;
