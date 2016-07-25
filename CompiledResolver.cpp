@@ -2,6 +2,7 @@
 
 #include <string>
 
+#include <llvm/IR/Attributes.h>
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/ExecutionEngine/GenericValue.h>
 #include <llvm/IR/Constants.h>
@@ -214,6 +215,11 @@ llvm::Function *CompiledResolver::emitFunctionDeclaration(std::string name) {
       Function::Create(signature, linkage, name, TheModule.get());
 
   evalFn->setName(name);
+
+  AttributeSet attributeSet;
+  evalFn->setAttributes(attributeSet.addAttribute(
+      Ctx, AttributeSet::FunctionIndex, "target-features", "+avx"));
+
   return evalFn;
 }
 
