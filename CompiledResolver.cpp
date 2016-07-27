@@ -351,9 +351,20 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
   ConstantInt *numNodeAllocs = ConstantInt::get(switchTy, numNodes + 1);
 
   // -------------------------------------------------------
-  Value *featureValues = Builder.CreateAlloca(
-      featureValTy, numNodeAllocs, "featureValues");
 
+  Value *featureValues = Builder.Insert(
+      new AllocaInst(featureValTy, numNodeAllocs, 32), "featureValues");
+
+  Value *compareValues = Builder.Insert(
+      new AllocaInst(featureValTy, numNodeAllocs, 32), "compareValues");
+
+  Value *bitShiftValues = Builder.Insert(
+      new AllocaInst(Type::getInt32Ty(Ctx), numNodeAllocs, 32), "bitShiftValues");
+
+  Value* resultPtr =
+      Builder.CreateAlloca(switchTy, nullptr, "result");
+
+  // -------------------------------------------------------
   // load feature values for all nodes in the subtree
   for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
     const TreeNode &node = DecisionTree.at(nodeIdxs[bitOffset]);
@@ -366,8 +377,6 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
   }
 
   // -------------------------------------------------------
-  Value *compareValues = Builder.CreateAlloca(
-      featureValTy, numNodeAllocs, "compareValues");
 
   // load values to compare features against for all nodes in the subtree
   for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
@@ -381,15 +390,15 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
   }
 
   // -------------------------------------------------------
-  Type *avxFloatsTy = VectorType::get(featureValTy, numNodes + 1);
-  Type *avxFloatsPtrTy = avxFloatsTy->getPointerTo();
+  Type *avx8FloatsTy = VectorType::get(featureValTy, numNodes + 1);
+  Type *avxFloatsPtrTy = avx8FloatsTy->getPointerTo();
   Type *avxCmpOpTy = Type::getInt8Ty(Ctx);
 
   Value *avxFeatureValuesPtr = Builder.CreateBitCast(featureValues, avxFloatsPtrTy);
   Value *avxCompareValuesPtr = Builder.CreateBitCast(compareValues, avxFloatsPtrTy);
 
-  Value *avxFeatureValues = Builder.CreateLoad(avxFeatureValuesPtr);
-  Value *avxCompareValues = Builder.CreateLoad(avxCompareValuesPtr);
+  Value *avxFeatureValues = Builder.CreateAlignedLoad(avxFeatureValuesPtr, 32);
+  Value *avxCompareValues = Builder.CreateAlignedLoad(avxCompareValuesPtr, 32);
 
   Value *avxCmpOp = ConstantInt::get(avxCmpOpTy, 14); // _CMP_GT_OS
 
@@ -400,80 +409,69 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
     Builder.CreateCall(avxCmp, {avxFeatureValues, avxCompareValues, avxCmpOp});
 
   // -------------------------------------------------------
-  Value *bitShiftValues = Builder.CreateAlloca(
-      featureValTy, numNodeAllocs, "bitShiftValues");
 
-  for (uint8_t i = 0; i < numNodes + 1; i++) {
+  for (uint8_t i = 0; i < numNodes; i++) {
     llvm::Value *bitShiftValuePtr =
         Builder.CreateConstGEP1_32(bitShiftValues, i);
 
     Builder.CreateStore(
-        ConstantFP::get(featureValTy, *(float*)(&i)), bitShiftValuePtr);
+        ConstantInt::get(Type::getInt32Ty(Ctx), 1 << i), bitShiftValuePtr);
   }
 
-  Type *avxIntsTy = VectorType::get(Type::getInt32Ty(Ctx), numNodes + 1);
-  Type *avxIntsPtrTy = avxIntsTy->getPointerTo();
+  Type *avx8IntsTy = VectorType::get(Type::getInt32Ty(Ctx), numNodes + 1);
+  Type *avx8IntsPtrTy = avx8IntsTy->getPointerTo();
 
   Value* avxBitShiftIntsPtr =
-      Builder.CreateBitCast(bitShiftValues, avxIntsPtrTy);
+      Builder.CreateBitCast(bitShiftValues, avx8IntsPtrTy);
 
   Value* avxBitShiftInts =
-      Builder.CreateLoad(avxBitShiftIntsPtr);
+      Builder.CreateAlignedLoad(avxBitShiftIntsPtr, 32);
 
   Value* avxCmpResInts =
-      Builder.CreateBitCast(avxCmpRes, avxIntsTy);
+      Builder.CreateBitCast(avxCmpRes, avx8IntsTy);
 
   Value* avxBitShiftResults =
       Builder.CreateAnd(avxCmpResInts, avxBitShiftInts);
 
-  // -------------------------------------------------------
-  Type *avxStoreOpResTy = Type::getInt8PtrTy(Ctx);
-  Function *avxStore = Intrinsic::getDeclaration(
-      TheModule.get(), Intrinsic::ID::x86_avx_storeu_ps_256);
+  Value* avxBitShiftResultsCasted =
+      Builder.CreateBitCast(avxBitShiftResults, avx8FloatsTy);
 
-  Type* bitShiftResultsTy =
-      ArrayType::get(featureValTy, numNodes + 1);
+  Value* undef1 = UndefValue::get(avx8FloatsTy);
+  Value* shuffleLow =
+    Builder.CreateShuffleVector(avxBitShiftResultsCasted, undef1, {0, 1, 2, 3});
 
-  Value* bitShiftResults =
-      Builder.CreateAlloca(bitShiftResultsTy, nullptr, "bitShiftResults");
+  Value* undef2 = UndefValue::get(avx8FloatsTy);
+  Value* shuffleHigh =
+      Builder.CreateShuffleVector(avxBitShiftResultsCasted, undef2, {4, 5, 6, 7});
 
-  Value* bitShiftResultsCasted =
-      Builder.CreateBitCast(bitShiftResults, avxStoreOpResTy);
+  Type *avx4IntsTy = VectorType::get(Type::getInt32Ty(Ctx), (numNodes + 1) / 2);
+  Value* shuffleLowCasted = Builder.CreateBitCast(shuffleLow, avx4IntsTy);
+  Value* shuffleHighCasted = Builder.CreateBitCast(shuffleHigh, avx4IntsTy);
 
-  Value* avxBitShiftResultsPtrCasted =
-      Builder.CreateBitCast(avxBitShiftResults, avxFloatsTy);
+  Value* interleavedOrRes1 =
+    Builder.CreateOr(shuffleLowCasted, shuffleHighCasted);
 
-  Builder.CreateCall(avxStore, {bitShiftResultsCasted, avxBitShiftResultsPtrCasted});
+  Value* undef3 = UndefValue::get(avx4IntsTy);
+  Value* shuffleMid =
+      Builder.CreateShuffleVector(interleavedOrRes1, undef3, {1, 1, 3, 3});
 
-  // -------------------------------------------------------
-  Value *conditionVector =
-      Builder.CreateAlloca(switchTy, nullptr, "conditionVector");
-  Builder.CreateStore(ConstantInt::get(switchTy, 0), conditionVector);
+  Value* interleavedOrRes2 =
+      Builder.CreateOr(interleavedOrRes1, shuffleMid);
 
-  Value *nullVal = ConstantFP::get(featureValTy, 0.0);
+  Value* interleavedOrRes3a =
+      Builder.CreateExtractElement(interleavedOrRes2, 0ull);
 
-  Value *nullInt = ConstantInt::get(switchTy, 0);
-  Value *oneInt = ConstantInt::get(switchTy, 1);
+  Value* interleavedOrRes3b =
+      Builder.CreateExtractElement(interleavedOrRes2, 2ull);
 
-  Value* resultsFloatPtr =
-      Builder.CreateBitCast(bitShiftResults, featureValTy->getPointerTo());
+  Value* interleavedOrRes =
+      Builder.CreateOr(interleavedOrRes3a, interleavedOrRes3b);
 
-  // compare feature values for all nodes in the subtree
-  for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
-    Value *resultsPtr =
-        Builder.CreateConstGEP1_32(resultsFloatPtr, bitOffset);
+  Value* result =
+      Builder.CreateTruncOrBitCast(interleavedOrRes, switchTy, "conditionVector");
 
-    Value *compareResVal = Builder.CreateLoad(resultsPtr);
-    Value *compareResValIsNull = Builder.CreateFCmpOEQ(compareResVal, nullVal);
-    Value *evalResultInt = Builder.CreateSelect(compareResValIsNull, nullInt, oneInt);
-    Value *vectorBit = Builder.CreateShl(evalResultInt, APInt(8, bitOffset));
-
-    Value *conditionVectorOld = Builder.CreateLoad(conditionVector);
-    Value *conditionVectorNew = Builder.CreateOr(conditionVectorOld, vectorBit);
-    Builder.CreateStore(conditionVectorNew, conditionVector);
-  }
-
-  return conditionVector;
+  Builder.CreateStore(result, resultPtr);
+  return resultPtr;
 }
 
 uint64_t CompiledResolver::getNodeIdxForSubtreeBitOffset(uint64_t subtreeRootIdx,
