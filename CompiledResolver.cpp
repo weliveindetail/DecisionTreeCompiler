@@ -376,6 +376,11 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
     Builder.CreateStore(dataSetFeatureVal, featureValuePtr);
   }
 
+  // avoid comparing undefined values in unused last item
+  Builder.CreateStore(
+      ConstantFP::get(featureValTy, 0.0),
+      Builder.CreateConstGEP1_32(featureValues, 7));
+
   // -------------------------------------------------------
 
   // load values to compare features against for all nodes in the subtree
@@ -388,6 +393,11 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
     Builder.CreateStore(
         ConstantFP::get(featureValTy, node.Bias), compareValuePtr);
   }
+
+  // avoid comparing undefined values in unused last item
+  Builder.CreateStore(
+      ConstantFP::get(featureValTy, 0.0),
+      Builder.CreateConstGEP1_32(compareValues, 7));
 
   // -------------------------------------------------------
   Type *avx8FloatsTy = VectorType::get(featureValTy, numNodes + 1);
@@ -417,6 +427,11 @@ llvm::Value *CompiledResolver::emitComputeConditionVector(
     Builder.CreateStore(
         ConstantInt::get(Type::getInt32Ty(Ctx), 1 << i), bitShiftValuePtr);
   }
+
+  // AND with 0 in unused last item
+  Builder.CreateStore(
+      ConstantInt::get(Type::getInt32Ty(Ctx), 0),
+      Builder.CreateConstGEP1_32(bitShiftValues, 7));
 
   Type *avx8IntsTy = VectorType::get(Type::getInt32Ty(Ctx), numNodes + 1);
   Type *avx8IntsPtrTy = avx8IntsTy->getPointerTo();
