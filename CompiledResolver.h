@@ -85,6 +85,23 @@ private:
       uint64_t rootNodeIdx, llvm::Value *dataSetPtr, uint8_t numNodes,
       std::unordered_map<uint64_t, uint8_t> &bitOffsets);
 
+  llvm::Value *emitCollectDataSetValues(
+      const std::vector<uint64_t> &nodeIdxs, llvm::Value *dataSetPtr);
+
+  llvm::Value *emitDefineTreeNodeValues(
+      const std::vector<uint64_t> &nodeIdxs);
+
+  llvm::Value *emitDefineBitShiftMaskValues(uint64_t numNodes);
+
+  llvm::Value *emitComputeCompareAvx(
+      llvm::Value *lhs, llvm::Value *rhs, uint8_t items);
+
+  llvm::Value *emitComputeBitShiftsAvx(
+      llvm::Value *avxPackedCmpResults, llvm::Value *bitShiftValues, uint8_t items);
+
+  llvm::Value *emitComputeHorizontalOrAvx(
+      llvm::Value *avxPackedInts, uint8_t items);
+
   llvm::Value *emitSubtreeSwitchesRecursively(
       uint64_t switchRootNodeIdx, uint8_t switchLevels, llvm::Function *function,
       llvm::BasicBlock *switchBB, llvm::Value *dataSetPtr, uint8_t remainingNestedSwitches);
