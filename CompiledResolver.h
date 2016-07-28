@@ -56,12 +56,15 @@ private:
   SubtreeEvals_t collectEvaluatorFunctions(int nodeLevelsPerFunction,
                                            std::string nameStub);
 
-  uint64_t getNodeIdxForSubtreeBitOffset(uint64_t subtreeRootIdx,
-                                         uint32_t bitOffset);
+  std::vector<uint64_t> collectSubtreeNodeIdxs(
+      uint64_t subtreeRootIdx, uint8_t subtreeNodes);
 
-  void buildSubtreeLeafNodePathsBitsMapsRecursively(
+  std::vector<LeafNodePathBitsMap_t> buildSubtreeLeafNodePathBitsMaps(
+      uint64_t subtreeRootIdx, uint8_t subtreeLevels);
+
+  void buildSubtreeLeafNodePathBitsMapsRecursively(
       uint64_t nodeIdx, uint8_t remainingLevels,
-      const std::unordered_map<uint64_t, uint8_t> &nodeIdxBitOffsets,
+      const std::unordered_map<uint64_t, uint8_t> &bitOffsets,
       std::vector<LeafNodePathBitsMap_t> &result);
 
   uint32_t buildFixedBitsConditionVectorTemplate(
@@ -82,8 +85,7 @@ private:
   llvm::Value *emitNodeCompare(const TreeNode &node, llvm::Value *dataSetFeatureVal);
 
   llvm::Value *emitComputeConditionVector(
-      uint64_t rootNodeIdx, llvm::Value *dataSetPtr, uint8_t numNodes,
-      std::unordered_map<uint64_t, uint8_t> &bitOffsets);
+      llvm::Value *dataSetPtr, uint64_t subtreeRootIdx, uint8_t subtreeLevels);
 
   llvm::Value *emitCollectDataSetValues(
       const std::vector<uint64_t> &nodeIdxs, llvm::Value *dataSetPtr);

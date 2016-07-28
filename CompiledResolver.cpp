@@ -246,14 +246,9 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
   using namespace llvm;
   Type *returnTy = Type::getInt64Ty(Ctx);
   auto numNodes = TreeNodes<uint8_t>(switchLevels);
-  auto numContinuations = PowerOf2<uint8_t>(switchLevels);
-
-  std::unordered_map<uint64_t, uint8_t> subtreeNodeIdxBitOffsets;
-  subtreeNodeIdxBitOffsets.reserve(numNodes);
 
   Value *conditionVector =
-      emitComputeConditionVector(switchRootNodeIdx, dataSetPtr,
-                                 numNodes, subtreeNodeIdxBitOffsets);
+      emitComputeConditionVector(dataSetPtr, switchRootNodeIdx, switchLevels);
 
   std::string returnBBLabel =
       "switch" + std::to_string(switchRootNodeIdx) + "_return";
@@ -271,13 +266,8 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
   auto *switchInst = Builder.CreateSwitch(conditionVector, defaultBB,
                                           PowerOf2<uint32_t>(numNodes - 1));
 
-  std::vector<LeafNodePathBitsMap_t> leafNodePathBitsMaps;
-
-  leafNodePathBitsMaps.reserve(numContinuations);
-  buildSubtreeLeafNodePathsBitsMapsRecursively(switchRootNodeIdx, switchLevels,
-                                               subtreeNodeIdxBitOffsets,
-                                               leafNodePathBitsMaps);
-  assert(leafNodePathBitsMaps.size() == numContinuations);
+  std::vector<LeafNodePathBitsMap_t> leafNodePathBitsMaps =
+      buildSubtreeLeafNodePathBitsMaps(switchRootNodeIdx, switchLevels);
 
   // iterate leaf nodes
   BasicBlock *nodeBB;
@@ -329,26 +319,17 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
 }
 
 llvm::Value *CompiledResolver::emitComputeConditionVector(
-    uint64_t rootNodeIdx, llvm::Value *dataSetPtr, uint8_t numNodes,
-    std::unordered_map<uint64_t, uint8_t> &bitOffsets) {
+    llvm::Value *dataSetPtr, uint64_t subtreeRootIdx, uint8_t subtreeLevels) {
   using namespace llvm;
 
-  std::vector<uint64_t> nodeIdxs;
+  uint8_t numNodes = TreeNodes<uint8_t>(subtreeLevels);
+  uint8_t avxPackSize = numNodes + 1;
 
-  // FIXME: the bitOffsets map may not be assembled here
-  // remember bit offset for each node index and vice versa
-  for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
-    uint64_t nodeIdx =
-        getNodeIdxForSubtreeBitOffset(rootNodeIdx, bitOffset);
-
-    bitOffsets[nodeIdx] = bitOffset;
-    nodeIdxs.push_back(nodeIdx);
-  }
+  std::vector<uint64_t> nodeIdxs =
+      collectSubtreeNodeIdxs(subtreeRootIdx, numNodes);
 
   Value *dataSetValues = emitCollectDataSetValues(nodeIdxs, dataSetPtr);
   Value *treeNodeValues = emitDefineTreeNodeValues(nodeIdxs);
-
-  uint8_t avxPackSize = numNodes + 1;
 
   Value *avxCmpResults =
       emitComputeCompareAvx(dataSetValues, treeNodeValues, avxPackSize);
@@ -503,27 +484,59 @@ llvm::Value *CompiledResolver::emitComputeHorizontalOrAvx(
       Builder.CreateExtractElement(avxOr_0145_15_2367_37, 2ull));
 }
 
-uint64_t CompiledResolver::getNodeIdxForSubtreeBitOffset(uint64_t subtreeRootIdx,
-                                                         uint32_t bitOffset) {
+std::vector<uint64_t> CompiledResolver::collectSubtreeNodeIdxs(
+    uint64_t subtreeRootIdx, uint8_t subtreeNodes) {
+  std::vector<uint64_t> nodeIdxs;
+  nodeIdxs.reserve(subtreeNodes);
+
   int subtreeRootIdxLevel = Log2(subtreeRootIdx + 1);
-  int nodeLevelInSubtree = Log2(bitOffset + 1);
-
   uint64_t firstIdxOnRootLevel = TreeNodes(subtreeRootIdxLevel);
-  uint64_t firstIdxOnNodeLevel =
-      TreeNodes(subtreeRootIdxLevel + nodeLevelInSubtree);
-
   uint64_t subtreeRootIdxOffset = subtreeRootIdx - firstIdxOnRootLevel;
-  uint64_t numSubtreeNodesOnLevel = PowerOf2(nodeLevelInSubtree);
-  uint64_t firstSubtreeIdxOnNodeLevel =
-      firstIdxOnNodeLevel + subtreeRootIdxOffset * numSubtreeNodesOnLevel;
 
-  uint32_t nodeOffsetInSubtreeLevel = bitOffset - (PowerOf2<uint32_t>(nodeLevelInSubtree) - 1);
-  return firstSubtreeIdxOnNodeLevel + nodeOffsetInSubtreeLevel;
+  for (uint8_t i = 0; i < subtreeNodes; i++) {
+    int nodeLevelInSubtree = Log2(i + 1);
+
+    uint64_t firstIdxOnNodeLevel =
+        TreeNodes(subtreeRootIdxLevel + nodeLevelInSubtree);
+
+    uint64_t numSubtreeNodesOnLevel = PowerOf2(nodeLevelInSubtree);
+    uint64_t firstSubtreeIdxOnNodeLevel =
+        firstIdxOnNodeLevel + subtreeRootIdxOffset * numSubtreeNodesOnLevel;
+
+    uint32_t nodeOffsetInSubtreeLevel = i - (PowerOf2<uint32_t>(nodeLevelInSubtree) - 1);
+    nodeIdxs.push_back(firstSubtreeIdxOnNodeLevel + nodeOffsetInSubtreeLevel);
+  }
+
+  return nodeIdxs;
 }
 
-void CompiledResolver::buildSubtreeLeafNodePathsBitsMapsRecursively(
+std::vector<CompiledResolver::LeafNodePathBitsMap_t>
+CompiledResolver::buildSubtreeLeafNodePathBitsMaps(
+    uint64_t subtreeRootIdx, uint8_t subtreeLevels) {
+  auto subtreeNodes = TreeNodes<uint8_t>(subtreeLevels);
+  auto subtreeChildNodes = PowerOf2<uint8_t>(subtreeLevels);
+
+  std::vector<uint64_t> subtreeNodeIdxs =
+      collectSubtreeNodeIdxs(subtreeRootIdx, subtreeNodes);
+
+  std::unordered_map<uint64_t, uint8_t> bitOffsets;
+  bitOffsets.reserve(subtreeNodes);
+
+  for (uint8_t i = 0; i < subtreeNodes; i++)
+    bitOffsets[subtreeNodeIdxs[i]] = i;
+
+  std::vector<LeafNodePathBitsMap_t> results;
+  results.reserve(subtreeChildNodes);
+
+  buildSubtreeLeafNodePathBitsMapsRecursively(subtreeRootIdx, subtreeLevels, bitOffsets, results);
+
+  assert(results.size() == subtreeChildNodes);
+  return results;
+}
+
+void CompiledResolver::buildSubtreeLeafNodePathBitsMapsRecursively(
     uint64_t nodeIdx, uint8_t remainingLevels,
-    const std::unordered_map<uint64_t, uint8_t> &nodeIdxBitOffsets,
+    const std::unordered_map<uint64_t, uint8_t> &bitOffsets,
     std::vector<LeafNodePathBitsMap_t> &result) {
   if (remainingLevels == 0) {
     // subtree leaf nodes create empty path maps
@@ -532,23 +545,23 @@ void CompiledResolver::buildSubtreeLeafNodePathsBitsMapsRecursively(
   } else {
     // subtree non-leaf nodes add their offsets to their leafs' path maps
     const TreeNode &node = DecisionTree.at(nodeIdx);
-    uint8_t thisBitOffset = nodeIdxBitOffsets.at(nodeIdx);
+    uint8_t thisBitOffset = bitOffsets.at(nodeIdx);
     uint8_t numChildLeafPaths = PowerOf2<uint8_t>(remainingLevels);
     uint8_t numChildsPerCond = numChildLeafPaths / 2;
 
     {
-      buildSubtreeLeafNodePathsBitsMapsRecursively(node.TrueChildNodeIdx,
-                                                   remainingLevels - 1,
-                                                   nodeIdxBitOffsets, result);
+      buildSubtreeLeafNodePathBitsMapsRecursively(node.TrueChildNodeIdx,
+                                                  remainingLevels - 1,
+                                                  bitOffsets, result);
 
       for (uint8_t i = 0; i < numChildsPerCond; i++) {
         result[result.size() - i - 1].second[thisBitOffset] = true;
       }
     }
     {
-      buildSubtreeLeafNodePathsBitsMapsRecursively(node.FalseChildNodeIdx,
-                                                   remainingLevels - 1,
-                                                   nodeIdxBitOffsets, result);
+      buildSubtreeLeafNodePathBitsMapsRecursively(node.FalseChildNodeIdx,
+                                                  remainingLevels - 1,
+                                                  bitOffsets, result);
 
       for (uint8_t i = 0; i < numChildsPerCond; i++) {
         result[result.size() - i - 1].second[thisBitOffset] = false;
