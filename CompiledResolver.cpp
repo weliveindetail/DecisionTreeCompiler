@@ -241,74 +241,51 @@ CompiledResolver::emitNodeCompare(const TreeNode &node,
 }
 
 llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
-    uint64_t switchRootNodeIdx, uint8_t switchLevels, llvm::Function *function,
-    llvm::BasicBlock *switchBB, llvm::Value *dataSetPtr, uint8_t remainingNestedSwitches) {
+    uint64_t subtreeRootIdx, uint8_t subtreeLevels, llvm::Function *function,
+    llvm::BasicBlock *switchBB, llvm::Value *dataSetPtr,
+    uint8_t remainingNestedSwitches) {
   using namespace llvm;
-  Type *returnTy = Type::getInt64Ty(Ctx);
-  auto numNodes = TreeNodes<uint8_t>(switchLevels);
+  Type *nodeIdxTy = Type::getInt64Ty(Ctx);
+  auto numNodes = TreeNodes<uint8_t>(subtreeLevels);
 
   Value *conditionVector =
-      emitComputeConditionVector(dataSetPtr, switchRootNodeIdx, switchLevels);
+      emitComputeConditionVector(dataSetPtr, subtreeRootIdx, subtreeLevels);
 
   std::string returnBBLabel =
-      "switch" + std::to_string(switchRootNodeIdx) + "_return";
+      "switch" + std::to_string(subtreeRootIdx) + "_return";
   auto *returnBB = BasicBlock::Create(Ctx, returnBBLabel, function);
 
   std::string defaultBBLabel =
-      "switch" + std::to_string(switchRootNodeIdx) + "_default";
+      "switch" + std::to_string(subtreeRootIdx) + "_default";
   auto *defaultBB = BasicBlock::Create(Ctx, defaultBBLabel, function);
 
   std::string evalResultLabel =
-      "switch_" + std::to_string(switchRootNodeIdx) + "_value";
-  Value *evalResult = Builder.CreateAlloca(returnTy, nullptr, evalResultLabel);
-  Builder.CreateStore(ConstantInt::get(returnTy, 0), evalResult);
+      "switch_" + std::to_string(subtreeRootIdx) + "_value";
+  Value *evalResult = Builder.CreateAlloca(nodeIdxTy, nullptr, evalResultLabel);
+  Builder.CreateStore(ConstantInt::get(nodeIdxTy, 0), evalResult);
 
   auto *switchInst = Builder.CreateSwitch(conditionVector, defaultBB,
                                           PowerOf2<uint32_t>(numNodes - 1));
 
-  std::vector<LeafNodePathBitsMap_t> leafNodePathBitsMaps =
-      buildSubtreeLeafNodePathBitsMaps(switchRootNodeIdx, switchLevels);
+  std::vector<SubtreePathsMap_t> subtreeChildNodePaths =
+      buildSubtreeChildNodePaths(subtreeRootIdx, subtreeLevels);
 
-  // iterate leaf nodes
-  BasicBlock *nodeBB;
-  for (const auto &leafNodeInfo : leafNodePathBitsMaps) {
-    uint64_t leafNodeIdx = leafNodeInfo.first;
-    const PathBitsMap_t &pathBitsMap = leafNodeInfo.second;
+  // iterate leaf node chlidren
+  BasicBlock *lastSwitchTargetBB = switchBB;
+  for (const auto &childNodeInfo : subtreeChildNodePaths) {
+    uint64_t childNodeIdx = childNodeInfo.first;
+    BasicBlock *nodeTargetBB = emitSubtreeSwitchTargetAndRecurse(
+        childNodeIdx, subtreeLevels, function, dataSetPtr,
+        remainingNestedSwitches, returnBB, evalResult);
 
-    std::string nodeBBLabel = "n" + std::to_string(leafNodeIdx);
-    nodeBB = BasicBlock::Create(Ctx, nodeBBLabel, function);
-    {
-      Builder.SetInsertPoint(nodeBB);
+    const PathBitsMap_t &pathBitsMap = childNodeInfo.second;
+    emitSubtreeSwitchCaseLabels(switchBB, switchInst, nodeTargetBB, numNodes,
+                                pathBitsMap);
 
-      if (remainingNestedSwitches > 0) {
-        Value *subSwitchResult = emitSubtreeSwitchesRecursively(
-            leafNodeIdx, switchLevels, function, nodeBB, dataSetPtr,
-            remainingNestedSwitches - 1);
-        Builder.CreateStore(subSwitchResult, evalResult);
-      } else {
-        Builder.CreateStore(ConstantInt::get(returnTy, leafNodeIdx),
-                            evalResult);
-      }
-
-      Builder.CreateBr(returnBB);
-    }
-
-    uint32_t conditionVectorTemplate =
-        buildFixedBitsConditionVectorTemplate(pathBitsMap);
-
-    std::vector<uint32_t> canonicalVariants;
-    buildCanonicalConditionVectorVariants(numNodes, conditionVectorTemplate,
-                                          pathBitsMap, canonicalVariants);
-
-    Builder.SetInsertPoint(switchBB);
-    IntegerType *switchTy = IntegerType::get(Ctx, numNodes + 1);
-    for (uint32_t variant : canonicalVariants) {
-      ConstantInt *caseVal = ConstantInt::get(switchTy, variant);
-      switchInst->addCase(caseVal, nodeBB);
-    }
+    lastSwitchTargetBB = nodeTargetBB;
   }
 
-  defaultBB->moveAfter(nodeBB);
+  defaultBB->moveAfter(lastSwitchTargetBB);
   returnBB->moveAfter(defaultBB);
 
   Builder.SetInsertPoint(defaultBB);
@@ -316,6 +293,52 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
 
   Builder.SetInsertPoint(returnBB);
   return Builder.CreateLoad(evalResult);
+}
+
+llvm::BasicBlock *CompiledResolver::emitSubtreeSwitchTargetAndRecurse(
+    uint64_t nodeIdx, uint8_t subtreeLevels, llvm::Function *function,
+    llvm::Value *dataSetPtr, uint8_t remainingNestedSwitches,
+    llvm::BasicBlock *returnBB, llvm::Value *evalResultPtr) {
+  std::string nodeBBLabel = "n" + std::to_string(nodeIdx);
+  llvm::BasicBlock *nodeBB = llvm::BasicBlock::Create(Ctx, nodeBBLabel, function);
+  Builder.SetInsertPoint(nodeBB);
+
+  if (remainingNestedSwitches == 0) {
+    auto *nodeIdxTy = llvm::Type::getInt64Ty(Ctx);
+    auto *nodeIdxVal = llvm::ConstantInt::get(nodeIdxTy, nodeIdx);
+
+    Builder.CreateStore(nodeIdxVal, evalResultPtr);
+  }
+  else {
+    llvm::Value *subSwitchResult = emitSubtreeSwitchesRecursively(
+        nodeIdx, subtreeLevels, function, nodeBB, dataSetPtr,
+        remainingNestedSwitches - 1);
+
+    Builder.CreateStore(subSwitchResult, evalResultPtr);
+  }
+
+  Builder.CreateBr(returnBB);
+  return nodeBB;
+}
+
+void CompiledResolver::emitSubtreeSwitchCaseLabels(
+    llvm::BasicBlock *switchBB, llvm::SwitchInst *switchInst,
+    llvm::BasicBlock *nodeBB,  uint8_t subtreeNodes,
+    const CompiledResolver::PathBitsMap_t &pathBitsMap) {
+  uint32_t conditionVectorTemplate =
+      buildFixedBitsConditionVectorTemplate(pathBitsMap);
+
+  std::vector<uint32_t> canonicalVariants =
+      buildCanonicalConditionVectorVariants(
+          subtreeNodes, conditionVectorTemplate, pathBitsMap);
+
+  Builder.SetInsertPoint(switchBB);
+  llvm::IntegerType *switchTy = llvm::IntegerType::get(Ctx, subtreeNodes + 1);
+
+  for (uint32_t variant : canonicalVariants) {
+    llvm::ConstantInt *caseVal = llvm::ConstantInt::get(switchTy, variant);
+    switchInst->addCase(caseVal, nodeBB);
+  }
 }
 
 llvm::Value *CompiledResolver::emitComputeConditionVector(
@@ -510,8 +533,8 @@ std::vector<uint64_t> CompiledResolver::collectSubtreeNodeIdxs(
   return nodeIdxs;
 }
 
-std::vector<CompiledResolver::LeafNodePathBitsMap_t>
-CompiledResolver::buildSubtreeLeafNodePathBitsMaps(
+std::vector<CompiledResolver::SubtreePathsMap_t>
+CompiledResolver::buildSubtreeChildNodePaths(
     uint64_t subtreeRootIdx, uint8_t subtreeLevels) {
   auto subtreeNodes = TreeNodes<uint8_t>(subtreeLevels);
   auto subtreeChildNodes = PowerOf2<uint8_t>(subtreeLevels);
@@ -525,55 +548,53 @@ CompiledResolver::buildSubtreeLeafNodePathBitsMaps(
   for (uint8_t i = 0; i < subtreeNodes; i++)
     bitOffsets[subtreeNodeIdxs[i]] = i;
 
-  std::vector<LeafNodePathBitsMap_t> results;
+  std::vector<SubtreePathsMap_t> results;
   results.reserve(subtreeChildNodes);
 
-  buildSubtreeLeafNodePathBitsMapsRecursively(subtreeRootIdx, subtreeLevels, bitOffsets, results);
+  buildSubtreeChildNodePathsRecursively(subtreeRootIdx, subtreeLevels,
+                                        bitOffsets, results);
 
   assert(results.size() == subtreeChildNodes);
   return results;
 }
 
-void CompiledResolver::buildSubtreeLeafNodePathBitsMapsRecursively(
+void CompiledResolver::buildSubtreeChildNodePathsRecursively(
     uint64_t nodeIdx, uint8_t remainingLevels,
     const std::unordered_map<uint64_t, uint8_t> &bitOffsets,
-    std::vector<LeafNodePathBitsMap_t> &result) {
+    std::vector<SubtreePathsMap_t> &result) {
   if (remainingLevels == 0) {
-    // subtree leaf nodes create empty path maps
+    // children of subtree leaf nodes create empty path maps
     std::unordered_map<uint8_t, bool> pathBitsMap;
     result.push_back({nodeIdx, pathBitsMap});
   } else {
-    // subtree non-leaf nodes add their offsets to their leafs' path maps
+    // subtree nodes add their offsets to their leafs' child path maps
     const TreeNode &node = DecisionTree.at(nodeIdx);
     uint8_t thisBitOffset = bitOffsets.at(nodeIdx);
     uint8_t numChildLeafPaths = PowerOf2<uint8_t>(remainingLevels);
     uint8_t numChildsPerCond = numChildLeafPaths / 2;
 
-    {
-      buildSubtreeLeafNodePathBitsMapsRecursively(node.TrueChildNodeIdx,
-                                                  remainingLevels - 1,
-                                                  bitOffsets, result);
+    buildSubtreeChildNodePathsRecursively(node.TrueChildNodeIdx,
+                                          remainingLevels - 1,
+                                          bitOffsets, result);
 
-      for (uint8_t i = 0; i < numChildsPerCond; i++) {
-        result[result.size() - i - 1].second[thisBitOffset] = true;
-      }
+    for (uint8_t i = 0; i < numChildsPerCond; i++) {
+      result[result.size() - i - 1].second[thisBitOffset] = true;
     }
-    {
-      buildSubtreeLeafNodePathBitsMapsRecursively(node.FalseChildNodeIdx,
-                                                  remainingLevels - 1,
-                                                  bitOffsets, result);
 
-      for (uint8_t i = 0; i < numChildsPerCond; i++) {
-        result[result.size() - i - 1].second[thisBitOffset] = false;
-      }
+    buildSubtreeChildNodePathsRecursively(node.FalseChildNodeIdx,
+                                          remainingLevels - 1,
+                                          bitOffsets, result);
+
+    for (uint8_t i = 0; i < numChildsPerCond; i++) {
+      result[result.size() - i - 1].second[thisBitOffset] = false;
     }
   }
 }
 
 uint32_t CompiledResolver::buildFixedBitsConditionVectorTemplate(
-    const PathBitsMap_t &leafNodePathBitsMap) {
+    const PathBitsMap_t &subtreePaths) {
   uint32_t fixedBitsVector = 0;
-  for (const auto &mapEntry : leafNodePathBitsMap) {
+  for (const auto &mapEntry : subtreePaths) {
     uint32_t bit = mapEntry.second ? 1 : 0;
     uint32_t vectorBit = bit << mapEntry.first;
     fixedBitsVector |= vectorBit;
@@ -582,19 +603,20 @@ uint32_t CompiledResolver::buildFixedBitsConditionVectorTemplate(
   return fixedBitsVector;
 }
 
-void CompiledResolver::buildCanonicalConditionVectorVariants(
+std::vector<uint32_t> CompiledResolver::buildCanonicalConditionVectorVariants(
     uint8_t numNodes, uint32_t fixedBitsTemplate,
-    const PathBitsMap_t &leafNodePathBitsMap,
-    std::vector<uint32_t> &result) {
+    const PathBitsMap_t &subtreePaths) {
   std::vector<uint8_t> variableBitOffsets;
   for (uint8_t bitOffset = 0; bitOffset < numNodes; bitOffset++) {
-    if (leafNodePathBitsMap.find(bitOffset) == leafNodePathBitsMap.end())
+    if (subtreePaths.find(bitOffset) == subtreePaths.end())
       variableBitOffsets.push_back(bitOffset);
   }
 
   if (variableBitOffsets.empty()) {
-    result.push_back(fixedBitsTemplate);
+    return {fixedBitsTemplate};
   } else {
+    std::vector<uint32_t> result;
+
     auto expectedVariants = PowerOf2<uint32_t>(variableBitOffsets.size());
     result.reserve(expectedVariants);
 
@@ -602,6 +624,7 @@ void CompiledResolver::buildCanonicalConditionVectorVariants(
         fixedBitsTemplate, variableBitOffsets, 0, result);
 
     assert(result.size() == expectedVariants);
+    return result;
   }
 }
 
@@ -614,7 +637,7 @@ void CompiledResolver::buildCanonicalConditionVectorVariantsRecursively(
 
     // bit must still be in default zero state
     assert((conditionVector & ~vectorTrueBit) == conditionVector);
-    auto nextBitIdx = (uint8_t)(bitToVaryIdx + 1);
+    uint8_t nextBitIdx = bitToVaryIdx + 1;
 
     // true variation
     buildCanonicalConditionVectorVariantsRecursively(

@@ -42,7 +42,7 @@ private:
   constexpr static uint8_t MaxSwitchLevels = 3;
 
   using PathBitsMap_t = std::unordered_map<uint8_t, bool>;
-  using LeafNodePathBitsMap_t = std::pair<uint64_t, PathBitsMap_t>;
+  using SubtreePathsMap_t = std::pair<uint64_t, PathBitsMap_t>;
 
   uint64_t getNumCompiledEvaluators(uint8_t nodeLevelsPerFunction);
 
@@ -59,21 +59,20 @@ private:
   std::vector<uint64_t> collectSubtreeNodeIdxs(
       uint64_t subtreeRootIdx, uint8_t subtreeNodes);
 
-  std::vector<LeafNodePathBitsMap_t> buildSubtreeLeafNodePathBitsMaps(
+  std::vector<SubtreePathsMap_t> buildSubtreeChildNodePaths(
       uint64_t subtreeRootIdx, uint8_t subtreeLevels);
 
-  void buildSubtreeLeafNodePathBitsMapsRecursively(
+  void buildSubtreeChildNodePathsRecursively(
       uint64_t nodeIdx, uint8_t remainingLevels,
       const std::unordered_map<uint64_t, uint8_t> &bitOffsets,
-      std::vector<LeafNodePathBitsMap_t> &result);
+      std::vector<SubtreePathsMap_t> &result);
 
   uint32_t buildFixedBitsConditionVectorTemplate(
-      const PathBitsMap_t &leafNodePathBitsMap);
+      const PathBitsMap_t &subtreePaths);
 
-  void buildCanonicalConditionVectorVariants(
+  std::vector<uint32_t> buildCanonicalConditionVectorVariants(
       uint8_t numNodes, uint32_t fixedBitsTemplate,
-      const PathBitsMap_t &leafNodePathBitsMap,
-      std::vector<uint32_t> &result);
+      const PathBitsMap_t &subtreePaths);
 
   void buildCanonicalConditionVectorVariantsRecursively(
       uint32_t conditionVector, const std::vector<uint8_t> &variableBitOffsets,
@@ -105,8 +104,18 @@ private:
       llvm::Value *avxPackedInts, uint8_t items);
 
   llvm::Value *emitSubtreeSwitchesRecursively(
-      uint64_t switchRootNodeIdx, uint8_t switchLevels, llvm::Function *function,
+      uint64_t subtreeRootIdx, uint8_t subtreeLevels, llvm::Function *function,
       llvm::BasicBlock *switchBB, llvm::Value *dataSetPtr, uint8_t remainingNestedSwitches);
+
+  llvm::BasicBlock *emitSubtreeSwitchTargetAndRecurse(
+      uint64_t nodeIdx, uint8_t subtreeLevels, llvm::Function *function,
+      llvm::Value *dataSetPtr, uint8_t remainingNestedSwitches,
+      llvm::BasicBlock *returnBB, llvm::Value *evalResultPtr);
+
+  void emitSubtreeSwitchCaseLabels(
+      llvm::BasicBlock *switchBB, llvm::SwitchInst *switchInst,
+      llvm::BasicBlock *nodeBB,  uint8_t subtreeNodes,
+      const CompiledResolver::PathBitsMap_t &pathBitsMap);
 
   void emitSubtreeEvaluators(uint8_t subtreeLevels, uint8_t switchLevels,
                              const std::string &nameStub);
