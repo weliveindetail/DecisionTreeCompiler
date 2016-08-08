@@ -427,6 +427,8 @@ llvm::Value *CompiledResolver::emitDefineBitShiftMaskValues(
 
   Type *int8Ty = Type::getInt8Ty(Ctx);
   Type *int32Ty = Type::getInt32Ty(Ctx);
+
+  assert(isPowerOf2(numNodes + 1));
   Constant *numNodeAllocs = ConstantInt::get(int8Ty, numNodes + 1);
 
   Value *bitShiftValues = Builder.Insert(
@@ -434,8 +436,8 @@ llvm::Value *CompiledResolver::emitDefineBitShiftMaskValues(
 
   for (uint8_t i = 0; i < numNodes; i++) {
     Builder.CreateStore(
-        ConstantInt::get(int32Ty, 1 << i),
-        Builder.CreateConstGEP1_32(bitShiftValues, i));
+        ConstantInt::get(int32Ty, PowerOf2(i)),
+        Builder.CreateConstGEP1_32(bitShiftValues, numNodes - 1 - i));
   }
 
   // AND with 0 in unused last item
