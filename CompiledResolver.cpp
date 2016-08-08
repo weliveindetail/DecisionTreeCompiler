@@ -270,15 +270,21 @@ llvm::Value *CompiledResolver::emitSubtreeSwitchesRecursively(
   std::vector<SubtreePathsMap_t> subtreeChildNodePaths =
       buildSubtreeChildNodePaths(subtreeRootIdx, subtreeLevels);
 
-  // iterate leaf node chlidren
-  BasicBlock *lastSwitchTargetBB = switchBB;
+  std::unordered_map<uint64_t, BasicBlock *> nodeTargetBBs;
+
   for (const auto &childNodeInfo : subtreeChildNodePaths) {
     uint64_t childNodeIdx = childNodeInfo.first;
-    BasicBlock *nodeTargetBB = emitSubtreeSwitchTargetAndRecurse(
+
+    nodeTargetBBs[childNodeIdx] = emitSubtreeSwitchTargetAndRecurse(
         childNodeIdx, subtreeLevels, function, dataSetPtr,
         remainingNestedSwitches, returnBB, evalResult);
+  }
 
+  BasicBlock *lastSwitchTargetBB = switchBB;
+  for (const auto &childNodeInfo : subtreeChildNodePaths) {
+    BasicBlock *nodeTargetBB = nodeTargetBBs[childNodeInfo.first];
     const PathBitsMap_t &pathBitsMap = childNodeInfo.second;
+
     emitSubtreeSwitchCaseLabels(switchBB, switchInst, nodeTargetBB, numNodes,
                                 pathBitsMap);
 
