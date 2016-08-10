@@ -27,7 +27,14 @@ set(SOURCE_FILES
         RegularResolver.h
         SimpleOrcJit.h
         SimpleObjectCache.h
-        Utils.h)
+        Utils.h
+        codegen/CGBase.h
+        codegen/CGL1IfThenElse.h
+        codegen/CGL2NestedSwitches.h
+        codegen/CGL3NestedSwitchesAVX.h
+        codegen/CGL3NestedSwitchesAVX.cpp
+        resolver/Driver.h
+        resolver/Driver.cpp)
 
 add_executable(EvalTreeJit ${SOURCE_FILES})
 
