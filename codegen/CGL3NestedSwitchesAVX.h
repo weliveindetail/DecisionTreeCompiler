@@ -2,6 +2,7 @@
 
 #include "codegen/CGBase.h"
 #include "codegen/CGL2NestedSwitches.h"
+#include "codegen/CGConditionVectorEmitter.h"
 
 class CGL3NestedSwitchesAVX : public CGBase {
   constexpr static uint8_t Levels = 3;
@@ -18,9 +19,6 @@ public:
 
 private:
   CGL2NestedSwitches FallbackCGL2;
-
-  llvm::Value *emitComputeConditionVector(
-      llvm::Value *dataSetPtr, uint64_t subtreeRootIdx, uint8_t subtreeLevels);
 
   llvm::BasicBlock *emitSubtreeSwitchTarget(
       DecisionSubtreeRef subtreeRef, DecisionTreeEvaluationPath path,

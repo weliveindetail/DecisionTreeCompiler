@@ -10,8 +10,11 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
   Type *nodeIdxTy = Type::getInt64Ty(Ctx);
   auto numNodes = TreeNodes<uint8_t>(Levels);
 
-  Value *conditionVector =
-      emitComputeConditionVector(dataSetPtr, subtreeInfo.Root.Index, Levels);
+  DecisionSubtreeRef subtreeRef =
+      getDriver()->DecisionTreeData.getSubtreeRef(subtreeInfo.Root.Index, Levels);
+
+  CGConditionVectorEmitterAVX conditionVectorEmitter(getDriver(), subtreeRef);
+  Value *conditionVector = conditionVectorEmitter(dataSetPtr);
 
   std::string returnBBLabel =
       "switch" + std::to_string(subtreeInfo.Root.Index) + "_return";
@@ -28,9 +31,6 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
 
   auto *switchInst = Builder.CreateSwitch(conditionVector, defaultBB,
                                           PowerOf2<uint32_t>(numNodes - 1));
-
-  DecisionSubtreeRef subtreeRef =
-      getDriver()->DecisionTreeData.getSubtreeRef(subtreeInfo.Root.Index, Levels);
 
   std::vector<DecisionTreeEvaluationPath> evaluationPaths =
       getDriver()->buildSubtreeEvaluationPaths(subtreeRef);
@@ -57,11 +57,6 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
   Builder.CreateBr(returnBB);
 
   return continuationNodes;
-}
-
-Value *CGL3NestedSwitchesAVX::emitComputeConditionVector(
-    Value *dataSetPtr, uint64_t subtreeRootIdx, uint8_t subtreeLevels) {
-  return nullptr;
 }
 
 BasicBlock *CGL3NestedSwitchesAVX::emitSubtreeSwitchTarget(

@@ -13,8 +13,15 @@ enum class NodeEvaluation_t {
 class DecisionSubtreeRef;
 
 struct DecisionTreeNode {
+  uint64_t NodeID; // same as index as long as tree is regular
+
+  uint32_t DataSetFeatureIdx;
+  float Bias;
+
   uint64_t TrueChildNodeIdx;
   uint64_t FalseChildNodeIdx;
+
+  static constexpr uint64_t NoNodeIdx = 0xFFFFFFFFFFFFFFFF;
 };
 
 class DecisionTree {
@@ -119,6 +126,14 @@ public:
 
   const DecisionTree_t &DecisionTreeLegacyData;
   const DecisionTree &DecisionTreeData;
+
+  llvm::Value *emitNodeLoad(
+      const DecisionTreeNode &node, llvm::Value *dataSetPtr) {
+    llvm::Value *dataSetFeaturePtr =
+        Builder.CreateConstGEP1_32(dataSetPtr, node.DataSetFeatureIdx);
+
+    return Builder.CreateLoad(dataSetFeaturePtr);
+  }
 
   std::vector<DecisionTreeEvaluationPath> buildSubtreeEvaluationPaths(DecisionSubtreeRef subtree);
   void buildSubtreeEvaluationPathsRecursively(

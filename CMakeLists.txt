@@ -33,6 +33,8 @@ set(SOURCE_FILES
         codegen/CGL2NestedSwitches.h
         codegen/CGL3NestedSwitchesAVX.h
         codegen/CGL3NestedSwitchesAVX.cpp
+        codegen/CGConditionVectorEmitter.h
+        codegen/CGConditionVectorEmitter.cpp
         resolver/Driver.h
         resolver/Driver.cpp)
 
