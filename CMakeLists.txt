@@ -35,6 +35,10 @@ set(SOURCE_FILES
         codegen/CGL3NestedSwitchesAVX.cpp
         codegen/CGConditionVectorEmitter.h
         codegen/CGConditionVectorEmitter.cpp
+        codegen/CGConditionVectorVariationsBuilder.h
+        codegen/CGConditionVectorVariationsBuilder.cpp
+        codegen/CGEvaluationPathsBuilder.h
+        codegen/CGEvaluationPathsBuilder.cpp
         resolver/Driver.h
         resolver/Driver.cpp)
 

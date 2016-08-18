@@ -5,6 +5,9 @@
 
 class CGL2NestedSwitches : public CGBase {
 public:
+  CGL2NestedSwitches(DecisionTreeCompiler *driver)
+      : CGBase(driver), FallbackCGL1(driver) {}
+
   ~CGL2NestedSwitches() override {};
 
   uint8_t getOptimalJointEvaluationDepth() const override { return 2; };

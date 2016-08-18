@@ -4,6 +4,9 @@
 
 class CGL1IfThenElse : public CGBase {
 public:
+  CGL1IfThenElse(DecisionTreeCompiler *driver)
+    : CGBase(driver) {}
+
   ~CGL1IfThenElse() override {};
 
   uint8_t getOptimalJointEvaluationDepth() const override { return 1; };

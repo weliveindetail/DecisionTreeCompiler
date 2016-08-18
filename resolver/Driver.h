@@ -1,25 +1,46 @@
 #pragma once
 
+#include <experimental/optional>
+
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/IRBuilder.h>
 
 #include "DecisionTree.h"
 
 enum class NodeEvaluation_t {
-  ContinueZeroLeft,
-  ContinueOneRight
+  ContinueZeroLeft = 0,
+  ContinueOneRight = 1
 };
 
 class DecisionSubtreeRef;
 
 struct DecisionTreeNode {
-  uint64_t NodeID; // same as index as long as tree is regular
+  uint64_t NodeIdx = NoNodeIdx; // same as index as long as tree is regular
 
   uint32_t DataSetFeatureIdx;
   float Bias;
 
   uint64_t TrueChildNodeIdx;
   uint64_t FalseChildNodeIdx;
+
+  bool hasChildForEvaluation(NodeEvaluation_t evaluation) const {
+    return (evaluation == NodeEvaluation_t::ContinueZeroLeft)
+           ? hasLeftChild()
+           : hasRightChild();
+  }
+
+  uint64_t getChildIdx(NodeEvaluation_t evaluation) const {
+    return (evaluation == NodeEvaluation_t::ContinueZeroLeft)
+        ? FalseChildNodeIdx
+        : TrueChildNodeIdx;
+  }
+
+  bool isLeaf() const {
+    return !hasLeftChild() && !hasRightChild();
+  }
+
+  bool hasLeftChild() const { return FalseChildNodeIdx != NoNodeIdx; }
+  bool hasRightChild() const { return TrueChildNodeIdx != NoNodeIdx; }
 
   static constexpr uint64_t NoNodeIdx = 0xFFFFFFFFFFFFFFFF;
 };
@@ -41,10 +62,16 @@ public:
 };
 
 struct DecisionSubtreeRef {
+  DecisionSubtreeRef() = default;
+  DecisionSubtreeRef(DecisionSubtreeRef &&) = default;
+  DecisionSubtreeRef(const DecisionSubtreeRef &) = default;
+  DecisionSubtreeRef &operator=(DecisionSubtreeRef &&) = default;
+  DecisionSubtreeRef &operator=(const DecisionSubtreeRef &) = default;
+
   DecisionSubtreeRef(const DecisionTree &tree, uint64_t rootIndex, uint8_t levels);
 
   const DecisionTreeNode& getNode(uint64_t idx) const {
-    return Tree.Nodes.at(idx);
+    return Tree->Nodes.at(idx);
   }
 
   uint8_t getNodeCount() const {
@@ -57,7 +84,7 @@ struct DecisionSubtreeRef {
 
   std::vector<uint64_t> collectNodeIndices() const;
 
-  const DecisionTree &Tree;
+  const DecisionTree *Tree;
   uint64_t RootIndex;
   uint8_t Levels;
 
@@ -74,47 +101,74 @@ struct DecisionTreeEvaluationPathNode {
   DecisionTreeEvaluationPathNode &operator=(DecisionTreeEvaluationPathNode &&) = default;
   DecisionTreeEvaluationPathNode &operator=(const DecisionTreeEvaluationPathNode &) = default;
 
-  DecisionTreeEvaluationPathNode(uint64_t treeNodeIndex, NodeEvaluation_t parentEvaluation)
-      : TreeNodeIndex(treeNodeIndex), ParentEvaluation(parentEvaluation) {}
+  DecisionTreeEvaluationPathNode(const DecisionTreeNode &currentNode,
+                                 const DecisionTreeNode &nextNode,
+                                 NodeEvaluation_t evaluation)
+      : Node(&currentNode), ChildNode(&nextNode), Evaluation(evaluation) {}
 
-  uint64_t TreeNodeIndex;
-  NodeEvaluation_t ParentEvaluation;
+  uint8_t getEvaluationValue() const {
+    return (uint8_t)Evaluation;
+  }
+
+  const DecisionTreeNode &getNodeData() const {
+    return *Node;
+  }
+
+  const DecisionTreeNode &getChildNodeData() const {
+    return *ChildNode;
+  }
+
+private:
+  const DecisionTreeNode *Node;
+  const DecisionTreeNode *ChildNode;
+  NodeEvaluation_t Evaluation;
 };
 
-class DecisionTreeEvaluationPath {
+struct DecisionTreeEvaluationPath {
   using Data_t = std::vector<DecisionTreeEvaluationPathNode>;
 
-public:
   DecisionTreeEvaluationPath() = default;
   DecisionTreeEvaluationPath(DecisionTreeEvaluationPath &&) = default;
   DecisionTreeEvaluationPath(const DecisionTreeEvaluationPath &) = default;
   DecisionTreeEvaluationPath &operator=(DecisionTreeEvaluationPath &&) = default;
   DecisionTreeEvaluationPath &operator=(const DecisionTreeEvaluationPath &) = default;
 
-  DecisionTreeEvaluationPath(DecisionSubtreeRef subtree)
-    : Nodes(subtree.Levels), FirstNonSubtreeIdx(subtree.getNodeCount()) {}
+  DecisionTreeEvaluationPath(DecisionSubtreeRef subtree,
+                             const DecisionTreeNode &continuationNode)
+      : Nodes(subtree.Levels)
+      , ContinuationNode(&continuationNode)
+      , InsertPos(Nodes.rend()) {}
 
-  void initPathTarget(uint64_t continuationNodeIdx, NodeEvaluation_t parentEval) {
-    assert(continuationNodeIdx >= FirstNonSubtreeIdx);
+  void addParent(const DecisionTreeNode &node, NodeEvaluation_t evaluation) {
+    const DecisionTreeNode &child =
+        (InsertPos == Nodes.rend()) ? getContinuationNode() : InsertPos->getNodeData();
 
-    InsertPos = Nodes.rend();
-    *InsertPos = DecisionTreeEvaluationPathNode(continuationNodeIdx, parentEval);
+    Data_t::const_iterator pos = std::prev(InsertPos).base();
+    Nodes.emplace(pos, node, child, evaluation);
   }
 
-  void addParent(uint64_t treeNodeIdx, NodeEvaluation_t parentEval) {
-    assert(treeNodeIdx < FirstNonSubtreeIdx);
-
-    --InsertPos;
-    *InsertPos = DecisionTreeEvaluationPathNode(treeNodeIdx, parentEval);
+  bool hasNodeIdx(uint64_t idx) const {
+    return (bool)findNode(idx);
   }
 
-  uint64_t getTargetIdx() const {
-    return Nodes.back().TreeNodeIndex;
+  std::experimental::optional<DecisionTreeEvaluationPathNode> findNode(uint64_t idx) const {
+    auto findIdx = [=](const DecisionTreeEvaluationPathNode &node) {
+      return node.getNodeData().NodeIdx == idx;
+    };
+
+    auto it = std::find_if(Nodes.begin(), Nodes.end(), findIdx);
+    return (it == Nodes.end()) ? std::experimental::optional<DecisionTreeEvaluationPathNode>() : *it;
+  }
+
+  const DecisionTreeNode &getContinuationNode() const {
+    return *ContinuationNode;
   }
 
   Data_t Nodes;
+
+private:
+  const DecisionTreeNode *ContinuationNode;
   mutable Data_t::reverse_iterator InsertPos;
-  const uint64_t FirstNonSubtreeIdx;
 };
 
 class DecisionTreeCompiler {
@@ -134,11 +188,4 @@ public:
 
     return Builder.CreateLoad(dataSetFeaturePtr);
   }
-
-  std::vector<DecisionTreeEvaluationPath> buildSubtreeEvaluationPaths(DecisionSubtreeRef subtree);
-  void buildSubtreeEvaluationPathsRecursively(
-      DecisionSubtreeRef subtree,
-      uint64_t nodeIdx, uint8_t remainingLevels,
-      const std::vector<uint64_t> &nodeIdxs,
-      std::vector<DecisionTreeEvaluationPath> &result);
 };

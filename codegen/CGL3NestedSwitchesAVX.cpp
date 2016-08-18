@@ -1,54 +1,47 @@
 #include "codegen/CGL3NestedSwitchesAVX.h"
+#include "codegen/CGConditionVectorEmitter.h"
+#include "codegen/CGConditionVectorVariationsBuilder.h"
+#include "codegen/CGEvaluationPathsBuilder.h"
 
 using namespace llvm;
 
 std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
     CGSubtreeInfo subtreeInfo, Value *dataSetPtr) {
-  auto& Ctx = getDriver()->Ctx;
-  auto& Builder = getDriver()->Builder;
-
-  Type *nodeIdxTy = Type::getInt64Ty(Ctx);
-  auto numNodes = TreeNodes<uint8_t>(Levels);
-
   DecisionSubtreeRef subtreeRef =
-      getDriver()->DecisionTreeData.getSubtreeRef(subtreeInfo.Root.Index, Levels);
+      Driver.DecisionTreeData.getSubtreeRef(subtreeInfo.Root.Index, Levels);
 
-  CGConditionVectorEmitterAVX conditionVectorEmitter(getDriver(), subtreeRef);
+  CGConditionVectorEmitterAVX conditionVectorEmitter(&Driver, subtreeRef);
   Value *conditionVector = conditionVectorEmitter(dataSetPtr);
 
-  std::string returnBBLabel =
-      "switch" + std::to_string(subtreeInfo.Root.Index) + "_return";
-  auto *returnBB = BasicBlock::Create(Ctx, returnBBLabel, subtreeInfo.OwnerFunction);
+  auto *returnBB = makeSwitchBB(subtreeInfo, "return");
+  auto *defaultBB = makeSwitchBB(subtreeInfo, "default");
 
-  std::string defaultBBLabel =
-      "switch" + std::to_string(subtreeInfo.Root.Index) + "_default";
-  auto *defaultBB = BasicBlock::Create(Ctx, defaultBBLabel, subtreeInfo.OwnerFunction);
+  auto expectedCaseLabels = PowerOf2<uint32_t>(subtreeRef.getNodeCount() - 1);
 
-  std::string evalResultLabel =
-      "switch_" + std::to_string(subtreeInfo.Root.Index) + "_value";
-  //Value *evalResult = Builder.CreateAlloca(nodeIdxTy, nullptr, evalResultLabel);
-  //Builder.CreateStore(ConstantInt::get(nodeIdxTy, 0), evalResult);
+  Builder.SetInsertPoint(subtreeInfo.OwnerBB);
+  SwitchInst *switchInst = Builder.CreateSwitch(
+      conditionVector, defaultBB, expectedCaseLabels);
 
-  auto *switchInst = Builder.CreateSwitch(conditionVector, defaultBB,
-                                          PowerOf2<uint32_t>(numNodes - 1));
+  CGEvaluationPathsBuilder pathBuilder(subtreeRef);
+  std::vector<DecisionTreeEvaluationPath> evaluationPaths = pathBuilder.run();
 
-  std::vector<DecisionTreeEvaluationPath> evaluationPaths =
-      getDriver()->buildSubtreeEvaluationPaths(subtreeRef);
+  const std::vector<CGNodeInfo> continuationNodes =
+      emitSwitchTargets(subtreeRef, evaluationPaths,
+                        subtreeInfo.OwnerFunction, returnBB);
 
-  std::vector<CGNodeInfo> continuationNodes;
+  uint32_t emittedCaseLabels = 0;
+  CGConditionVectorVariationsBuilder variantsBuilder(subtreeRef);
 
-  for (auto path : evaluationPaths) {
-    BasicBlock *BB = emitSubtreeSwitchTarget(
-        subtreeRef, path, subtreeInfo.OwnerFunction, dataSetPtr, returnBB); // evalResult ?
+  for (size_t i = 0; i < continuationNodes.size(); i++) {
+    std::vector<uint32_t> pathCaseValues =
+        variantsBuilder.run(std::move(evaluationPaths[i]));
 
-    continuationNodes.emplace_back(path.getTargetIdx(), BB);
+    emittedCaseLabels += emitSwitchCaseLabels(
+        switchInst, conditionVector->getType(),
+        continuationNodes[i], std::move(pathCaseValues));
   }
 
-  for (size_t i = 0; i < evaluationPaths.size(); i++) {
-    emitSubtreeSwitchCaseLabels(subtreeInfo.OwnerBB, switchInst,
-                                continuationNodes[i].EvalBlock, numNodes,
-                                std::move(evaluationPaths[i]));
-  }
+  assert(emittedCaseLabels == expectedCaseLabels);
 
   defaultBB->moveAfter(continuationNodes.back().EvalBlock);
   returnBB->moveAfter(defaultBB);
@@ -59,14 +52,39 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
   return continuationNodes;
 }
 
-BasicBlock *CGL3NestedSwitchesAVX::emitSubtreeSwitchTarget(
-    DecisionSubtreeRef subtreeRef, DecisionTreeEvaluationPath path,
-    Function *ownerFunction, Value *dataSetPtr, BasicBlock *returnBB) {
-  return nullptr;
+std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSwitchTargets(
+    DecisionSubtreeRef subtreeRef,
+    const std::vector<DecisionTreeEvaluationPath> &evaluationPaths,
+    Function *ownerFunction, BasicBlock *returnBB) {
+  std::vector<CGNodeInfo> continuationNodes;
+
+  for (const DecisionTreeEvaluationPath &path : evaluationPaths) {
+    uint64_t idx = path.getContinuationNode().NodeIdx;
+    std::string label = "n" + std::to_string(idx);
+    BasicBlock *BB = BasicBlock::Create(Ctx, label, ownerFunction);
+
+    continuationNodes.emplace_back(idx, BB, returnBB);
+  }
+
+  return continuationNodes;
 }
 
-void CGL3NestedSwitchesAVX::emitSubtreeSwitchCaseLabels(
-    BasicBlock *ownerBB, SwitchInst *switchInst, BasicBlock *continuationBB,
-    uint8_t numNodes, DecisionTreeEvaluationPath pathInfo) {
+uint32_t CGL3NestedSwitchesAVX::emitSwitchCaseLabels(
+    SwitchInst *switchInst, Type *switchCondTy,
+    CGNodeInfo targetNodeInfo, std::vector<uint32_t> pathCaseValues) {
+  IntegerType *switchCondIntTy =
+      IntegerType::get(Ctx, switchCondTy->getIntegerBitWidth());
 
+  for (uint32_t variant : pathCaseValues) {
+    ConstantInt *caseVal = ConstantInt::get(switchCondIntTy, variant);
+    switchInst->addCase(caseVal, targetNodeInfo.EvalBlock);
+  }
+
+  return pathCaseValues.size();
+}
+
+BasicBlock *CGL3NestedSwitchesAVX::makeSwitchBB(
+    CGSubtreeInfo subtreeInfo, std::string suffix) {
+  auto l = "switch" + std::to_string(subtreeInfo.Root.Index) + "_" + suffix;
+  return BasicBlock::Create(Ctx, std::move(l), subtreeInfo.OwnerFunction);
 }

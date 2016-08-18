@@ -10,11 +10,13 @@
 #include "resolver/Driver.h"
 
 struct CGNodeInfo {
-  CGNodeInfo(uint64_t index, llvm::BasicBlock *basicBlock)
-      : Index(index), EvalBlock(basicBlock) {};
+  CGNodeInfo(uint64_t index, llvm::BasicBlock *evalBB,
+             llvm::BasicBlock *continuationBB)
+      : Index(index), EvalBlock(evalBB), ContinuationBlock(continuationBB) {};
 
   uint64_t Index;
   llvm::BasicBlock *EvalBlock;
+  llvm::BasicBlock *ContinuationBlock;
 };
 
 struct CGSubtreeInfo {
@@ -25,6 +27,9 @@ struct CGSubtreeInfo {
 
 class CGBase {
 public:
+  CGBase(DecisionTreeCompiler *driver)
+      : Driver(*driver), Ctx(driver->Ctx), Builder(driver->Builder) {}
+
   virtual ~CGBase() {}
 
   virtual uint8_t getOptimalJointEvaluationDepth() const = 0;
@@ -34,17 +39,9 @@ public:
   virtual std::vector<CGNodeInfo> emitSubtreeEvaluation(
       CGSubtreeInfo subtree, llvm::Value *dataSetPtr) = 0;
 
-  void setDriver(DecisionTreeCompiler *driver) {
-    assert(!driver);
-    Driver = driver;
-  }
+protected:
+  DecisionTreeCompiler &Driver;
 
-  DecisionTreeCompiler *getDriver() {
-    assert(Driver);
-    return Driver;
-  }
-
-private:
-  DecisionTreeCompiler *Driver = nullptr;
-
+  llvm::LLVMContext &Ctx;
+  llvm::IRBuilder<> &Builder;
 };
