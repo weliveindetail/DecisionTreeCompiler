@@ -13,7 +13,7 @@
 #include <llvm/IR/Value.h>
 
 #include "DataSet.h"
-#include "DecisionTree.h"
+#include "LegacyDecisionTree.h"
 
 class SimpleOrcJit;
 

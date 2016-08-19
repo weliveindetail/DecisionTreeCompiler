@@ -4,7 +4,7 @@
 #include "benchmark/benchmark.h"
 
 #include "DataSet.h"
-#include "DecisionTree.h"
+#include "LegacyDecisionTree.h"
 #include "RegularResolver.h"
 #include "CompiledResolver.h"
 

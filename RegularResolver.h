@@ -1,7 +1,7 @@
 #pragma once
 
 #include "DataSet.h"
-#include "DecisionTree.h"
+#include "LegacyDecisionTree.h"
 
 class RegularResolver {
 public:

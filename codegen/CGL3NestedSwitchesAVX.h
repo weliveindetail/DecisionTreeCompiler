@@ -2,6 +2,7 @@
 
 #include "codegen/CGBase.h"
 #include "codegen/CGL2NestedSwitches.h"
+#include "codegen/CGEvaluationPath.h"
 
 class CGL3NestedSwitchesAVX : public CGBase {
   constexpr static uint8_t Levels = 3;

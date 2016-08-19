@@ -22,7 +22,7 @@ set(SOURCE_FILES
         CompiledResolver.cpp
         DataSet.h
         DataSet.cpp
-        DecisionTree.h
+        LegacyDecisionTree.h
         OrcJitUtils.h
         RegularResolver.h
         SimpleOrcJit.h
@@ -37,10 +37,13 @@ set(SOURCE_FILES
         codegen/CGConditionVectorEmitter.cpp
         codegen/CGConditionVectorVariationsBuilder.h
         codegen/CGConditionVectorVariationsBuilder.cpp
+        codegen/CGEvaluationPath.h
         codegen/CGEvaluationPathsBuilder.h
         codegen/CGEvaluationPathsBuilder.cpp
         resolver/Driver.h
-        resolver/Driver.cpp)
+        resolver/Driver.cpp
+        resolver/DecisionTree.h
+        resolver/DecisionTree.cpp)
 
 add_executable(EvalTreeJit ${SOURCE_FILES})
 

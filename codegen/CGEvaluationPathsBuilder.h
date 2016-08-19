@@ -6,6 +6,7 @@
 
 #include "resolver/Driver.h"
 #include "codegen/CGBase.h"
+#include "codegen/CGEvaluationPath.h"
 
 class CGEvaluationPathsBuilder {
 public:

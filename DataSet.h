@@ -1,6 +1,6 @@
 #pragma once
 
-#include "DecisionTree.h"
+#include "LegacyDecisionTree.h"
 
 using DataSet_t = std::vector<float>;
 
