@@ -14,15 +14,15 @@ public:
       : Subtree(std::move(subtreeRef))
       , NodeIdxs(Subtree.collectNodeIndices()) {}
 
-  std::vector<uint32_t> run(DecisionTreeEvaluationPath pathInfo);
+  std::vector<uint32_t> run(CGEvaluationPath pathInfo);
 
 private:
   const DecisionSubtreeRef Subtree;
   const std::vector<uint64_t> NodeIdxs;
 
-  uint32_t buildFixedBitsTemplate(DecisionTreeEvaluationPath path);
+  uint32_t buildFixedBitsTemplate(CGEvaluationPath path);
   std::vector<uint8_t> collectVariableBitOffsets(
-      DecisionTreeEvaluationPath path);
+      CGEvaluationPath path);
 
   std::list<uint32_t> buildVariantsRecursively(
       uint32_t conditionVector,

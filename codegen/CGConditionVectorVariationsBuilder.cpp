@@ -1,7 +1,7 @@
 #include "codegen/CGConditionVectorVariationsBuilder.h"
 
 std::vector<uint32_t>
-CGConditionVectorVariationsBuilder::run(DecisionTreeEvaluationPath path) {
+CGConditionVectorVariationsBuilder::run(CGEvaluationPath path) {
   std::vector<uint8_t> variableBitOffsets = collectVariableBitOffsets(path);
   uint32_t fixedBitsTemplate = buildFixedBitsTemplate(path);
 
@@ -16,7 +16,7 @@ CGConditionVectorVariationsBuilder::run(DecisionTreeEvaluationPath path) {
 }
 
 uint32_t CGConditionVectorVariationsBuilder::buildFixedBitsTemplate(
-    DecisionTreeEvaluationPath path) {
+    CGEvaluationPath path) {
   uint32_t fixedBits = 0;
 
   for (uint8_t bitOffset = 0; bitOffset < NodeIdxs.size(); bitOffset++) {
@@ -33,7 +33,7 @@ uint32_t CGConditionVectorVariationsBuilder::buildFixedBitsTemplate(
 
 std::vector<uint8_t>
 CGConditionVectorVariationsBuilder::collectVariableBitOffsets(
-    DecisionTreeEvaluationPath path) {
+    CGEvaluationPath path) {
   std::vector<uint8_t> variableBitOffsets;
 
   for (uint8_t bitOffset = 0; bitOffset < NodeIdxs.size(); bitOffset++) {

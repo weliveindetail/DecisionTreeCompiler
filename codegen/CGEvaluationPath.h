@@ -8,16 +8,16 @@
 
 #include "codegen/CGBase.h"
 
-struct DecisionTreeEvaluationPathNode {
-  DecisionTreeEvaluationPathNode() = default;
-  DecisionTreeEvaluationPathNode(DecisionTreeEvaluationPathNode &&) = default;
-  DecisionTreeEvaluationPathNode(const DecisionTreeEvaluationPathNode &) = default;
-  DecisionTreeEvaluationPathNode &operator=(DecisionTreeEvaluationPathNode &&) = default;
-  DecisionTreeEvaluationPathNode &operator=(const DecisionTreeEvaluationPathNode &) = default;
+struct CGEvaluationPathNode {
+  CGEvaluationPathNode() = default;
+  CGEvaluationPathNode(CGEvaluationPathNode &&) = default;
+  CGEvaluationPathNode(const CGEvaluationPathNode &) = default;
+  CGEvaluationPathNode &operator=(CGEvaluationPathNode &&) = default;
+  CGEvaluationPathNode &operator=(const CGEvaluationPathNode &) = default;
 
-  DecisionTreeEvaluationPathNode(const DecisionTreeNode &currentNode,
-                                 const DecisionTreeNode &nextNode,
-                                 NodeEvaluation_t evaluation)
+  CGEvaluationPathNode(const DecisionTreeNode &currentNode,
+                       const DecisionTreeNode &nextNode,
+                       NodeEvaluation_t evaluation)
       : Node(&currentNode), ChildNode(&nextNode), Evaluation(evaluation) {}
 
   uint8_t getEvaluationValue() const {
@@ -38,17 +38,17 @@ private:
   NodeEvaluation_t Evaluation;
 };
 
-struct DecisionTreeEvaluationPath {
-  using Data_t = std::vector<DecisionTreeEvaluationPathNode>;
+struct CGEvaluationPath {
+  CGEvaluationPath() = default;
+  CGEvaluationPath(CGEvaluationPath &&) = default;
+  CGEvaluationPath(const CGEvaluationPath &) = default;
+  CGEvaluationPath &operator=(CGEvaluationPath &&) = default;
+  CGEvaluationPath &operator=(const CGEvaluationPath &) = default;
 
-  DecisionTreeEvaluationPath() = default;
-  DecisionTreeEvaluationPath(DecisionTreeEvaluationPath &&) = default;
-  DecisionTreeEvaluationPath(const DecisionTreeEvaluationPath &) = default;
-  DecisionTreeEvaluationPath &operator=(DecisionTreeEvaluationPath &&) = default;
-  DecisionTreeEvaluationPath &operator=(const DecisionTreeEvaluationPath &) = default;
+  using Data_t = std::vector<CGEvaluationPathNode>;
 
-  DecisionTreeEvaluationPath(DecisionSubtreeRef subtree,
-                             const DecisionTreeNode &continuationNode)
+  CGEvaluationPath(DecisionSubtreeRef subtree,
+                   const DecisionTreeNode &continuationNode)
       : Nodes(subtree.Levels)
       , ContinuationNode(&continuationNode)
       , InsertPos(Nodes.rend()) {}
@@ -65,13 +65,13 @@ struct DecisionTreeEvaluationPath {
     return (bool)findNode(idx);
   }
 
-  std::experimental::optional<DecisionTreeEvaluationPathNode> findNode(uint64_t idx) const {
-    auto findIdx = [=](const DecisionTreeEvaluationPathNode &node) {
+  std::experimental::optional<CGEvaluationPathNode> findNode(uint64_t idx) const {
+    auto findIdx = [=](const CGEvaluationPathNode &node) {
       return node.getNodeData().NodeIdx == idx;
     };
 
     auto it = std::find_if(Nodes.begin(), Nodes.end(), findIdx);
-    return (it == Nodes.end()) ? std::experimental::optional<DecisionTreeEvaluationPathNode>() : *it;
+    return (it == Nodes.end()) ? std::experimental::optional<CGEvaluationPathNode>() : *it;
   }
 
   const DecisionTreeNode &getContinuationNode() const {

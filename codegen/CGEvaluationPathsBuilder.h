@@ -13,16 +13,16 @@ public:
   CGEvaluationPathsBuilder(DecisionSubtreeRef subtree)
       : Subtree(std::move(subtree)) {};
 
-  std::vector<DecisionTreeEvaluationPath> run();
+  std::vector<CGEvaluationPath> run();
 
 private:
   DecisionSubtreeRef Subtree;
-  std::vector<DecisionTreeEvaluationPath> ResultPaths;
+  std::vector<CGEvaluationPath> ResultPaths;
 
-  std::list<DecisionTreeEvaluationPath> buildPathsRecursively(
+  std::list<CGEvaluationPath> buildPathsRecursively(
       uint64_t nodeIdx, uint8_t remainingLevels);
 
-  std::list<DecisionTreeEvaluationPath> recurseToChildNode(
+  std::list<CGEvaluationPath> recurseToChildNode(
       NodeEvaluation_t eval,
       const DecisionTreeNode &node,
       uint8_t remainingLevels);

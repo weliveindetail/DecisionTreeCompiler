@@ -23,7 +23,7 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
       conditionVector, defaultBB, expectedCaseLabels);
 
   CGEvaluationPathsBuilder pathBuilder(subtreeRef);
-  std::vector<DecisionTreeEvaluationPath> evaluationPaths = pathBuilder.run();
+  std::vector<CGEvaluationPath> evaluationPaths = pathBuilder.run();
 
   const std::vector<CGNodeInfo> continuationNodes =
       emitSwitchTargets(subtreeRef, evaluationPaths,
@@ -54,11 +54,11 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
 
 std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSwitchTargets(
     DecisionSubtreeRef subtreeRef,
-    const std::vector<DecisionTreeEvaluationPath> &evaluationPaths,
+    const std::vector<CGEvaluationPath> &evaluationPaths,
     Function *ownerFunction, BasicBlock *returnBB) {
   std::vector<CGNodeInfo> continuationNodes;
 
-  for (const DecisionTreeEvaluationPath &path : evaluationPaths) {
+  for (const CGEvaluationPath &path : evaluationPaths) {
     uint64_t idx = path.getContinuationNode().NodeIdx;
     std::string label = "n" + std::to_string(idx);
     BasicBlock *BB = BasicBlock::Create(Ctx, label, ownerFunction);

@@ -25,7 +25,7 @@ private:
 
   std::vector<CGNodeInfo> emitSwitchTargets(
       DecisionSubtreeRef subtreeRef,
-      const std::vector<DecisionTreeEvaluationPath> &evaluationPaths,
+      const std::vector<CGEvaluationPath> &evaluationPaths,
       llvm::Function *ownerFunction, llvm::BasicBlock *returnBB);
 
   uint32_t emitSwitchCaseLabels(
