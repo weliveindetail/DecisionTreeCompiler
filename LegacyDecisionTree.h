@@ -10,7 +10,7 @@
 #include <llvm/Support/Path.h>
 
 #include "Utils.h"
-#include "json/src/json.hpp"
+#include "json.hpp"
 
 struct TreeNode;
 using DecisionTree_t = std::unordered_map<uint64_t, TreeNode>;

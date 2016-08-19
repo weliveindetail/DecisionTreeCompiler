@@ -1,7 +1,9 @@
 cmake_minimum_required(VERSION 3.4)
 project(EvalTreeJit)
 
-add_subdirectory(benchmark)
+add_subdirectory(3rdparty/benchmark)
+add_subdirectory(3rdparty/googletest)
+add_subdirectory(3rdparty/json)
 
 find_package(LLVM)
 
@@ -48,7 +50,9 @@ set(SOURCE_FILES
 add_executable(EvalTreeJit ${SOURCE_FILES})
 
 target_include_directories(EvalTreeJit
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${LLVM_INCLUDE_DIRS} benchmark)
+        PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR} ${LLVM_INCLUDE_DIRS}
+        PRIVATE 3rdparty/json/src benchmark googletest)
 
 target_link_libraries(EvalTreeJit
-        PUBLIC ${LLVM_LIBS} benchmark)
+        PUBLIC  ${LLVM_LIBS}
+        PRIVATE benchmark gtest)
