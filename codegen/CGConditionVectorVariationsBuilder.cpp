@@ -23,7 +23,7 @@ uint32_t CGConditionVectorVariationsBuilder::buildFixedBitsTemplate(
     uint64_t idx = NodeIdxs[bitOffset];
     if (auto node = path.findNode(idx)) {
       uint32_t bit = node->getEvaluationValue();
-      uint32_t vectorBit = bit << bitOffset++;
+      uint32_t vectorBit = bit << bitOffset;
       fixedBits |= vectorBit;
     }
   }
@@ -37,7 +37,7 @@ CGConditionVectorVariationsBuilder::collectVariableBitOffsets(
   std::vector<uint8_t> variableBitOffsets;
 
   for (uint8_t bitOffset = 0; bitOffset < NodeIdxs.size(); bitOffset++) {
-    if (path.hasNodeIdx(NodeIdxs[bitOffset])) {
+    if (!path.hasNodeIdx(NodeIdxs[bitOffset])) {
       variableBitOffsets.push_back(bitOffset);
     }
   }
