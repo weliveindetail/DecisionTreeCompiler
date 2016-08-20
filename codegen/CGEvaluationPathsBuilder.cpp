@@ -1,21 +1,5 @@
 #include "codegen/CGEvaluationPathsBuilder.h"
 
-/*
-// static
-std::vector<DecisionTreeNode*> CGEvaluationPathsBuilder::collectSubtreeNodes(
-    DecisionSubtreeRef subtree) {
-  std::vector<uint64_t> nodeIdxs = subtree.collectNodeIndices();
-  std::vector<DecisionTreeNode*> result(nodeIdxs.size());
-
-  auto getNodeFromIdx = [&](uint64_t idx) {
-    return const_cast<DecisionTreeNode *>(&subtree.getNode(idx));
-  };
-
-  transform(nodeIdxs.begin(), nodeIdxs.end(), result.begin(), getNodeFromIdx);
-  return result;
-}
-*/
-
 std::vector<CGEvaluationPath>
     CGEvaluationPathsBuilder::run() {
   std::list<CGEvaluationPath> paths =
@@ -38,10 +22,10 @@ CGEvaluationPathsBuilder::buildPathsRecursively(
   std::list<CGEvaluationPath> paths;
 
   paths.splice(paths.end(), recurseToChildNode(
-      NodeEvaluation_t::ContinueZeroLeft, node, remainingLevels - 1));
+      NodeEvaluation_t::ContinueZeroLeft, node, remainingLevels));
 
   paths.splice(paths.end(), recurseToChildNode(
-      NodeEvaluation_t::ContinueOneRight, node, remainingLevels - 1));
+      NodeEvaluation_t::ContinueOneRight, node, remainingLevels));
 
   return paths;
 }

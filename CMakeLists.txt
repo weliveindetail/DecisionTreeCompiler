@@ -48,6 +48,7 @@ set(SOURCE_FILES
         resolver/DecisionTree.h
         resolver/DecisionTree.cpp
         test/TestCGEvaluationPath.h
+        test/TestCGEvaluationPathsBuilder.h
         test/TestDecisionTree.h)
 
 # libEvalTreeJit project

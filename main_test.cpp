@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include "test/TestCGEvaluationPath.h"
+#include "test/TestCGEvaluationPathsBuilder.h"
 #include "test/TestDecisionTree.h"
 
 int main(int argc, char **argv) {
