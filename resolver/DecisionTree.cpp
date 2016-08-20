@@ -13,7 +13,7 @@ DecisionSubtreeRef::DecisionSubtreeRef(const DecisionTree *tree,
   assert(Levels <= std::min<uint8_t>(4, tree->Levels)); // max node count is 31
 
   assert(RootIndex >= 0);
-  assert(RootIndex <= DecisionTree::getFirstNodeIdxOnLevel(tree->Levels - Levels));
+  assert(RootIndex < DecisionTree::getFirstNodeIdxOnLevel(tree->Levels - Levels + 1));
 }
 
 std::vector<uint64_t> DecisionSubtreeRef::collectNodeIndices() const {

@@ -51,14 +51,13 @@ struct CGEvaluationPath {
                    const DecisionTreeNode &continuationNode)
       : Nodes(subtree.Levels)
       , ContinuationNode(&continuationNode)
-      , InsertPos(Nodes.rend()) {}
+      , InsertIdx(Nodes.size()) {}
 
   void addParent(const DecisionTreeNode &node, NodeEvaluation_t evaluation) {
     const DecisionTreeNode &child =
-        (InsertPos == Nodes.rend()) ? getContinuationNode() : InsertPos->getNodeData();
+        (InsertIdx == Nodes.size()) ? getContinuationNode() : Nodes[InsertIdx].getNodeData();
 
-    Data_t::const_iterator pos = std::prev(InsertPos).base();
-    Nodes.emplace(pos, node, child, evaluation);
+    Nodes[--InsertIdx] = CGEvaluationPathNode(node, child, evaluation);
   }
 
   bool hasNodeIdx(uint64_t idx) const {
@@ -82,5 +81,5 @@ struct CGEvaluationPath {
 
 private:
   const DecisionTreeNode *ContinuationNode;
-  mutable Data_t::reverse_iterator InsertPos;
+  Data_t::size_type InsertIdx;
 };
