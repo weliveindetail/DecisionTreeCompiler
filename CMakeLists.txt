@@ -46,7 +46,8 @@ set(SOURCE_FILES
         resolver/Driver.h
         resolver/Driver.cpp
         resolver/DecisionTree.h
-        resolver/DecisionTree.cpp)
+        resolver/DecisionTree.cpp
+        test/TestDecisionTree.h)
 
 # libEvalTreeJit project
 add_library(EvalTreeJit ${SOURCE_FILES})
