@@ -20,7 +20,7 @@ void CGConditionVectorEmitterAVX::collectSubtreeNodes() {
   transform(nodeIdxs.begin(), nodeIdxs.end(), Nodes.begin(), getNodeFromIdx);
 }
 
-Value *CGConditionVectorEmitterAVX::operator()(Value *dataSetPtr) {
+Value *CGConditionVectorEmitterAVX::run(Value *dataSetPtr) {
   assert(Subtree.getNodeCount() == AvxPackSize - 1);
 
   Value *dataSetValues = emitCollectDataSetValues(dataSetPtr);

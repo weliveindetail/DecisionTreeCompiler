@@ -18,7 +18,7 @@ public:
 
   virtual ~CGConditionVectorEmitterBase () {}
 
-  virtual llvm::Value *operator()(llvm::Value *dataSetPtr) = 0;
+  virtual llvm::Value *run(llvm::Value *dataSetPtr) = 0;
 
 protected:
   DecisionTreeCompiler &Driver;
@@ -32,7 +32,7 @@ public:
   CGConditionVectorEmitterAVX(DecisionTreeCompiler *driver,
                               DecisionSubtreeRef subtree);
 
-  llvm::Value *operator()(llvm::Value *dataSetPtr) override;
+  llvm::Value *run(llvm::Value *dataSetPtr) override;
 
 private:
   constexpr static uint8_t AvxPackSize = 8;

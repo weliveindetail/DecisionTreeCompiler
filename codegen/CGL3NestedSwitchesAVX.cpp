@@ -11,7 +11,7 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
       Driver.DecisionTreeData.getSubtreeRef(subtreeInfo.Root.Index, Levels);
 
   CGConditionVectorEmitterAVX conditionVectorEmitter(&Driver, subtreeRef);
-  Value *conditionVector = conditionVectorEmitter(dataSetPtr);
+  Value *conditionVector = conditionVectorEmitter.run(dataSetPtr);
 
   auto *returnBB = makeSwitchBB(subtreeInfo, "return");
   auto *defaultBB = makeSwitchBB(subtreeInfo, "default");
