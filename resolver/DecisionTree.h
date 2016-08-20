@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <memory>
 #include <system_error>
 
@@ -43,6 +44,15 @@ struct DecisionTreeNode {
 
   bool isLeaf() const {
     return !hasLeftChild() && !hasRightChild();
+  }
+
+  bool isImplicit() const {
+    bool allDefaulted = (std::isnan(Bias) &&
+                         DataSetFeatureIdx == NoFeatureIdx &&
+                         TrueChildNodeIdx == NoNodeIdx &&
+                         FalseChildNodeIdx == NoNodeIdx);
+
+    return allDefaulted && NodeIdx != NoNodeIdx;
   }
 
   bool hasLeftChild() const { return FalseChildNodeIdx != NoNodeIdx; }
