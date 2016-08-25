@@ -47,14 +47,21 @@ Value *CGConditionVectorEmitterAVX::emitCollectDataSetValues(
 
   uint8_t bitOffset = 0;
   for (DecisionTreeNode *node : Nodes) {
-    Value *dataSetFeatureVal = Driver.emitNodeLoad(*node, dataSetPtr);
-
     Builder.CreateStore(
-        dataSetFeatureVal,
+        emitLoadFeatureValue(node, dataSetPtr),
         Builder.CreateConstGEP1_32(featureValues, bitOffset++));
   }
 
   return featureValues;
+}
+
+Value *CGConditionVectorEmitterAVX::emitLoadFeatureValue(DecisionTreeNode *node,
+                                                         Value *dataSetPtr) {
+  llvm::Value *dataSetFeaturePtr =
+      Builder.CreateConstGEP1_32(dataSetPtr,
+                                 node->DataSetFeatureIdx);
+
+  return Builder.CreateLoad(dataSetFeaturePtr);
 }
 
 Value *CGConditionVectorEmitterAVX::emitDefineTreeNodeValues() {

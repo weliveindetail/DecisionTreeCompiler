@@ -47,6 +47,8 @@ private:
 
   llvm::Constant *AvxPackSizeVal = llvm::ConstantInt::get(Int8Ty, AvxPackSize);
 
+  llvm::Value *emitLoadFeatureValue(DecisionTreeNode *node, llvm::Value *dataSetPtr);
+
   llvm::Value *emitCollectDataSetValues(llvm::Value *dataSetPtr);
   llvm::Value *emitDefineTreeNodeValues();
   llvm::Value *emitDefineBitShiftMaskValues();

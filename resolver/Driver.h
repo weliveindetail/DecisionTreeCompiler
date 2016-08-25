@@ -15,12 +15,4 @@ public:
 
   const DecisionTree_t &DecisionTreeLegacyData;
   const DecisionTree &DecisionTreeData;
-
-  llvm::Value *emitNodeLoad(
-      const DecisionTreeNode &node, llvm::Value *dataSetPtr) {
-    llvm::Value *dataSetFeaturePtr =
-        Builder.CreateConstGEP1_32(dataSetPtr, node.DataSetFeatureIdx);
-
-    return Builder.CreateLoad(dataSetFeaturePtr);
-  }
 };
