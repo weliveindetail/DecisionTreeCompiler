@@ -1,16 +1,14 @@
 #pragma once
 
 #include "codegen/CGBase.h"
-#include "codegen/CGNodeInfo.h"
 #include "codegen/CGL1IfThenElse.h"
 
 class CompilerSession;
-class DecisionTreeCompiler;
 
 class CGL2NestedSwitches : public CGBase {
 public:
-  CGL2NestedSwitches(DecisionTreeCompiler *driver)
-      : CGBase(driver), FallbackCGL1(driver) {}
+  CGL2NestedSwitches(llvm::LLVMContext &ctx)
+    : CGBase(ctx), FallbackCGL1(ctx) {}
 
   ~CGL2NestedSwitches() override {};
 

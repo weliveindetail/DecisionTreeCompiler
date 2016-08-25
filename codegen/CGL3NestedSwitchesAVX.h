@@ -1,19 +1,19 @@
 #pragma once
 
+#include <llvm/IR/Instructions.h>
+
 #include "codegen/CGBase.h"
-#include "codegen/CGNodeInfo.h"
 #include "codegen/CGL2NestedSwitches.h"
 #include "codegen/CGEvaluationPath.h"
 
 class CompilerSession;
-class DecisionTreeCompiler;
 
 class CGL3NestedSwitchesAVX : public CGBase {
   constexpr static uint8_t Levels = 3;
 
 public:
-  CGL3NestedSwitchesAVX(DecisionTreeCompiler *driver)
-      : CGBase(driver), FallbackCGL2(driver) {}
+  CGL3NestedSwitchesAVX(llvm::LLVMContext &ctx)
+    : CGBase(ctx), FallbackCGL2(ctx) {}
 
   ~CGL3NestedSwitchesAVX() override {};
 
