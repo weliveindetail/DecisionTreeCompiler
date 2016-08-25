@@ -7,17 +7,8 @@
 #include <llvm/IR/Value.h>
 #include <vector>
 
+#include "codegen/CGNodeInfo.h"
 #include "resolver/Driver.h"
-
-struct CGNodeInfo {
-  CGNodeInfo(uint64_t index, llvm::BasicBlock *evalBB,
-             llvm::BasicBlock *continuationBB)
-      : Index(index), EvalBlock(evalBB), ContinuationBlock(continuationBB) {};
-
-  uint64_t Index;
-  llvm::BasicBlock *EvalBlock;
-  llvm::BasicBlock *ContinuationBlock;
-};
 
 struct CGSubtreeInfo {
   CGNodeInfo Root;

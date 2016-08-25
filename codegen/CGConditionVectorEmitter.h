@@ -8,8 +8,9 @@
 
 #include <llvm/IR/Value.h>
 
+#include "codegen/CGNodeInfo.h"
+#include "resolver/DecisionTree.h"
 #include "resolver/Driver.h"
-#include "codegen/CGBase.h"
 
 class CGConditionVectorEmitterBase {
 public:

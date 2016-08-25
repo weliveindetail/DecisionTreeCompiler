@@ -2,6 +2,8 @@
 
 #include "CGBase.h"
 
+class DecisionTreeCompiler;
+
 class CGL1IfThenElse : public CGBase {
 public:
   CGL1IfThenElse(DecisionTreeCompiler *driver)

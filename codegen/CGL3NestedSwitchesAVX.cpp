@@ -63,7 +63,7 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSwitchTargets(
     std::string label = "n" + std::to_string(idx);
     BasicBlock *BB = BasicBlock::Create(Ctx, label, ownerFunction);
 
-    continuationNodes.emplace_back(idx, BB, returnBB);
+    continuationNodes.emplace_back(idx, ownerFunction, BB, returnBB);
   }
 
   return continuationNodes;

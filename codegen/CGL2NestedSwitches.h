@@ -3,6 +3,8 @@
 #include "codegen/CGBase.h"
 #include "codegen/CGL1IfThenElse.h"
 
+class DecisionTreeCompiler;
+
 class CGL2NestedSwitches : public CGBase {
 public:
   CGL2NestedSwitches(DecisionTreeCompiler *driver)

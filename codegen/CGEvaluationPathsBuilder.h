@@ -5,8 +5,8 @@
 #include <vector>
 
 #include "resolver/Driver.h"
-#include "codegen/CGBase.h"
 #include "codegen/CGEvaluationPath.h"
+#include "resolver/DecisionTree.h"
 
 class CGEvaluationPathsBuilder {
 public:

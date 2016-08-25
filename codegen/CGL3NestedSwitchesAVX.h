@@ -1,8 +1,11 @@
 #pragma once
 
 #include "codegen/CGBase.h"
+#include "codegen/CGNodeInfo.h"
 #include "codegen/CGL2NestedSwitches.h"
 #include "codegen/CGEvaluationPath.h"
+
+class DecisionTreeCompiler;
 
 class CGL3NestedSwitchesAVX : public CGBase {
   constexpr static uint8_t Levels = 3;
@@ -34,21 +37,4 @@ private:
 
   llvm::BasicBlock *makeSwitchBB(CGSubtreeInfo subtreeInfo, std::string suffix);
 
-  /*template<
-      class Collection1_t, class Collection2_t,
-      class ItemsEvaluate_f, class Accumulate_t>
-  static Accumulate_t accumulateSimultaneously(
-      Collection1_t collection1,  Collection2_t collection2,
-      Accumulate_t init, ItemsEvaluate_f evaluate) {
-    Accumulate_t result = init;
-    auto it1 = collection1.begin();
-    auto it2 = collection2.begin();
-
-    for (; it1 != collection1.end() && it2 != collection2.end(); ++it1, ++it2)
-      result += result, evaluate(it1, it2);
-
-    assert(it1 == collection1.end());
-    assert(it2 == collection2.end());
-    return result;
-  };*/
 };

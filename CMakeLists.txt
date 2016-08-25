@@ -43,6 +43,7 @@ set(SOURCE_FILES
         codegen/CGEvaluationPath.h
         codegen/CGEvaluationPathsBuilder.h
         codegen/CGEvaluationPathsBuilder.cpp
+        codegen/CGNodeInfo.h
         resolver/Driver.h
         resolver/Driver.cpp
         resolver/DecisionTree.h
