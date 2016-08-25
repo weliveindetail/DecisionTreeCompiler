@@ -1,6 +1,7 @@
 #pragma once
 
-#include "CGBase.h"
+#include "codegen/CGBase.h"
+#include "codegen/CGNodeInfo.h"
 
 class DecisionTreeCompiler;
 
@@ -16,5 +17,5 @@ public:
   CGBase &getFallbackCG() override { return *this; };
 
   std::vector<CGNodeInfo> emitSubtreeEvaluation(
-      CGSubtreeInfo subtree, llvm::Value *dataSetPtr) override { return {}; }
+      CGNodeInfo subtreeRoot, llvm::Value *dataSetPtr) override { return {}; }
 };

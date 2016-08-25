@@ -10,12 +10,6 @@
 #include "codegen/CGNodeInfo.h"
 #include "resolver/Driver.h"
 
-struct CGSubtreeInfo {
-  CGNodeInfo Root;
-  llvm::Function *OwnerFunction;
-  llvm::BasicBlock *OwnerBB;
-};
-
 class CGBase {
 public:
   CGBase(DecisionTreeCompiler *driver)
@@ -28,7 +22,7 @@ public:
   virtual CGBase &getFallbackCG() = 0;
 
   virtual std::vector<CGNodeInfo> emitSubtreeEvaluation(
-      CGSubtreeInfo subtree, llvm::Value *dataSetPtr) = 0;
+      CGNodeInfo subtreeRoot, llvm::Value *dataSetPtr) = 0;
 
 protected:
   DecisionTreeCompiler &Driver;

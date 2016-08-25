@@ -21,7 +21,7 @@ public:
   CGBase &getFallbackCG() override { return FallbackCGL2; };
 
   std::vector<CGNodeInfo> emitSubtreeEvaluation(
-      CGSubtreeInfo subtreeInfo, llvm::Value *dataSetPtr) override;
+      CGNodeInfo subtreeRoot, llvm::Value *dataSetPtr) override;
 
 private:
   CGL2NestedSwitches FallbackCGL2;
@@ -35,6 +35,6 @@ private:
       llvm::SwitchInst *switchInst, llvm::Type *switchCondTy,
       CGNodeInfo targetNodeInfo, std::vector<uint32_t> pathCaseValues);
 
-  llvm::BasicBlock *makeSwitchBB(CGSubtreeInfo subtreeInfo, std::string suffix);
+  llvm::BasicBlock *makeSwitchBB(CGNodeInfo subtreeRoot, std::string suffix);
 
 };
