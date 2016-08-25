@@ -20,7 +20,7 @@ CGBase *CompilerSession::selectCodeGenerator(uint8_t remainingLevels) const {
   CGBase *codegen = PreferredCodegen.get();
 
   while (codegen->getOptimalJointEvaluationDepth() > remainingLevels) {
-    codegen = &codegen->getFallbackCG();
+    codegen = codegen->getFallbackCG();
   }
 
   return codegen;

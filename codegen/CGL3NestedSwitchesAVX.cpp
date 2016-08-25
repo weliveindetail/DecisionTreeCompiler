@@ -1,10 +1,19 @@
 #include "codegen/CGL3NestedSwitchesAVX.h"
+
 #include "codegen/CGConditionVectorEmitter.h"
 #include "codegen/CGConditionVectorVariationsBuilder.h"
 #include "codegen/CGEvaluationPathsBuilder.h"
+#include "codegen/CGL2NestedSwitches.h"
 #include "resolver/CompilerSession.h"
 
 using namespace llvm;
+
+CGBase *CGL3NestedSwitchesAVX::getFallbackCG() {
+  if (!FallbackCGL2)
+    FallbackCGL2 = std::make_unique<CGL2NestedSwitches>(Ctx);
+
+  return FallbackCGL2.get();
+}
 
 std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
     const CompilerSession &session, CGNodeInfo subtreeRoot) {

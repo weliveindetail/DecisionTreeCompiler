@@ -11,7 +11,7 @@ public:
 
   uint8_t getOptimalJointEvaluationDepth() const override { return 1; };
 
-  CGBase &getFallbackCG() override { return *this; };
+  CGBase *getFallbackCG() override { return this; };
 
   std::vector<CGNodeInfo> emitSubtreeEvaluation(
       const CompilerSession &session, CGNodeInfo subtreeRoot) override { return {}; }
