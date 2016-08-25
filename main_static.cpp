@@ -91,7 +91,8 @@ int main(int argc, char **argv) {
 
   driver.setInputFileName(argv[optind++]);
 
-  // todo: add option to select code generator
+  // todo: add command line option for this
+  driver.setCodeGenerator(CodeGeneratorType::L3SubtreeSwitchAVX);
 
   for (int index = optind; index < argc; index++)
     printIgnoredInput(llvm::errs(), argv[index]);

@@ -10,6 +10,7 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "resolver/DecisionTree.h"
+#include "resolver/Driver.h"
 
 class StaticDriver {
 public:
@@ -32,7 +33,8 @@ public:
       llvm::outs() << "Debug output enabled\n";
     }
 
-    // todo: invoke compiler
+    CompileResult result =
+        Compiler.compile(CodeGenType, std::move(decisionTree));
 
     int FD;
     std::string uniqueName;
@@ -72,7 +74,14 @@ public:
     InputFileName = std::move(fileName);
   }
 
+  void setCodeGenerator(CodeGeneratorType codegenType) {
+    CodeGenType = codegenType;
+  }
+
 private:
+  DecisionTreeCompiler Compiler;
+  CodeGeneratorType CodeGenType;
+
   std::string InputFileName;
   std::string OutputFileName;
   bool WriteAsBitcode = true;
