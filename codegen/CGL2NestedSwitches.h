@@ -4,6 +4,7 @@
 #include "codegen/CGNodeInfo.h"
 #include "codegen/CGL1IfThenElse.h"
 
+class CompilerSession;
 class DecisionTreeCompiler;
 
 class CGL2NestedSwitches : public CGBase {
@@ -18,7 +19,7 @@ public:
   CGBase &getFallbackCG() override { return FallbackCGL1; };
 
   std::vector<CGNodeInfo> emitSubtreeEvaluation(
-      CGNodeInfo subtreeRoot, llvm::Value *dataSetPtr) override { return {}; }
+      const CompilerSession &session, CGNodeInfo subtreeRoot) override { return {}; }
 
 private:
   CGL1IfThenElse FallbackCGL1;

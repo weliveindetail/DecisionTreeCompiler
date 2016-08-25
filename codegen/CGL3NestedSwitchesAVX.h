@@ -5,6 +5,7 @@
 #include "codegen/CGL2NestedSwitches.h"
 #include "codegen/CGEvaluationPath.h"
 
+class CompilerSession;
 class DecisionTreeCompiler;
 
 class CGL3NestedSwitchesAVX : public CGBase {
@@ -21,7 +22,7 @@ public:
   CGBase &getFallbackCG() override { return FallbackCGL2; };
 
   std::vector<CGNodeInfo> emitSubtreeEvaluation(
-      CGNodeInfo subtreeRoot, llvm::Value *dataSetPtr) override;
+      const CompilerSession &session, CGNodeInfo subtreeRoot) override;
 
 private:
   CGL2NestedSwitches FallbackCGL2;

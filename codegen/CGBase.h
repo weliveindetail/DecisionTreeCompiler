@@ -10,6 +10,8 @@
 #include "codegen/CGNodeInfo.h"
 #include "resolver/Driver.h"
 
+class CompilerSession;
+
 class CGBase {
 public:
   CGBase(DecisionTreeCompiler *driver)
@@ -22,7 +24,7 @@ public:
   virtual CGBase &getFallbackCG() = 0;
 
   virtual std::vector<CGNodeInfo> emitSubtreeEvaluation(
-      CGNodeInfo subtreeRoot, llvm::Value *dataSetPtr) = 0;
+      const CompilerSession &session, CGNodeInfo subtreeRoot) = 0;
 
 protected:
   DecisionTreeCompiler &Driver;

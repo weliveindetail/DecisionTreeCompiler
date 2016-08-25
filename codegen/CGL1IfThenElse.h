@@ -3,6 +3,7 @@
 #include "codegen/CGBase.h"
 #include "codegen/CGNodeInfo.h"
 
+class CompilerSession;
 class DecisionTreeCompiler;
 
 class CGL1IfThenElse : public CGBase {
@@ -17,5 +18,5 @@ public:
   CGBase &getFallbackCG() override { return *this; };
 
   std::vector<CGNodeInfo> emitSubtreeEvaluation(
-      CGNodeInfo subtreeRoot, llvm::Value *dataSetPtr) override { return {}; }
+      const CompilerSession &session, CGNodeInfo subtreeRoot) override { return {}; }
 };

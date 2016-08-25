@@ -6,31 +6,33 @@
 #include <memory>
 #include <unordered_map>
 
+#include <llvm/IR/Constant.h>
+#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Value.h>
 
 #include "codegen/CGNodeInfo.h"
 #include "resolver/DecisionTree.h"
-#include "resolver/Driver.h"
+
+class CompilerSession;
 
 class CGConditionVectorEmitterBase {
 public:
-  CGConditionVectorEmitterBase(DecisionTreeCompiler *driver)
-      : Driver(*driver), Ctx(driver->Ctx), Builder(driver->Builder) {}
-
+  CGConditionVectorEmitterBase(const CompilerSession &session);
   virtual ~CGConditionVectorEmitterBase () {}
 
   virtual llvm::Value *run(llvm::Value *dataSetPtr) = 0;
 
 protected:
-  DecisionTreeCompiler &Driver;
+  const CompilerSession &Session;
 
+  // redundant frequently used refs
   llvm::LLVMContext &Ctx;
   llvm::IRBuilder<> &Builder;
 };
 
 class CGConditionVectorEmitterAVX : public CGConditionVectorEmitterBase {
 public:
-  CGConditionVectorEmitterAVX(DecisionTreeCompiler *driver,
+  CGConditionVectorEmitterAVX(const CompilerSession &session,
                               DecisionSubtreeRef subtree);
 
   llvm::Value *run(llvm::Value *dataSetPtr) override;

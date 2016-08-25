@@ -2,24 +2,25 @@
 #include "codegen/CGConditionVectorEmitter.h"
 #include "codegen/CGConditionVectorVariationsBuilder.h"
 #include "codegen/CGEvaluationPathsBuilder.h"
+#include "resolver/CompilerSession.h"
 
 using namespace llvm;
 
 std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
-    CGNodeInfo subtreeRoot, Value *dataSetPtr) {
+    const CompilerSession &session, CGNodeInfo subtreeRoot) {
   DecisionSubtreeRef subtreeRef =
-      Driver.DecisionTreeData.getSubtreeRef(subtreeRoot.Index, Levels);
+      session.Tree.getSubtreeRef(subtreeRoot.Index, Levels);
 
-  CGConditionVectorEmitterAVX conditionVectorEmitter(&Driver, subtreeRef);
-  Value *conditionVector = conditionVectorEmitter.run(dataSetPtr);
+  CGConditionVectorEmitterAVX conditionVectorEmitter(session, subtreeRef);
+  Value *conditionVector = conditionVectorEmitter.run(session.InputDataSetPtr);
 
   auto *returnBB = makeSwitchBB(subtreeRoot, "return");
   auto *defaultBB = makeSwitchBB(subtreeRoot, "default");
 
   auto expectedCaseLabels = PowerOf2<uint32_t>(subtreeRef.getNodeCount() - 1);
 
-  Builder.SetInsertPoint(subtreeRoot.EvalBlock);
-  SwitchInst *switchInst = Builder.CreateSwitch(
+  session.Builder.SetInsertPoint(subtreeRoot.EvalBlock);
+  SwitchInst *switchInst = session.Builder.CreateSwitch(
       conditionVector, defaultBB, expectedCaseLabels);
 
   CGEvaluationPathsBuilder pathBuilder(subtreeRef);
@@ -46,8 +47,8 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
   defaultBB->moveAfter(continuationNodes.back().EvalBlock);
   returnBB->moveAfter(defaultBB);
 
-  Builder.SetInsertPoint(defaultBB);
-  Builder.CreateBr(returnBB);
+  session.Builder.SetInsertPoint(defaultBB);
+  session.Builder.CreateBr(returnBB);
 
   return continuationNodes;
 }

@@ -48,6 +48,8 @@ set(SOURCE_FILES
         resolver/Driver.cpp
         resolver/DecisionTree.h
         resolver/DecisionTree.cpp
+        resolver/CompilerSession.h
+        resolver/CompilerSession.cpp
         test/TestCGConditionVectorVariationsBuilder.h
         test/TestCGEvaluationPath.h
         test/TestCGEvaluationPathsBuilder.h

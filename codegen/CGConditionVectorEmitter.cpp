@@ -1,10 +1,17 @@
 #include "codegen/CGConditionVectorEmitter.h"
+#include "resolver/CompilerSession.h"
 
 using namespace llvm;
 
+CGConditionVectorEmitterBase::CGConditionVectorEmitterBase(
+    const CompilerSession &session)
+    : Session(session)
+    , Ctx(session.Builder.getContext())
+    , Builder(session.Builder) {}
+
 CGConditionVectorEmitterAVX::CGConditionVectorEmitterAVX(
-    DecisionTreeCompiler *driver, DecisionSubtreeRef subtree)
-  : CGConditionVectorEmitterBase(driver), Subtree(std::move(subtree)) {
+    const CompilerSession &session, DecisionSubtreeRef subtree)
+  : CGConditionVectorEmitterBase(session), Subtree(std::move(subtree)) {
   assert(Subtree.getNodeCount() == AvxPackSize - 1);
   collectSubtreeNodes();
 }
@@ -106,7 +113,7 @@ Value *CGConditionVectorEmitterAVX::emitComputeCompareAvx(
   Value *rhsAvxPtr = Builder.CreateBitCast(rhs, avx8FloatsTy->getPointerTo());
 
   Function *avxCmpFn = Intrinsic::getDeclaration(
-      Driver.TheModule.get(), Intrinsic::x86_avx_cmp_ps_256);
+      Session.Module.get(), Intrinsic::x86_avx_cmp_ps_256);
 
   ArrayRef<Value*> avxCmpArgs {
       Builder.CreateAlignedLoad(lhsAvxPtr, 32),
