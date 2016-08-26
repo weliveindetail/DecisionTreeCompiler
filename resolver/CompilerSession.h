@@ -31,6 +31,8 @@ public:
   std::unique_ptr<CGBase> PreferredCodegen;
 
   llvm::Type *NodeIdxTy;
+  llvm::Type *DataSetFeatureValueTy;
+
   llvm::Value *InputDataSetPtr;
   llvm::Value *OutputNodeIdxPtr;
 

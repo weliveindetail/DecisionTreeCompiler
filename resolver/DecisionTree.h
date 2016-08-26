@@ -83,6 +83,7 @@ public:
   DecisionTree(const DecisionTree &) = delete;
   DecisionTree &operator=(const DecisionTree &) = delete;
 
+  uint64_t getRootNodeIdx() const { return 0; }
   DecisionSubtreeRef getSubtreeRef(uint64_t rootIndex, uint8_t levels) const;
 
   static uint8_t getLevelForNodeIdx(uint64_t nodeIdx) {
