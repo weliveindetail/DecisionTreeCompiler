@@ -54,10 +54,13 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
   assert(emittedCaseLabels == expectedCaseLabels);
 
   defaultBB->moveAfter(continuationNodes.back().EvalBlock);
-  returnBB->moveAfter(defaultBB);
-
   session.Builder.SetInsertPoint(defaultBB);
+  session.Builder.CreateUnreachable();
   session.Builder.CreateBr(returnBB);
+
+  returnBB->moveAfter(defaultBB);
+  session.Builder.SetInsertPoint(returnBB);
+  session.Builder.CreateBr(subtreeRoot.ContinuationBlock);
 
   return continuationNodes;
 }
