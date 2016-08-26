@@ -109,7 +109,7 @@ std::string DecisionTreeFactory::initCacheDir(std::string cacheDirName) {
   return cacheDirName;
 }
 
-std::unique_ptr<DecisionTree> DecisionTreeFactory::makeRandomRegular(
+DecisionTree DecisionTreeFactory::makeRandomRegular(
     uint8_t levels, uint32_t dataSetFeatures) {
   uint64_t nodes = TreeNodes(levels);
   DecisionTree tree(levels, nodes);
@@ -132,5 +132,5 @@ std::unique_ptr<DecisionTree> DecisionTreeFactory::makeRandomRegular(
   }
 
   tree.finalize();
-  return std::make_unique<DecisionTree>(std::move(tree));
+  return tree;
 }

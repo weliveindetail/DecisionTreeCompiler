@@ -62,6 +62,13 @@ target_include_directories(EvalTreeJit
 target_link_libraries(EvalTreeJit
         PUBLIC ${LLVM_LIBS})
 
+# static driver for libEvalTreeJit
+add_executable(EvalTreeJit_Static main_static.cpp driver/StaticDriver.h)
+target_include_directories(EvalTreeJit_Static
+        PRIVATE EvalTreeJit)
+target_link_libraries(EvalTreeJit_Static
+        PRIVATE EvalTreeJit)
+
 # benchmarking libEvalTreeJit
 add_executable(EvalTreeJit_Benchmark main_benchmark.cpp)
 target_include_directories(EvalTreeJit_Benchmark

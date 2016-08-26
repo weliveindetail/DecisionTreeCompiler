@@ -76,6 +76,13 @@ private:
 
 class DecisionTree {
 public:
+  DecisionTree() = default;
+  DecisionTree(DecisionTree &&) = default;
+  DecisionTree &operator=(DecisionTree &&) = default;
+
+  DecisionTree(const DecisionTree &) = delete;
+  DecisionTree &operator=(const DecisionTree &) = delete;
+
   DecisionSubtreeRef getSubtreeRef(uint64_t rootIndex, uint8_t levels) const;
 
   static uint8_t getLevelForNodeIdx(uint64_t nodeIdx) {
@@ -95,8 +102,8 @@ private:
 
   void finalize();
 
-  bool Finalized;
-  uint8_t Levels;
+  bool Finalized = false;
+  uint8_t Levels = 0;
   uint64_t FirstResultIdx = DecisionTreeNode::NoNodeIdx;
   std::unordered_map<uint64_t, DecisionTreeNode> Nodes;
 
@@ -108,8 +115,7 @@ class DecisionTreeFactory {
 public:
   DecisionTreeFactory(std::string cacheDirName = std::string{});
 
-  std::unique_ptr<DecisionTree> makeRandomRegular(
-      uint8_t levels, uint32_t dataSetFeatures);
+  DecisionTree makeRandomRegular(uint8_t levels, uint32_t dataSetFeatures);
 
 private:
   std::string CacheDir;
