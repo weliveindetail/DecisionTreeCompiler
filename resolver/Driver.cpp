@@ -1,6 +1,8 @@
 #include "resolver/Driver.h"
 
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/Support/ManagedStatic.h>
+#include <llvm/Support/TargetSelect.h>
 
 #include "codegen/CGL1IfThenElse.h"
 #include "codegen/CGL2NestedSwitches.h"
@@ -46,3 +48,22 @@ DecisionTreeCompiler::makeModule(std::string name) {
 
   return M;
 }
+
+DecisionTreeCompiler::AutoSetUpTearDownLLVM::AutoSetUpTearDownLLVM() {
+  int existingInstancesBeforeConstruction = instances.fetch_add(1);
+  if (existingInstancesBeforeConstruction == 0) {
+    InitializeNativeTarget();
+    InitializeNativeTargetAsmPrinter();
+    InitializeNativeTargetAsmParser();
+  }
+}
+
+DecisionTreeCompiler::AutoSetUpTearDownLLVM::~AutoSetUpTearDownLLVM() {
+  int existingInstancesBeforeDestruction = instances.fetch_sub(1);
+  if (existingInstancesBeforeDestruction == 1) {
+    llvm_shutdown();
+  }
+}
+
+// static inti
+std::atomic<int> DecisionTreeCompiler::AutoSetUpTearDownLLVM::instances {0};

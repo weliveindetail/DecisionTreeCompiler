@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <memory>
 #include <string>
 
@@ -30,4 +31,15 @@ public:
   std::unique_ptr<CGBase> makeCodeGenerator(CodeGeneratorType type);
 
   CompileResult compile(CodeGeneratorType codegenType, DecisionTree tree);
+
+private:
+  struct AutoSetUpTearDownLLVM {
+    AutoSetUpTearDownLLVM();
+    ~AutoSetUpTearDownLLVM();
+
+  private:
+    static std::atomic<int> instances;
+  };
+
+  AutoSetUpTearDownLLVM SetupTearDownHelper;
 };
