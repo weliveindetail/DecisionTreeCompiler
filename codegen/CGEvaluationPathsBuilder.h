@@ -1,10 +1,8 @@
 #pragma once
 
 #include <list>
-#include <memory>
 #include <vector>
 
-#include "resolver/Driver.h"
 #include "codegen/CGEvaluationPath.h"
 #include "resolver/DecisionTree.h"
 
@@ -17,7 +15,6 @@ public:
 
 private:
   DecisionSubtreeRef Subtree;
-  std::vector<CGEvaluationPath> ResultPaths;
 
   std::list<CGEvaluationPath> buildPathsRecursively(
       uint64_t nodeIdx, uint8_t remainingLevels);

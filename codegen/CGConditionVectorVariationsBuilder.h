@@ -4,8 +4,6 @@
 #include <list>
 #include <vector>
 
-#include "resolver/Driver.h"
-#include "codegen/CGBase.h"
 #include "codegen/CGEvaluationPath.h"
 #include "resolver/DecisionTree.h"
 
@@ -22,6 +20,7 @@ private:
   const std::vector<uint64_t> NodeIdxs;
 
   uint32_t buildFixedBitsTemplate(CGEvaluationPath path);
+
   std::vector<uint8_t> collectVariableBitOffsets(
       CGEvaluationPath path);
 
