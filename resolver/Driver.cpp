@@ -1,6 +1,7 @@
 #include "resolver/Driver.h"
 
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
+#include <llvm/IR/Verifier.h>
 #include <llvm/Support/ManagedStatic.h>
 #include <llvm/Support/TargetSelect.h>
 
@@ -23,12 +24,18 @@ CompileResult DecisionTreeCompiler::compile(
   session.OutputNodeIdxPtr = allocOutputVal(session);
   session.InputDataSetPtr = &*root.OwnerFunction->arg_begin();
 
-  // todo: invoke codegen, finalize
+  std::vector<CGNodeInfo> leafNodes = compileSubtrees(session, root);
+  connectSubtreeEndpoints(session, std::move(leafNodes));
+
+  session.Builder.SetInsertPoint(root.ContinuationBlock);
+  session.Builder.CreateRet(
+      session.Builder.CreateLoad(session.OutputNodeIdxPtr));
 
   CompileResult result;
   result.Tree = std::move(session.Tree);
   result.Module = std::move(session.Module);
   result.EvaluatorFunctionName = root.OwnerFunction->getName();
+  result.Success = verifyFunction(*root.OwnerFunction);
 
   return result;
 }
@@ -90,6 +97,42 @@ Value *DecisionTreeCompiler::allocOutputVal(const CompilerSession &session) {
   Constant *initVal = ConstantInt::get(session.NodeIdxTy, 0);
   session.Builder.CreateStore(initVal, ptr);
   return ptr;
+}
+
+std::vector<CGNodeInfo> DecisionTreeCompiler::compileSubtrees(
+    CompilerSession &session, CGNodeInfo rootNode) {
+  std::vector<CGNodeInfo> nodesNextLevel = {rootNode};
+  uint8_t remainingLevels = session.Tree.getNumLevels();
+
+  while (remainingLevels > 0) {
+    CGBase *codegen = session.selectCodeGenerator(remainingLevels);
+    std::vector<CGNodeInfo> roots = std::move(nodesNextLevel);
+    nodesNextLevel.clear();
+
+    for (CGNodeInfo node : roots) {
+      std::vector<CGNodeInfo> continuationNodes =
+          codegen->emitSubtreeEvaluation(session, node);
+
+      std::move(continuationNodes.begin(), continuationNodes.end(),
+                std::back_inserter(nodesNextLevel));
+    }
+
+    remainingLevels -= codegen->getOptimalJointEvaluationDepth();
+  }
+
+  return nodesNextLevel;
+}
+
+void DecisionTreeCompiler::connectSubtreeEndpoints(
+    const CompilerSession &session,
+    std::vector<CGNodeInfo> evaluatorEndPoints) {
+  for (CGNodeInfo node : evaluatorEndPoints) {
+    session.Builder.SetInsertPoint(node.EvalBlock);
+
+    Constant *nodeIdxVal = ConstantInt::get(session.NodeIdxTy, node.Index);
+    session.Builder.CreateStore(nodeIdxVal, session.OutputNodeIdxPtr);
+    session.Builder.CreateBr(node.ContinuationBlock);
+  }
 }
 
 std::unique_ptr<llvm::Module>

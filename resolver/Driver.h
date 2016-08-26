@@ -25,6 +25,7 @@ struct CompileResult {
   DecisionTree Tree;
   std::unique_ptr<llvm::Module> Module;
   std::string EvaluatorFunctionName;
+  bool Success;
 };
 
 class DecisionTreeCompiler {
@@ -37,6 +38,12 @@ public:
   CompileResult compile(CodeGeneratorType codegenType, DecisionTree tree);
 
 private:
+  std::vector<CGNodeInfo> compileSubtrees(CompilerSession &session,
+                                          CGNodeInfo rootNode);
+
+  void connectSubtreeEndpoints(const CompilerSession &session,
+                               std::vector<CGNodeInfo> evaluatorEndPoints);
+
   CGNodeInfo makeEvalRoot(CompilerSession& session,
                           std::string functionName);
 
