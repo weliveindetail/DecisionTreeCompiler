@@ -26,7 +26,7 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
   auto *returnBB = makeSwitchBB(subtreeRoot, "return");
   auto *defaultBB = makeSwitchBB(subtreeRoot, "default");
 
-  auto expectedCaseLabels = PowerOf2<uint32_t>(subtreeRef.getNodeCount() - 1);
+  auto expectedCaseLabels = PowerOf2<uint32_t>(subtreeRef.getNodeCount());
 
   session.Builder.SetInsertPoint(subtreeRoot.EvalBlock);
   SwitchInst *switchInst = session.Builder.CreateSwitch(
