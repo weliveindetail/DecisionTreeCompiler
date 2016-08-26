@@ -20,7 +20,7 @@ public:
   CGConditionVectorEmitterBase(const CompilerSession &session);
   virtual ~CGConditionVectorEmitterBase () {}
 
-  virtual llvm::Value *run(llvm::Value *dataSetPtr) = 0;
+  virtual llvm::Value *run(CGNodeInfo subtreeRoot) = 0;
 
 protected:
   const CompilerSession &Session;
@@ -35,7 +35,7 @@ public:
   CGConditionVectorEmitterAVX(const CompilerSession &session,
                               DecisionSubtreeRef subtree);
 
-  llvm::Value *run(llvm::Value *dataSetPtr) override;
+  llvm::Value *run(CGNodeInfo subtreeRoot);
 
 private:
   constexpr static uint8_t AvxPackSize = 8;
@@ -49,9 +49,9 @@ private:
 
   llvm::Constant *AvxPackSizeVal = llvm::ConstantInt::get(Int8Ty, AvxPackSize);
 
-  llvm::Value *emitLoadFeatureValue(DecisionTreeNode *node, llvm::Value *dataSetPtr);
+  llvm::Value *emitLoadFeatureValue(DecisionTreeNode *node);
 
-  llvm::Value *emitCollectDataSetValues(llvm::Value *dataSetPtr);
+  llvm::Value *emitCollectDataSetValues();
   llvm::Value *emitDefineTreeNodeValues();
   llvm::Value *emitDefineBitShiftMaskValues();
 

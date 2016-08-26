@@ -27,10 +27,10 @@ void CGConditionVectorEmitterAVX::collectSubtreeNodes() {
   transform(nodeIdxs.begin(), nodeIdxs.end(), Nodes.begin(), getNodeFromIdx);
 }
 
-Value *CGConditionVectorEmitterAVX::run(Value *dataSetPtr) {
-  assert(Subtree.getNodeCount() == AvxPackSize - 1);
+Value *CGConditionVectorEmitterAVX::run(CGNodeInfo subtreeRoot) {
+  Builder.SetInsertPoint(subtreeRoot.EvalBlock);
 
-  Value *dataSetValues = emitCollectDataSetValues(dataSetPtr);
+  Value *dataSetValues = emitCollectDataSetValues();
   Value *treeNodeValues = emitDefineTreeNodeValues();
 
   Value *avxCmpResults =
@@ -47,25 +47,23 @@ Value *CGConditionVectorEmitterAVX::run(Value *dataSetPtr) {
                                Type::getIntNTy(Ctx, significantBits));
 }
 
-Value *CGConditionVectorEmitterAVX::emitCollectDataSetValues(
-    Value *dataSetPtr) {
+Value *CGConditionVectorEmitterAVX::emitCollectDataSetValues() {
   Value *featureValues = Builder.Insert(
       new AllocaInst(FloatTy, AvxPackSizeVal, 32), "featureValues");
 
   uint8_t bitOffset = 0;
   for (DecisionTreeNode *node : Nodes) {
     Builder.CreateStore(
-        emitLoadFeatureValue(node, dataSetPtr),
+        emitLoadFeatureValue(node),
         Builder.CreateConstGEP1_32(featureValues, bitOffset++));
   }
 
   return featureValues;
 }
 
-Value *CGConditionVectorEmitterAVX::emitLoadFeatureValue(DecisionTreeNode *node,
-                                                         Value *dataSetPtr) {
+Value *CGConditionVectorEmitterAVX::emitLoadFeatureValue(DecisionTreeNode *node) {
   llvm::Value *dataSetFeaturePtr =
-      Builder.CreateConstGEP1_32(dataSetPtr,
+      Builder.CreateConstGEP1_32(Session.InputDataSetPtr,
                                  node->DataSetFeatureIdx);
 
   return Builder.CreateLoad(dataSetFeaturePtr);
