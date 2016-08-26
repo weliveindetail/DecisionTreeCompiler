@@ -4,6 +4,7 @@
 #include <string>
 #include <system_error>
 
+#include <llvm/Bitcode/ReaderWriter.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/Path.h>
@@ -51,7 +52,8 @@ public:
     llvm::outs() << (WriteAsBitcode ? "bitcode" : "human-readable") << " IR ";
     llvm::outs() << "to file " << uniqueName << "\n";
 
-    // todo: set name for module and write to disk
+    result.Module->setModuleIdentifier(uniqueName);
+    writeModuleToFile(FD, result.Module.get());
   }
 
   bool isConfigurationComplete() const {
@@ -105,6 +107,16 @@ private:
     resultFD = FD;
     resultName = std::move(fileName);
     return std::error_code();
+  }
+
+  void writeModuleToFile(int FD, llvm::Module *module) {
+    constexpr bool autoClose = true;
+    llvm::raw_fd_ostream outfile(FD, autoClose);
+
+    if (WriteAsBitcode)
+      llvm::WriteBitcodeToFile(module, outfile);
+    else
+      outfile << *module;
   }
 
   std::string getOutputFileName() const {
