@@ -43,8 +43,8 @@ Value *CGConditionVectorEmitterAVX::run(CGNodeInfo subtreeRoot) {
       emitComputeHorizontalOrAvx(avxBitShiftResults);
 
   unsigned significantBits = Subtree.getNodeCount() + 1; // +1 = sign bit
-  return Builder.CreateBitCast(conditionVectorVal,
-                               Type::getIntNTy(Ctx, significantBits));
+  return Builder.CreateTrunc(conditionVectorVal,
+                             Type::getIntNTy(Ctx, significantBits));
 }
 
 Value *CGConditionVectorEmitterAVX::emitCollectDataSetValues() {
