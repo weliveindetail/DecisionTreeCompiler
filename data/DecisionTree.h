@@ -26,7 +26,7 @@ struct DecisionTreeNode {
 
   friend bool operator==(const DecisionTreeNode &lhs,
                          const DecisionTreeNode &rhs) {
-    if (lhs.NodeIdx == rhs.NodeIdx) {
+    if (lhs.OwnerTree == rhs.OwnerTree && lhs.NodeIdx == rhs.NodeIdx) {
       assert(lhs.Bias == rhs.Bias);
       assert(lhs.DataSetFeatureIdx == rhs.DataSetFeatureIdx);
       assert(lhs.TrueChildNodeIdx == rhs.TrueChildNodeIdx);
@@ -69,6 +69,12 @@ struct DecisionTreeNode {
   const float Bias = NoBias;
 
 private:
+  const DecisionTree *OwnerTree = nullptr;
+
+  void setOwner(const DecisionTree *tree) {
+    OwnerTree = tree;
+  }
+
   // special-purpose ctor used during DecisionTree finalization
   DecisionTreeNode(uint64_t nodeIdx) : NodeIdx(nodeIdx) {}
 
@@ -95,6 +101,8 @@ public:
   void addNode(uint64_t idx, DecisionTreeNode node) {
     assert(!Finalized);
     assert(Nodes.find(idx) == Nodes.end());
+
+    node.setOwner(this);
     Nodes.emplace(idx, std::move(node));
   }
 
