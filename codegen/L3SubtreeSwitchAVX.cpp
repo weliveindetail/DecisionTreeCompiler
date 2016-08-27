@@ -1,10 +1,10 @@
 #include "codegen/L3SubtreeSwitchAVX.h"
 
-#include "codegen/CGConditionVectorEmitter.h"
-#include "codegen/CGConditionVectorVariationsBuilder.h"
-#include "codegen/CGEvaluationPathsBuilder.h"
+#include "codegen/utility/CGConditionVectorEmitter.h"
+#include "codegen/utility/CGConditionVectorVariationsBuilder.h"
+#include "codegen/utility/CGEvaluationPathsBuilder.h"
 #include "codegen/LXSubtreeSwitch.h"
-#include "resolver/CompilerSession.h"
+#include "compiler/CompilerSession.h"
 
 using namespace llvm;
 

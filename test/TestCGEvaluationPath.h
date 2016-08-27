@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include "codegen/CGEvaluationPath.h"
-#include "resolver/DecisionTree.h"
+#include "codegen/utility/CGEvaluationPath.h"
+#include "data/DecisionTree.h"
 
 TEST(CGEvaluationPath, RegularTree1) {
   // create tree:

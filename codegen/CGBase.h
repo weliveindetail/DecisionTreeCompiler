@@ -5,7 +5,7 @@
 
 #include <llvm/IR/LLVMContext.h>
 
-#include "codegen/CGNodeInfo.h"
+#include "codegen/utility/CGNodeInfo.h"
 
 class CompilerSession;
 

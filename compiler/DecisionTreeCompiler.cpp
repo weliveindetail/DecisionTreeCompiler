@@ -1,4 +1,4 @@
-#include "resolver/DecisionTreeCompiler.h"
+#include "DecisionTreeCompiler.h"
 
 #include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/IR/Verifier.h>
@@ -9,7 +9,7 @@
 #include "codegen/LXSubtreeSwitch.h"
 #include "codegen/L3SubtreeSwitchAVX.h"
 
-#include "resolver/CompilerSession.h"
+#include "CompilerSession.h"
 
 using namespace llvm;
 

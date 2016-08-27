@@ -2,9 +2,9 @@
 
 #include <gtest/gtest.h>
 
-#include "codegen/CGEvaluationPathsBuilder.h"
-#include "codegen/CGConditionVectorVariationsBuilder.h"
-#include "resolver/DecisionTree.h"
+#include "codegen/utility/CGEvaluationPathsBuilder.h"
+#include "codegen/utility/CGConditionVectorVariationsBuilder.h"
+#include "data/DecisionTree.h"
 
 // helpers
 void checkUniqueness(int pathNum,

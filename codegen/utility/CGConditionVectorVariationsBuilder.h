@@ -4,8 +4,8 @@
 #include <list>
 #include <vector>
 
-#include "codegen/CGEvaluationPath.h"
-#include "resolver/DecisionTree.h"
+#include "CGEvaluationPath.h"
+#include "data/DecisionTree.h"
 
 class CGConditionVectorVariationsBuilder {
 public:

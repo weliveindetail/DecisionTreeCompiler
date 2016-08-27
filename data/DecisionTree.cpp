@@ -1,4 +1,4 @@
-#include "resolver/DecisionTree.h"
+#include "DecisionTree.h"
 
 #include <llvm/Support/ErrorOr.h>
 #include <llvm/Support/FileSystem.h>

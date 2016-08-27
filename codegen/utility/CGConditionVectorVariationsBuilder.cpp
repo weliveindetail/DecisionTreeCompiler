@@ -1,4 +1,4 @@
-#include "codegen/CGConditionVectorVariationsBuilder.h"
+#include "CGConditionVectorVariationsBuilder.h"
 
 std::vector<uint32_t>
 CGConditionVectorVariationsBuilder::run(CGEvaluationPath path) {

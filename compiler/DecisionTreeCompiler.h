@@ -9,8 +9,8 @@
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
 
-#include "codegen/CGNodeInfo.h"
-#include "resolver/DecisionTree.h"
+#include "codegen/utility/CGNodeInfo.h"
+#include "data/DecisionTree.h"
 
 class CGBase;
 class CompilerSession;

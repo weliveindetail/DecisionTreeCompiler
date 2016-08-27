@@ -10,8 +10,8 @@
 #include <llvm/Support/Path.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "resolver/DecisionTree.h"
-#include "resolver/DecisionTreeCompiler.h"
+#include "data/DecisionTree.h"
+#include "compiler/DecisionTreeCompiler.h"
 
 class StaticDriver {
 public:

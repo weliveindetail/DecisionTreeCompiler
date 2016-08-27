@@ -2,7 +2,7 @@
 
 #include <gtest/gtest.h>
 
-#include "resolver/DecisionTree.h"
+#include "data/DecisionTree.h"
 
 TEST(DecisionTreeFactory, getLevelForNodeIdx) {
   EXPECT_EQ(0, DecisionTree::getLevelForNodeIdx(0));

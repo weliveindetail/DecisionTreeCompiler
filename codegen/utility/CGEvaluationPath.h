@@ -6,7 +6,7 @@
 
 #include <experimental/optional>
 
-#include "resolver/DecisionTree.h"
+#include "data/DecisionTree.h"
 
 struct CGEvaluationPathNode {
   CGEvaluationPathNode() = default;

@@ -2,8 +2,8 @@
 
 #include <gtest/gtest.h>
 
-#include "codegen/CGEvaluationPathsBuilder.h"
-#include "resolver/DecisionTree.h"
+#include "codegen/utility/CGEvaluationPathsBuilder.h"
+#include "data/DecisionTree.h"
 
 // helpers
 std::pair<uint64_t, size_t> bubbleDown(DecisionSubtreeRef tree,

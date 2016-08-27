@@ -8,8 +8,8 @@
 #include <llvm/IR/Value.h>
 #include <llvm/IR/Type.h>
 
-#include "codegen/CGNodeInfo.h"
-#include "resolver/DecisionTree.h"
+#include "CGNodeInfo.h"
+#include "data/DecisionTree.h"
 
 class CompilerSession;
 

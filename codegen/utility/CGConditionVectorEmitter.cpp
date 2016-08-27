@@ -1,5 +1,5 @@
-#include "codegen/CGConditionVectorEmitter.h"
-#include "resolver/CompilerSession.h"
+#include "CGConditionVectorEmitter.h"
+#include "compiler/CompilerSession.h"
 
 using namespace llvm;
 

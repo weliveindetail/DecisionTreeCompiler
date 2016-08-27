@@ -3,7 +3,7 @@
 #include <llvm/IR/Instructions.h>
 
 #include "codegen/CGBase.h"
-#include "codegen/CGEvaluationPath.h"
+#include "codegen/utility/CGEvaluationPath.h"
 
 class CompilerSession;
 class LXSubtreeSwitch;

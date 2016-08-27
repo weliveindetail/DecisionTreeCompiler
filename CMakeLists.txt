@@ -33,23 +33,23 @@ set(SOURCE_FILES
         Utils.h
         codegen/CGBase.h
         codegen/CGL1IfThenElse.h
-        codegen/LXSubtreeSwitch.h
         codegen/L3SubtreeSwitchAVX.h
         codegen/L3SubtreeSwitchAVX.cpp
-        codegen/CGConditionVectorEmitter.h
-        codegen/CGConditionVectorEmitter.cpp
-        codegen/CGConditionVectorVariationsBuilder.h
-        codegen/CGConditionVectorVariationsBuilder.cpp
-        codegen/CGEvaluationPath.h
-        codegen/CGEvaluationPathsBuilder.h
-        codegen/CGEvaluationPathsBuilder.cpp
-        codegen/CGNodeInfo.h
-        resolver/DecisionTreeCompiler.h
-        resolver/DecisionTreeCompiler.cpp
-        resolver/DecisionTree.h
-        resolver/DecisionTree.cpp
-        resolver/CompilerSession.h
-        resolver/CompilerSession.cpp
+        codegen/LXSubtreeSwitch.h
+        codegen/utility/CGConditionVectorEmitter.h
+        codegen/utility/CGConditionVectorEmitter.cpp
+        codegen/utility/CGConditionVectorVariationsBuilder.h
+        codegen/utility/CGConditionVectorVariationsBuilder.cpp
+        codegen/utility/CGEvaluationPath.h
+        codegen/utility/CGEvaluationPathsBuilder.h
+        codegen/utility/CGEvaluationPathsBuilder.cpp
+        codegen/utility/CGNodeInfo.h
+        compiler/CompilerSession.h
+        compiler/CompilerSession.cpp
+        compiler/DecisionTreeCompiler.h
+        compiler/DecisionTreeCompiler.cpp
+        data/DecisionTree.h
+        data/DecisionTree.cpp
         test/TestCGConditionVectorVariationsBuilder.h
         test/TestCGEvaluationPath.h
         test/TestCGEvaluationPathsBuilder.h
