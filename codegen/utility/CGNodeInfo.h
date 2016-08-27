@@ -13,7 +13,7 @@ struct CGNodeInfo {
   CGNodeInfo(uint64_t index, llvm::Function *ownerFunction,
              llvm::BasicBlock *evalBB, llvm::BasicBlock *continuationBB)
       : Index(index), OwnerFunction(ownerFunction), EvalBlock(evalBB),
-        ContinuationBlock(continuationBB){};
+        ContinuationBlock(continuationBB){}
 
   uint64_t Index;
   llvm::Function *OwnerFunction;

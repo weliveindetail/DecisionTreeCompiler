@@ -36,8 +36,10 @@ L3SubtreeSwitchAVX::emitSubtreeEvaluation(const CompilerSession &session,
   CGEvaluationPathsBuilder pathBuilder(subtreeRef);
   std::vector<CGEvaluationPath> evaluationPaths = pathBuilder.run();
 
-  const std::vector<CGNodeInfo> continuationNodes = emitSwitchTargets(
-      subtreeRef, evaluationPaths, subtreeRoot.OwnerFunction, returnBB);
+  std::vector<CGNodeInfo> continuationNodes = emitSwitchTargets(
+      evaluationPaths, subtreeRoot.OwnerFunction, returnBB);
+
+  assert(continuationNodes.size() == evaluationPaths.size());
 
   uint32_t emittedCaseLabels = 0;
   CGConditionVectorVariationsBuilder variantsBuilder(subtreeRef);
@@ -66,11 +68,11 @@ L3SubtreeSwitchAVX::emitSubtreeEvaluation(const CompilerSession &session,
 }
 
 std::vector<CGNodeInfo> L3SubtreeSwitchAVX::emitSwitchTargets(
-    DecisionSubtreeRef subtreeRef,
     const std::vector<CGEvaluationPath> &evaluationPaths,
     Function *ownerFunction, BasicBlock *returnBB) {
   std::vector<CGNodeInfo> continuationNodes;
 
+  // create a continuation node-info for each path endpoint
   for (const CGEvaluationPath &path : evaluationPaths) {
     uint64_t idx = path.getContinuationNode().NodeIdx;
     std::string label = "n" + std::to_string(idx);
@@ -98,6 +100,6 @@ uint32_t L3SubtreeSwitchAVX::emitSwitchCaseLabels(
 
 BasicBlock *L3SubtreeSwitchAVX::makeSwitchBB(CGNodeInfo subtreeRoot,
                                              std::string suffix) {
-  auto l = "switch" + std::to_string(subtreeRoot.Index) + "_" + suffix;
-  return BasicBlock::Create(Ctx, std::move(l), subtreeRoot.OwnerFunction);
+  auto lbl = "switch" + std::to_string(subtreeRoot.Index) + "_" + suffix;
+  return BasicBlock::Create(Ctx, std::move(lbl), subtreeRoot.OwnerFunction);
 }

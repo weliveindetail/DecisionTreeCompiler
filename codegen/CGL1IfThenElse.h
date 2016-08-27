@@ -9,9 +9,8 @@ public:
   CGL1IfThenElse(llvm::LLVMContext &ctx) : CGBase(ctx) {}
   ~CGL1IfThenElse() override{};
 
-  uint8_t getOptimalJointEvaluationDepth() const override { return 1; };
-
-  CGBase *getFallbackCG() override { return this; };
+  CGBase *getFallbackCG() override { return this; }
+  uint8_t getOptimalJointEvaluationDepth() const override { return 1; }
 
   std::vector<CGNodeInfo>
   emitSubtreeEvaluation(const CompilerSession &session,

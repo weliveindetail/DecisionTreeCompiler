@@ -37,6 +37,7 @@ public:
 
 private:
   constexpr static uint8_t AvxPackSize = 8;
+  constexpr static unsigned AvxAlignment = 32;
 
   DecisionSubtreeRef Subtree;
   std::array<DecisionTreeNode *, AvxPackSize - 1> Nodes;

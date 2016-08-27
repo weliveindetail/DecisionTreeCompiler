@@ -3,12 +3,11 @@
 #include <limits>
 #include <memory>
 #include <system_error>
+#include <unordered_map>
 
-#include <llvm/Support/ErrorOr.h>
+#include "Utils.h"
 
-#include "LegacyDecisionTree.h"
-
-enum class NodeEvaluation_t { ContinueZeroLeft = 0, ContinueOneRight = 1 };
+enum class NodeEvaluation { ContinueZeroLeft = 0, ContinueOneRight = 1 };
 
 class DecisionSubtreeRef;
 
@@ -27,13 +26,13 @@ struct DecisionTreeNode {
   uint64_t TrueChildNodeIdx = NoNodeIdx;
   uint64_t FalseChildNodeIdx = NoNodeIdx;
 
-  bool hasChildForEvaluation(NodeEvaluation_t evaluation) const {
-    return (evaluation == NodeEvaluation_t::ContinueZeroLeft) ? hasLeftChild()
+  bool hasChildForEvaluation(NodeEvaluation evaluation) const {
+    return (evaluation == NodeEvaluation::ContinueZeroLeft) ? hasLeftChild()
                                                               : hasRightChild();
   }
 
-  uint64_t getChildIdx(NodeEvaluation_t evaluation) const {
-    return (evaluation == NodeEvaluation_t::ContinueZeroLeft)
+  uint64_t getChildIdx(NodeEvaluation evaluation) const {
+    return (evaluation == NodeEvaluation::ContinueZeroLeft)
                ? FalseChildNodeIdx
                : TrueChildNodeIdx;
   }
@@ -110,12 +109,10 @@ private:
 class DecisionTreeFactory {
 public:
   DecisionTreeFactory(std::string cacheDirName = std::string{});
-
   DecisionTree makeRandomRegular(uint8_t levels, uint32_t dataSetFeatures);
 
 private:
   std::string CacheDir;
-
   std::string initCacheDir(std::string cacheDirName);
 };
 
@@ -134,7 +131,6 @@ struct DecisionSubtreeRef {
   }
 
   uint8_t getNodeCount() const { return (uint8_t)(PowerOf2(Levels) - 1); }
-
   uint8_t getContinuationNodeCount() const { return PowerOf2<uint8_t>(Levels); }
 
   std::vector<uint64_t> collectNodeIndices() const;

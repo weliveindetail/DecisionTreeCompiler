@@ -8,12 +8,10 @@ class CompilerSession;
 class LXSubtreeSwitch : public CGBase {
 public:
   LXSubtreeSwitch(llvm::LLVMContext &ctx) : CGBase(ctx) {}
-
-  ~LXSubtreeSwitch() override{};
-
-  uint8_t getOptimalJointEvaluationDepth() const override { return 2; };
+  ~LXSubtreeSwitch() override{}
 
   CGBase *getFallbackCG() override;
+  uint8_t getOptimalJointEvaluationDepth() const override { return 2; }
 
   std::vector<CGNodeInfo>
   emitSubtreeEvaluation(const CompilerSession &session,
@@ -30,4 +28,4 @@ inline CGBase *LXSubtreeSwitch::getFallbackCG() {
     FallbackCGL1 = std::make_unique<CGL1IfThenElse>(Ctx);
 
   return FallbackCGL1.get();
-};
+}

@@ -33,9 +33,7 @@ Value *CGConditionVectorEmitterAVX::run(CGNodeInfo subtreeRoot) {
   Value *treeNodeValues = emitDefineTreeNodeValues();
 
   Value *avxCmpResults = emitComputeCompareAvx(dataSetValues, treeNodeValues);
-
   Value *avxBitShiftResults = emitComputeBitShiftsAvx(avxCmpResults);
-
   Value *conditionVectorVal = emitComputeHorizontalOrAvx(avxBitShiftResults);
 
   unsigned significantBits = Subtree.getNodeCount() + 1; // +1 = sign bit
@@ -45,7 +43,7 @@ Value *CGConditionVectorEmitterAVX::run(CGNodeInfo subtreeRoot) {
 
 Value *CGConditionVectorEmitterAVX::emitCollectDataSetValues() {
   Value *featureValues = Builder.Insert(
-      new AllocaInst(FloatTy, AvxPackSizeVal, 32), "featureValues");
+      new AllocaInst(FloatTy, AvxPackSizeVal, AvxAlignment), "featureValues");
 
   uint8_t bitOffset = 0;
   for (DecisionTreeNode *node : Nodes) {
@@ -66,7 +64,7 @@ CGConditionVectorEmitterAVX::emitLoadFeatureValue(DecisionTreeNode *node) {
 
 Value *CGConditionVectorEmitterAVX::emitDefineTreeNodeValues() {
   Value *compareValues = Builder.Insert(
-      new AllocaInst(FloatTy, AvxPackSizeVal, 32), "compareValues");
+      new AllocaInst(FloatTy, AvxPackSizeVal, AvxAlignment), "compareValues");
 
   uint8_t bitOffset = 0;
   for (DecisionTreeNode *node : Nodes) {
@@ -79,7 +77,7 @@ Value *CGConditionVectorEmitterAVX::emitDefineTreeNodeValues() {
 
 Value *CGConditionVectorEmitterAVX::emitDefineBitShiftMaskValues() {
   Value *bitShiftValues = Builder.Insert(
-      new AllocaInst(Int32Ty, AvxPackSizeVal, 32), "bitShiftValues");
+      new AllocaInst(Int32Ty, AvxPackSizeVal, AvxAlignment), "bitShiftValues");
 
   uint8_t numNodes = AvxPackSize - 1;
   for (uint8_t i = 0; i < numNodes; i++) {
@@ -107,8 +105,8 @@ Value *CGConditionVectorEmitterAVX::emitComputeCompareAvx(Value *lhs,
                                                  Intrinsic::x86_avx_cmp_ps_256);
 
   ArrayRef<Value *> avxCmpArgs{
-      Builder.CreateAlignedLoad(lhsAvxPtr, 32),
-      Builder.CreateAlignedLoad(rhsAvxPtr, 32),
+      Builder.CreateAlignedLoad(lhsAvxPtr, AvxAlignment),
+      Builder.CreateAlignedLoad(rhsAvxPtr, AvxAlignment),
       ConstantInt::get(avxCmpOpTy, 14) // _CMP_GT_OS
   };
 
@@ -123,10 +121,10 @@ Value *CGConditionVectorEmitterAVX::emitComputeBitShiftsAvx(
   Value *avxBitShiftIntsPtr =
       Builder.CreateBitCast(bitShiftValues, avx8IntsTy->getPointerTo());
 
-  Value *avxBitShiftInts = Builder.CreateAlignedLoad(avxBitShiftIntsPtr, 32);
+  Value *avxBitShiftInts =
+      Builder.CreateAlignedLoad(avxBitShiftIntsPtr, AvxAlignment);
 
   Value *avxCmpResInts = Builder.CreateBitCast(avxPackedCmpResults, avx8IntsTy);
-
   return Builder.CreateAnd(avxCmpResInts, avxBitShiftInts);
 }
 

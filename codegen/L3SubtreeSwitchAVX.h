@@ -13,12 +13,10 @@ class L3SubtreeSwitchAVX : public CGBase {
 
 public:
   L3SubtreeSwitchAVX(llvm::LLVMContext &ctx) : CGBase(ctx) {}
-
   ~L3SubtreeSwitchAVX() override{};
 
-  uint8_t getOptimalJointEvaluationDepth() const override { return Levels; };
-
   CGBase *getFallbackCG() override;
+  uint8_t getOptimalJointEvaluationDepth() const override { return Levels; };
 
   std::vector<CGNodeInfo>
   emitSubtreeEvaluation(const CompilerSession &session,
@@ -28,8 +26,7 @@ private:
   std::unique_ptr<LXSubtreeSwitch> FallbackCGL2 = nullptr;
 
   std::vector<CGNodeInfo>
-  emitSwitchTargets(DecisionSubtreeRef subtreeRef,
-                    const std::vector<CGEvaluationPath> &evaluationPaths,
+  emitSwitchTargets(const std::vector<CGEvaluationPath> &evaluationPaths,
                     llvm::Function *ownerFunction, llvm::BasicBlock *returnBB);
 
   uint32_t emitSwitchCaseLabels(llvm::SwitchInst *switchInst,

@@ -1,8 +1,10 @@
 #pragma once
 
+#include <list>
 #include <random>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include <unistd.h>
 
@@ -49,6 +51,43 @@ constexpr uint8_t Log2 (uint64_t value)
   return tab64[x >> 58];
 }
 
+static float makeRandomFloat() {
+  static std::random_device rd;
+  static std::default_random_engine engine(rd());
+  static std::uniform_real_distribution<float> dist(0, 1);
+  return dist(engine);
+}
+
+template<typename T>
+static T makeRandomInt(T min, T max) {
+  static std::random_device rd;
+  static std::default_random_engine engine(rd());
+  std::uniform_int_distribution<T> dist(min, max);
+  return dist(engine);
+}
+
+template <class T> static std::vector<T> copyListToVector(std::list<T> l) {
+  std::vector<T> v;
+  v.reserve(l.size());
+  std::copy(std::begin(l), std::end(l), std::back_inserter(v));
+  return v;
+}
+
+template <class T> static std::vector<T> moveListToVector(std::list<T> l) {
+  std::vector<T> v;
+  v.reserve(l.size());
+  std::move(std::begin(l), std::end(l), std::back_inserter(v));
+  return v;
+}
+
+template <class T>
+static std::list<T> concatLists(std::list<T> l1, std::list<T> l2) {
+  std::list<uint32_t> concatenation;
+  concatenation.splice(concatenation.end(), std::move(l1));
+  concatenation.splice(concatenation.end(), std::move(l2));
+  return concatenation;
+}
+
 static bool isFileInCache(std::string fileName) {
   int FD;
   std::error_code EC = llvm::sys::fs::openFileForRead(fileName, FD);
@@ -83,19 +122,4 @@ static std::string makeObjFileName(int treeDepth, int dataSetFeatures,
   osstr << ".o";
 
   return osstr.str();
-}
-
-static float makeRandomFloat() {
-  static std::random_device rd;
-  static std::default_random_engine engine(rd());
-  static std::uniform_real_distribution<float> dist(0, 1);
-  return dist(engine);
-}
-
-template<typename T>
-static T makeRandomInt(T min, T max) {
-  static std::random_device rd;
-  static std::default_random_engine engine(rd());
-  std::uniform_int_distribution<T> dist(min, max);
-  return dist(engine);
 }

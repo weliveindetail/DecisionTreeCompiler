@@ -56,11 +56,9 @@ public:
     writeModuleToFile(FD, result.Module.get());
   }
 
-  bool isConfigurationComplete() const { return !InputFileName.empty(); }
-
   void enableDebug() { Debug = true; }
-
   void setOutputFormatText() { WriteAsBitcode = false; }
+  bool isConfigurationComplete() const { return !InputFileName.empty(); }
 
   void setOutputFileName(std::string fileName) {
     OutputFileName = std::move(fileName);

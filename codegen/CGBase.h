@@ -11,13 +11,17 @@ class CompilerSession;
 
 class CGBase {
 public:
-  CGBase(llvm::LLVMContext &ctx) : Ctx(ctx) {}
+  CGBase() = delete;
+  CGBase(CGBase &&) = delete;
+  CGBase(const CGBase &) = delete;
+  CGBase &operator=(CGBase &&) = delete;
+  CGBase &operator=(const CGBase &) = delete;
 
+  CGBase(llvm::LLVMContext &ctx) : Ctx(ctx) {}
   virtual ~CGBase() {}
 
-  virtual uint8_t getOptimalJointEvaluationDepth() const = 0;
-
   virtual CGBase *getFallbackCG() = 0;
+  virtual uint8_t getOptimalJointEvaluationDepth() const = 0;
 
   virtual std::vector<CGNodeInfo>
   emitSubtreeEvaluation(const CompilerSession &session,

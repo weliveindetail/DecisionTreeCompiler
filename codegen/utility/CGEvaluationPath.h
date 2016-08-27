@@ -17,7 +17,7 @@ struct CGEvaluationPathNode {
 
   CGEvaluationPathNode(const DecisionTreeNode &currentNode,
                        const DecisionTreeNode &nextNode,
-                       NodeEvaluation_t evaluation)
+                       NodeEvaluation evaluation)
       : Node(&currentNode), ChildNode(&nextNode), Evaluation(evaluation) {}
 
   uint8_t getEvaluationValue() const { return (uint8_t)Evaluation; }
@@ -29,7 +29,7 @@ struct CGEvaluationPathNode {
 private:
   const DecisionTreeNode *Node;
   const DecisionTreeNode *ChildNode;
-  NodeEvaluation_t Evaluation;
+  NodeEvaluation Evaluation;
 };
 
 struct CGEvaluationPath {
@@ -46,7 +46,7 @@ struct CGEvaluationPath {
       : Nodes(subtree.Levels), ContinuationNode(&continuationNode),
         InsertIdx(Nodes.size()) {}
 
-  void addParent(const DecisionTreeNode &node, NodeEvaluation_t evaluation) {
+  void addParent(const DecisionTreeNode &node, NodeEvaluation evaluation) {
     const DecisionTreeNode &child = (InsertIdx == Nodes.size())
                                         ? getContinuationNode()
                                         : Nodes[InsertIdx].getNodeData();

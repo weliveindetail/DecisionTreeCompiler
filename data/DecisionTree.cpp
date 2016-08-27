@@ -1,10 +1,11 @@
 #include "DecisionTree.h"
 
-#include <llvm/Support/ErrorOr.h>
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
 
 #include "Utils.h"
+
+// -----------------------------------------------------------------------------
 
 DecisionSubtreeRef::DecisionSubtreeRef(const DecisionTree *tree,
                                        uint64_t rootIndex, uint8_t levels)
@@ -59,6 +60,8 @@ DecisionSubtreeRef DecisionTree::getSubtreeRef(uint64_t rootIndex,
   return DecisionSubtreeRef(this, rootIndex, levels);
 }
 
+// -----------------------------------------------------------------------------
+
 void DecisionTree::finalize() {
   assert(Nodes.size() == TreeNodes(Levels));
   assert(!Finalized);
@@ -85,6 +88,8 @@ void DecisionTree::finalize() {
 
   Finalized = true;
 }
+
+// -----------------------------------------------------------------------------
 
 DecisionTreeFactory::DecisionTreeFactory(std::string cacheDirName)
     : CacheDir(initCacheDir(std::move(cacheDirName))) {}
@@ -120,7 +125,7 @@ DecisionTree DecisionTreeFactory::makeRandomRegular(uint8_t levels,
     uint64_t firstChildIdx = DecisionTree::getFirstNodeIdxOnLevel(level + 1);
 
     for (uint64_t i = 0; i < PowerOf2(level); i++) {
-      float bias = makeBalancedBias(OperationType::Bypass);
+      float bias = 0.4f + makeRandomFloat() / 5.0f; // 0.5 +/- 0.1
       auto featureIdx = makeRandomInt<uint32_t>(0, dataSetFeatures);
 
       DecisionTreeNode node(firstIdx + i, bias, featureIdx,

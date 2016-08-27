@@ -1,11 +1,12 @@
-#include "CGEvaluationPathsBuilder.h"
+#include "codegen/utility/CGEvaluationPathsBuilder.h"
+#include "Utils.h"
 
 std::vector<CGEvaluationPath> CGEvaluationPathsBuilder::run() {
   std::list<CGEvaluationPath> paths =
       buildPathsRecursively(Subtree.RootIndex, Subtree.Levels);
 
   assert(paths.size() == Subtree.getContinuationNodeCount());
-  return copyListToVector(std::move(paths));
+  return moveListToVector(std::move(paths));
 }
 
 std::list<CGEvaluationPath>
@@ -21,18 +22,18 @@ CGEvaluationPathsBuilder::buildPathsRecursively(uint64_t nodeIdx,
   std::list<CGEvaluationPath> paths;
 
   paths.splice(paths.end(),
-               recurseToChildNode(NodeEvaluation_t::ContinueZeroLeft, node,
+               recurseToChildNode(NodeEvaluation::ContinueZeroLeft, node,
                                   remainingLevels));
 
   paths.splice(paths.end(),
-               recurseToChildNode(NodeEvaluation_t::ContinueOneRight, node,
+               recurseToChildNode(NodeEvaluation::ContinueOneRight, node,
                                   remainingLevels));
 
   return paths;
 }
 
 std::list<CGEvaluationPath>
-CGEvaluationPathsBuilder::recurseToChildNode(NodeEvaluation_t eval,
+CGEvaluationPathsBuilder::recurseToChildNode(NodeEvaluation eval,
                                              const DecisionTreeNode &node,
                                              uint8_t remainingLevels) {
   if (!node.hasChildForEvaluation(eval))

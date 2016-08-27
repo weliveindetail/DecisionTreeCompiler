@@ -19,19 +19,11 @@ private:
   const DecisionSubtreeRef Subtree;
   const std::vector<uint64_t> NodeIdxs;
 
-  uint32_t buildFixedBitsTemplate(CGEvaluationPath path);
-
-  std::vector<uint8_t> collectVariableBitOffsets(CGEvaluationPath path);
+  uint32_t buildFixedBitsTemplate(CGEvaluationPath path) const;
+  std::vector<uint8_t> collectVariableBitOffsets(CGEvaluationPath path) const;
 
   std::list<uint32_t>
   buildVariantsRecursively(uint32_t conditionVector,
                            const std::vector<uint8_t> &variableBitOffsets,
                            uint8_t bitToVaryIdx);
-
-  template <class T> static std::vector<T> copyListToVector(std::list<T> l) {
-    std::vector<T> v;
-    v.reserve(l.size());
-    std::copy(std::begin(l), std::end(l), std::back_inserter(v));
-    return v;
-  }
 };
