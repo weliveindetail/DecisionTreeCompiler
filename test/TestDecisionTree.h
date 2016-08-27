@@ -27,19 +27,18 @@ TEST(DecisionTreeFactory, getFirstNodeIdxOnLevel) {
 
 TEST(DecisionTreeFactory, makeRandomRegular) {
   DecisionTreeFactory treeFactory;
-  uint32_t dsf = 100;
 
   {
-    std::unique_ptr<DecisionTree> tree = treeFactory.makeRandomRegular(1, dsf);
-    DecisionSubtreeRef rootNodeRef = tree->getSubtreeRef(0, 1);
+    DecisionTree tree = treeFactory.makeRandomRegular(1, 100);
+    DecisionSubtreeRef rootNodeRef = tree.getSubtreeRef(0, 1);
 
     std::vector<uint64_t> idxs = rootNodeRef.collectNodeIndices();
     ASSERT_EQ(1, idxs.size());
     EXPECT_EQ(0, idxs[0]);
   }
   {
-    std::unique_ptr<DecisionTree> tree = treeFactory.makeRandomRegular(3, dsf);
-    DecisionSubtreeRef subtreeRef = tree->getSubtreeRef(1, 2);
+    DecisionTree tree = treeFactory.makeRandomRegular(3, 100);
+    DecisionSubtreeRef subtreeRef = tree.getSubtreeRef(1, 2);
 
     std::vector<uint64_t> idxs = subtreeRef.collectNodeIndices();
     ASSERT_EQ(3, idxs.size());
@@ -56,9 +55,8 @@ TEST(DecisionTreeNode, isImplicit) {
   //    3     4     5     6
   //  7 8    9 10 11 12  13 14   (implicit result nodes)
 
-  DecisionTreeFactory treeFactory;
-  auto tree = treeFactory.makeRandomRegular(3, 100);
-  auto s = tree->getSubtreeRef(0, 3);
+  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
+  DecisionSubtreeRef s = tree.getSubtreeRef(0, 3);
 
   for (int i = 0; i < 7; i++)
     EXPECT_FALSE(s.getNode(i).isImplicit());
@@ -74,9 +72,8 @@ TEST(DecisionTreeNode, isLeaf) {
   //    3     4     5     6
   //  7 8    9 10 11 12  13 14   (implicit result nodes)
 
-  DecisionTreeFactory treeFactory;
-  auto tree = treeFactory.makeRandomRegular(3, 100);
-  auto s = tree->getSubtreeRef(0, 3);
+  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
+  DecisionSubtreeRef s = tree.getSubtreeRef(0, 3);
 
   for (int i = 0; i < 7; i++)
     EXPECT_FALSE(s.getNode(i).isLeaf());

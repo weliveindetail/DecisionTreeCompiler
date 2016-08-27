@@ -9,15 +9,17 @@
 std::pair<uint64_t, size_t> bubbleDown(DecisionSubtreeRef tree,
                                        CGEvaluationPath path);
 
+// ----------------------------------------------------------------------------
+
 TEST(CGEvaluationPathsBuilder, RegularTree1) {
   // create tree:
   //             0
   //        1         2   (implicit result nodes)
 
-  auto treeData = (DecisionTreeFactory()).makeRandomRegular(1, 100);
-  auto tree = treeData->getSubtreeRef(/*root*/ 0, /*levels*/ 1);
+  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(1, 100);
+  DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 1);
 
-  CGEvaluationPathsBuilder builder(tree);
+  CGEvaluationPathsBuilder builder(subtree);
   std::vector<CGEvaluationPath> paths = builder.run();
 
   size_t expectedPaths = 2;
@@ -28,11 +30,11 @@ TEST(CGEvaluationPathsBuilder, RegularTree1) {
   ASSERT_EQ(expectedNodesPerPath,
             paths[1].Nodes.size() + 1); // +1 for continuation node
 
-  EXPECT_EQ(&tree.getNode(0), &paths[0].Nodes[0].getNodeData());
-  EXPECT_EQ(&tree.getNode(1), &paths[0].Nodes[0].getChildNodeData());
+  EXPECT_EQ(&subtree.getNode(0), &paths[0].Nodes[0].getNodeData());
+  EXPECT_EQ(&subtree.getNode(1), &paths[0].Nodes[0].getChildNodeData());
 
-  EXPECT_EQ(&tree.getNode(0), &paths[1].Nodes[0].getNodeData());
-  EXPECT_EQ(&tree.getNode(2), &paths[1].Nodes[0].getChildNodeData());
+  EXPECT_EQ(&subtree.getNode(0), &paths[1].Nodes[0].getNodeData());
+  EXPECT_EQ(&subtree.getNode(2), &paths[1].Nodes[0].getChildNodeData());
 }
 
 TEST(CGEvaluationPathsBuilder, RegularTree2) {
@@ -44,10 +46,10 @@ TEST(CGEvaluationPathsBuilder, RegularTree2) {
   //                 ^^^^^^^^^^^^
   //           looking at this subtree
 
-  auto treeData = (DecisionTreeFactory()).makeRandomRegular(3, 100);
-  auto tree = treeData->getSubtreeRef(/*root*/ 2, /*levels*/ 2);
+  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
+  DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 2, /*levels*/ 2);
 
-  CGEvaluationPathsBuilder builder(tree);
+  CGEvaluationPathsBuilder builder(subtree);
   std::vector<CGEvaluationPath> paths = builder.run();
 
   size_t expectedPaths = 4;
@@ -59,7 +61,7 @@ TEST(CGEvaluationPathsBuilder, RegularTree2) {
   for (auto path : paths) {
     uint64_t nodeIdx;
     size_t nodeCount;
-    std::tie(nodeIdx, nodeCount) = bubbleDown(tree, std::move(path));
+    std::tie(nodeIdx, nodeCount) = bubbleDown(subtree, std::move(path));
 
     EXPECT_EQ(expectedNodesPerPath, nodeCount);
     sumResultNodeIdxs += nodeIdx;
@@ -76,10 +78,10 @@ TEST(CGEvaluationPathsBuilder, RegularTree4) {
   //   7     8     9     10   11    12    13    14
   // 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30  (implicit result nodes)
 
-  auto treeData = (DecisionTreeFactory()).makeRandomRegular(4, 100);
-  auto tree = treeData->getSubtreeRef(/*root*/ 0, /*levels*/ 4);
+  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(4, 100);
+  DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 4);
 
-  CGEvaluationPathsBuilder builder(tree);
+  CGEvaluationPathsBuilder builder(subtree);
   std::vector<CGEvaluationPath> paths = builder.run();
 
   size_t expectedPaths = 16;
@@ -91,7 +93,7 @@ TEST(CGEvaluationPathsBuilder, RegularTree4) {
   for (auto path : paths) {
     uint64_t nodeIdx;
     size_t nodeCount;
-    std::tie(nodeIdx, nodeCount) = bubbleDown(tree, std::move(path));
+    std::tie(nodeIdx, nodeCount) = bubbleDown(subtree, std::move(path));
 
     EXPECT_EQ(expectedNodesPerPath, nodeCount);
     sumResultNodeIdxs += nodeIdx;
