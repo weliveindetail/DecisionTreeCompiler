@@ -6,8 +6,8 @@
 #include <llvm/Support/TargetSelect.h>
 
 #include "codegen/CGL1IfThenElse.h"
-#include "codegen/CGL2NestedSwitches.h"
-#include "codegen/CGL3NestedSwitchesAVX.h"
+#include "codegen/LXSubtreeSwitch.h"
+#include "codegen/L3SubtreeSwitchAVX.h"
 
 #include "resolver/CompilerSession.h"
 
@@ -47,10 +47,10 @@ std::unique_ptr<CGBase> DecisionTreeCompiler::makeCodeGenerator(
       return std::make_unique<CGL1IfThenElse>(Ctx);
 
     case CodeGeneratorType::LXSubtreeSwitch:
-      return std::make_unique<CGL2NestedSwitches>(Ctx);
+      return std::make_unique<LXSubtreeSwitch>(Ctx);
 
     case CodeGeneratorType::L3SubtreeSwitchAVX:
-      return std::make_unique<CGL3NestedSwitchesAVX>(Ctx);
+      return std::make_unique<L3SubtreeSwitchAVX>(Ctx);
   }
 }
 

@@ -33,9 +33,9 @@ set(SOURCE_FILES
         Utils.h
         codegen/CGBase.h
         codegen/CGL1IfThenElse.h
-        codegen/CGL2NestedSwitches.h
-        codegen/CGL3NestedSwitchesAVX.h
-        codegen/CGL3NestedSwitchesAVX.cpp
+        codegen/LXSubtreeSwitch.h
+        codegen/L3SubtreeSwitchAVX.h
+        codegen/L3SubtreeSwitchAVX.cpp
         codegen/CGConditionVectorEmitter.h
         codegen/CGConditionVectorEmitter.cpp
         codegen/CGConditionVectorVariationsBuilder.h

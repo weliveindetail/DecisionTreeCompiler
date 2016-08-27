@@ -1,21 +1,21 @@
-#include "codegen/CGL3NestedSwitchesAVX.h"
+#include "codegen/L3SubtreeSwitchAVX.h"
 
 #include "codegen/CGConditionVectorEmitter.h"
 #include "codegen/CGConditionVectorVariationsBuilder.h"
 #include "codegen/CGEvaluationPathsBuilder.h"
-#include "codegen/CGL2NestedSwitches.h"
+#include "codegen/LXSubtreeSwitch.h"
 #include "resolver/CompilerSession.h"
 
 using namespace llvm;
 
-CGBase *CGL3NestedSwitchesAVX::getFallbackCG() {
+CGBase *L3SubtreeSwitchAVX::getFallbackCG() {
   if (!FallbackCGL2)
-    FallbackCGL2 = std::make_unique<CGL2NestedSwitches>(Ctx);
+    FallbackCGL2 = std::make_unique<LXSubtreeSwitch>(Ctx);
 
   return FallbackCGL2.get();
 }
 
-std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
+std::vector<CGNodeInfo> L3SubtreeSwitchAVX::emitSubtreeEvaluation(
     const CompilerSession &session, CGNodeInfo subtreeRoot) {
   DecisionSubtreeRef subtreeRef =
       session.Tree.getSubtreeRef(subtreeRoot.Index, Levels);
@@ -65,7 +65,7 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSubtreeEvaluation(
   return continuationNodes;
 }
 
-std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSwitchTargets(
+std::vector<CGNodeInfo> L3SubtreeSwitchAVX::emitSwitchTargets(
     DecisionSubtreeRef subtreeRef,
     const std::vector<CGEvaluationPath> &evaluationPaths,
     Function *ownerFunction, BasicBlock *returnBB) {
@@ -82,7 +82,7 @@ std::vector<CGNodeInfo> CGL3NestedSwitchesAVX::emitSwitchTargets(
   return continuationNodes;
 }
 
-uint32_t CGL3NestedSwitchesAVX::emitSwitchCaseLabels(
+uint32_t L3SubtreeSwitchAVX::emitSwitchCaseLabels(
     SwitchInst *switchInst, Type *switchCondTy,
     CGNodeInfo targetNodeInfo, std::vector<uint32_t> pathCaseValues) {
   IntegerType *switchCondIntTy =
@@ -96,7 +96,7 @@ uint32_t CGL3NestedSwitchesAVX::emitSwitchCaseLabels(
   return pathCaseValues.size();
 }
 
-BasicBlock *CGL3NestedSwitchesAVX::makeSwitchBB(
+BasicBlock *L3SubtreeSwitchAVX::makeSwitchBB(
     CGNodeInfo subtreeRoot, std::string suffix) {
   auto l = "switch" + std::to_string(subtreeRoot.Index) + "_" + suffix;
   return BasicBlock::Create(Ctx, std::move(l), subtreeRoot.OwnerFunction);

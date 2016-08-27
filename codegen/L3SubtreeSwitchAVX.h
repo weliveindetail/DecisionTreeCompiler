@@ -6,15 +6,15 @@
 #include "codegen/CGEvaluationPath.h"
 
 class CompilerSession;
-class CGL2NestedSwitches;
+class LXSubtreeSwitch;
 
-class CGL3NestedSwitchesAVX : public CGBase {
+class L3SubtreeSwitchAVX : public CGBase {
   constexpr static uint8_t Levels = 3;
 
 public:
-  CGL3NestedSwitchesAVX(llvm::LLVMContext &ctx) : CGBase(ctx) {}
+  L3SubtreeSwitchAVX(llvm::LLVMContext &ctx) : CGBase(ctx) {}
 
-  ~CGL3NestedSwitchesAVX() override {};
+  ~L3SubtreeSwitchAVX() override {};
 
   uint8_t getOptimalJointEvaluationDepth() const override { return Levels; };
 
@@ -24,7 +24,7 @@ public:
       const CompilerSession &session, CGNodeInfo subtreeRoot) override;
 
 private:
-  std::unique_ptr<CGL2NestedSwitches> FallbackCGL2 = nullptr;
+  std::unique_ptr<LXSubtreeSwitch> FallbackCGL2 = nullptr;
 
   std::vector<CGNodeInfo> emitSwitchTargets(
       DecisionSubtreeRef subtreeRef,

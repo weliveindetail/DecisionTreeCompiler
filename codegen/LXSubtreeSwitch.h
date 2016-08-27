@@ -5,11 +5,11 @@
 
 class CompilerSession;
 
-class CGL2NestedSwitches : public CGBase {
+class LXSubtreeSwitch : public CGBase {
 public:
-  CGL2NestedSwitches(llvm::LLVMContext &ctx) : CGBase(ctx) {}
+  LXSubtreeSwitch(llvm::LLVMContext &ctx) : CGBase(ctx) {}
 
-  ~CGL2NestedSwitches() override {};
+  ~LXSubtreeSwitch() override {};
 
   uint8_t getOptimalJointEvaluationDepth() const override { return 2; };
 
@@ -23,7 +23,7 @@ private:
 
 };
 
-inline CGBase *CGL2NestedSwitches::getFallbackCG() {
+inline CGBase *LXSubtreeSwitch::getFallbackCG() {
   if (!FallbackCGL1)
     FallbackCGL1 = std::make_unique<CGL1IfThenElse>(Ctx);
 
