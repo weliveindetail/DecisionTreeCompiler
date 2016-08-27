@@ -131,7 +131,7 @@ DecisionTree DecisionTreeFactory::makeRandomRegular(uint8_t levels,
       DecisionTreeNode node(firstIdx + i, bias, featureIdx,
                             firstChildIdx + 2 * i, firstChildIdx + 2 * i + 1);
 
-      tree.Nodes.emplace(firstIdx + i, std::move(node));
+      tree.addNode(firstIdx + i, std::move(node));
     }
   }
 

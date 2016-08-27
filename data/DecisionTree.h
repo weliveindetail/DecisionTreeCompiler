@@ -18,13 +18,24 @@ struct DecisionTreeNode {
   DecisionTreeNode &operator=(DecisionTreeNode &&) = default;
   DecisionTreeNode &operator=(const DecisionTreeNode &) = default;
 
-  uint64_t NodeIdx = NoNodeIdx; // same as index as long as tree is regular
+  DecisionTreeNode(uint64_t nodeIdx, float bias, uint32_t dataSetFeatureIdx,
+                   uint64_t zeroFalseChildIdx, uint64_t oneTrueChildIdx)
+      : NodeIdx(nodeIdx), DataSetFeatureIdx(dataSetFeatureIdx), Bias(bias),
+        FalseChildNodeIdx(zeroFalseChildIdx),
+        TrueChildNodeIdx(oneTrueChildIdx) {}
 
-  uint32_t DataSetFeatureIdx = NoFeatureIdx;
-  float Bias = NoBias;
+  friend bool operator==(const DecisionTreeNode &lhs,
+                         const DecisionTreeNode &rhs) {
+    if (lhs.NodeIdx == rhs.NodeIdx) {
+      assert(lhs.Bias == rhs.Bias);
+      assert(lhs.DataSetFeatureIdx == rhs.DataSetFeatureIdx);
+      assert(lhs.TrueChildNodeIdx == rhs.TrueChildNodeIdx);
+      assert(lhs.FalseChildNodeIdx == rhs.FalseChildNodeIdx);
+      return true;
+    }
 
-  uint64_t TrueChildNodeIdx = NoNodeIdx;
-  uint64_t FalseChildNodeIdx = NoNodeIdx;
+    return false;
+  }
 
   bool hasChildForEvaluation(NodeEvaluation evaluation) const {
     return (evaluation == NodeEvaluation::ContinueZeroLeft) ? hasLeftChild()
@@ -50,13 +61,15 @@ struct DecisionTreeNode {
   bool hasLeftChild() const { return FalseChildNodeIdx != NoNodeIdx; }
   bool hasRightChild() const { return TrueChildNodeIdx != NoNodeIdx; }
 
-private:
-  DecisionTreeNode(uint64_t nodeIdx, float bias, uint32_t dataSetFeatureIdx,
-                   uint64_t zeroFalseChildIdx, uint64_t oneTrueChildIdx)
-      : NodeIdx(nodeIdx), DataSetFeatureIdx(dataSetFeatureIdx), Bias(bias),
-        FalseChildNodeIdx(zeroFalseChildIdx),
-        TrueChildNodeIdx(oneTrueChildIdx) {}
+  const uint64_t NodeIdx = NoNodeIdx;
+  const uint64_t TrueChildNodeIdx = NoNodeIdx;
+  const uint64_t FalseChildNodeIdx = NoNodeIdx;
 
+  const uint32_t DataSetFeatureIdx = NoFeatureIdx;
+  const float Bias = NoBias;
+
+private:
+  // special-purpose ctor used during DecisionTree finalization
   DecisionTreeNode(uint64_t nodeIdx) : NodeIdx(nodeIdx) {}
 
   static constexpr uint32_t NoFeatureIdx = 0xFFFFFFFF;
@@ -64,7 +77,6 @@ private:
   static constexpr float NoBias = std::numeric_limits<float>::quiet_NaN();
 
   friend class DecisionTree;
-  friend class DecisionTreeFactory;
 };
 
 class DecisionTree {
@@ -79,6 +91,12 @@ public:
   uint8_t getNumLevels() const { return Levels; }
   uint64_t getRootNodeIdx() const { return 0; }
   DecisionSubtreeRef getSubtreeRef(uint64_t rootIndex, uint8_t levels) const;
+
+  void addNode(uint64_t idx, DecisionTreeNode node) {
+    assert(!Finalized);
+    assert(Nodes.find(idx) == Nodes.end());
+    Nodes.emplace(idx, std::move(node));
+  }
 
   static uint8_t getLevelForNodeIdx(uint64_t nodeIdx) {
     return Log2(nodeIdx + 1);
