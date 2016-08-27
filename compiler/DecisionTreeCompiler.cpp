@@ -6,17 +6,18 @@
 #include <llvm/Support/TargetSelect.h>
 
 #include "codegen/CGL1IfThenElse.h"
-#include "codegen/LXSubtreeSwitch.h"
 #include "codegen/L3SubtreeSwitchAVX.h"
+#include "codegen/LXSubtreeSwitch.h"
 
 #include "CompilerSession.h"
 
 using namespace llvm;
 
-CompileResult DecisionTreeCompiler::compile(
-    CodeGeneratorType codegenType, DecisionTree tree) {
+CompileResult DecisionTreeCompiler::compile(CodeGeneratorType codegenType,
+                                            DecisionTree tree) {
   std::unique_ptr<CGBase> codegen = makeCodeGenerator(codegenType);
-  CompilerSession session(this, std::move(tree), std::move(codegen), "sessionName");
+  CompilerSession session(this, std::move(tree), std::move(codegen),
+                          "sessionName");
 
   CGNodeInfo root = makeEvalRoot(session, "EvaluatorFunction");
 
@@ -40,21 +41,21 @@ CompileResult DecisionTreeCompiler::compile(
   return result;
 }
 
-std::unique_ptr<CGBase> DecisionTreeCompiler::makeCodeGenerator(
-    CodeGeneratorType type) {
+std::unique_ptr<CGBase>
+DecisionTreeCompiler::makeCodeGenerator(CodeGeneratorType type) {
   switch (type) {
-    case CodeGeneratorType::L1IfThenElse:
-      return std::make_unique<CGL1IfThenElse>(Ctx);
+  case CodeGeneratorType::L1IfThenElse:
+    return std::make_unique<CGL1IfThenElse>(Ctx);
 
-    case CodeGeneratorType::LXSubtreeSwitch:
-      return std::make_unique<LXSubtreeSwitch>(Ctx);
+  case CodeGeneratorType::LXSubtreeSwitch:
+    return std::make_unique<LXSubtreeSwitch>(Ctx);
 
-    case CodeGeneratorType::L3SubtreeSwitchAVX:
-      return std::make_unique<L3SubtreeSwitchAVX>(Ctx);
+  case CodeGeneratorType::L3SubtreeSwitchAVX:
+    return std::make_unique<L3SubtreeSwitchAVX>(Ctx);
   }
 }
 
-CGNodeInfo DecisionTreeCompiler::makeEvalRoot(CompilerSession& session,
+CGNodeInfo DecisionTreeCompiler::makeEvalRoot(CompilerSession &session,
                                               std::string functionName) {
   CGNodeInfo root;
   root.Index = session.Tree.getRootNodeIdx();
@@ -70,17 +71,18 @@ CGNodeInfo DecisionTreeCompiler::makeEvalRoot(CompilerSession& session,
   return root;
 }
 
-FunctionType *DecisionTreeCompiler::getEvalFunctionTy(
-    const CompilerSession &session) {
+FunctionType *
+DecisionTreeCompiler::getEvalFunctionTy(const CompilerSession &session) {
   Type *returnTy = session.NodeIdxTy;
   Type *argTy = session.DataSetFeatureValueTy->getPointerTo();
   return FunctionType::get(returnTy, {argTy}, false);
 }
 
-Function *DecisionTreeCompiler::emitEvalFunctionDecl(
-    std::string name, FunctionType *signature, Module *module) {
-  Function *evalFn = Function::Create(
-      signature, Function::ExternalLinkage, name, module);
+Function *DecisionTreeCompiler::emitEvalFunctionDecl(std::string name,
+                                                     FunctionType *signature,
+                                                     Module *module) {
+  Function *evalFn =
+      Function::Create(signature, Function::ExternalLinkage, name, module);
 
   AttributeSet attributeSet;
   evalFn->setAttributes(attributeSet.addAttribute(
@@ -91,16 +93,17 @@ Function *DecisionTreeCompiler::emitEvalFunctionDecl(
 }
 
 Value *DecisionTreeCompiler::allocOutputVal(const CompilerSession &session) {
-  Value *ptr = session.Builder.CreateAlloca(session.NodeIdxTy,
-                                            nullptr, "result");
+  Value *ptr =
+      session.Builder.CreateAlloca(session.NodeIdxTy, nullptr, "result");
 
   Constant *initVal = ConstantInt::get(session.NodeIdxTy, 0);
   session.Builder.CreateStore(initVal, ptr);
   return ptr;
 }
 
-std::vector<CGNodeInfo> DecisionTreeCompiler::compileSubtrees(
-    CompilerSession &session, CGNodeInfo rootNode) {
+std::vector<CGNodeInfo>
+DecisionTreeCompiler::compileSubtrees(CompilerSession &session,
+                                      CGNodeInfo rootNode) {
   std::vector<CGNodeInfo> nodesNextLevel = {rootNode};
   uint8_t remainingLevels = session.Tree.getNumLevels();
 
@@ -160,4 +163,4 @@ DecisionTreeCompiler::AutoSetUpTearDownLLVM::~AutoSetUpTearDownLLVM() {
 }
 
 // static inti
-std::atomic<int> DecisionTreeCompiler::AutoSetUpTearDownLLVM::instances {0};
+std::atomic<int> DecisionTreeCompiler::AutoSetUpTearDownLLVM::instances{0};

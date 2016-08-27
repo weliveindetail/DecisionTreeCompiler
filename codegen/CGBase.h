@@ -19,10 +19,10 @@ public:
 
   virtual CGBase *getFallbackCG() = 0;
 
-  virtual std::vector<CGNodeInfo> emitSubtreeEvaluation(
-      const CompilerSession &session, CGNodeInfo subtreeRoot) = 0;
+  virtual std::vector<CGNodeInfo>
+  emitSubtreeEvaluation(const CompilerSession &session,
+                        CGNodeInfo subtreeRoot) = 0;
 
 protected:
   llvm::LLVMContext &Ctx;
-
 };

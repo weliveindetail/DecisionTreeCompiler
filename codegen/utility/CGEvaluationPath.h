@@ -20,17 +20,11 @@ struct CGEvaluationPathNode {
                        NodeEvaluation_t evaluation)
       : Node(&currentNode), ChildNode(&nextNode), Evaluation(evaluation) {}
 
-  uint8_t getEvaluationValue() const {
-    return (uint8_t)Evaluation;
-  }
+  uint8_t getEvaluationValue() const { return (uint8_t)Evaluation; }
 
-  const DecisionTreeNode &getNodeData() const {
-    return *Node;
-  }
+  const DecisionTreeNode &getNodeData() const { return *Node; }
 
-  const DecisionTreeNode &getChildNodeData() const {
-    return *ChildNode;
-  }
+  const DecisionTreeNode &getChildNodeData() const { return *ChildNode; }
 
 private:
   const DecisionTreeNode *Node;
@@ -49,28 +43,29 @@ struct CGEvaluationPath {
 
   CGEvaluationPath(DecisionSubtreeRef subtree,
                    const DecisionTreeNode &continuationNode)
-      : Nodes(subtree.Levels)
-      , ContinuationNode(&continuationNode)
-      , InsertIdx(Nodes.size()) {}
+      : Nodes(subtree.Levels), ContinuationNode(&continuationNode),
+        InsertIdx(Nodes.size()) {}
 
   void addParent(const DecisionTreeNode &node, NodeEvaluation_t evaluation) {
-    const DecisionTreeNode &child =
-        (InsertIdx == Nodes.size()) ? getContinuationNode() : Nodes[InsertIdx].getNodeData();
+    const DecisionTreeNode &child = (InsertIdx == Nodes.size())
+                                        ? getContinuationNode()
+                                        : Nodes[InsertIdx].getNodeData();
 
     Nodes[--InsertIdx] = CGEvaluationPathNode(node, child, evaluation);
   }
 
-  bool hasNodeIdx(uint64_t idx) const {
-    return (bool)findNode(idx);
-  }
+  bool hasNodeIdx(uint64_t idx) const { return (bool)findNode(idx); }
 
-  std::experimental::optional<CGEvaluationPathNode> findNode(uint64_t idx) const {
+  std::experimental::optional<CGEvaluationPathNode>
+  findNode(uint64_t idx) const {
     auto findIdx = [=](const CGEvaluationPathNode &node) {
       return node.getNodeData().NodeIdx == idx;
     };
 
     auto it = std::find_if(Nodes.begin(), Nodes.end(), findIdx);
-    return (it == Nodes.end()) ? std::experimental::optional<CGEvaluationPathNode>() : *it;
+    return (it == Nodes.end())
+               ? std::experimental::optional<CGEvaluationPathNode>()
+               : *it;
   }
 
   const DecisionTreeNode &getContinuationNode() const {

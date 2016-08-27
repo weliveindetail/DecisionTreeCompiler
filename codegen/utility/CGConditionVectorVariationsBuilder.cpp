@@ -8,8 +8,8 @@ CGConditionVectorVariationsBuilder::run(CGEvaluationPath path) {
   if (variableBitOffsets.empty())
     return {fixedBitsTemplate};
 
-  std::list<uint32_t> variants = buildVariantsRecursively(
-      fixedBitsTemplate, variableBitOffsets, 0);
+  std::list<uint32_t> variants =
+      buildVariantsRecursively(fixedBitsTemplate, variableBitOffsets, 0);
 
   assert(variants.size() == PowerOf2(variableBitOffsets.size()));
   return copyListToVector(std::move(variants));
@@ -45,7 +45,8 @@ CGConditionVectorVariationsBuilder::collectVariableBitOffsets(
   return variableBitOffsets;
 }
 
-std::list<uint32_t> CGConditionVectorVariationsBuilder::buildVariantsRecursively(
+std::list<uint32_t>
+CGConditionVectorVariationsBuilder::buildVariantsRecursively(
     uint32_t conditionVector, const std::vector<uint8_t> &variableBitOffsets,
     uint8_t bitToVaryIdx) {
   if (bitToVaryIdx == variableBitOffsets.size())
@@ -60,11 +61,14 @@ std::list<uint32_t> CGConditionVectorVariationsBuilder::buildVariantsRecursively
   // false and true variations
   std::list<uint32_t> variations;
 
-  variations.splice(variations.end(), buildVariantsRecursively(
-      conditionVector, variableBitOffsets, bitToVaryIdx + 1));
+  variations.splice(variations.end(),
+                    buildVariantsRecursively(
+                        conditionVector, variableBitOffsets, bitToVaryIdx + 1));
 
-  variations.splice(variations.end(), buildVariantsRecursively(
-      conditionVector | vectorTrueBit, variableBitOffsets, bitToVaryIdx + 1));
+  variations.splice(variations.end(),
+                    buildVariantsRecursively(conditionVector | vectorTrueBit,
+                                             variableBitOffsets,
+                                             bitToVaryIdx + 1));
 
   return variations;
 }

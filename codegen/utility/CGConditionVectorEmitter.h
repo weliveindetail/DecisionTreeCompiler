@@ -5,8 +5,8 @@
 
 #include <llvm/IR/Constant.h>
 #include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/Value.h>
 #include <llvm/IR/Type.h>
+#include <llvm/IR/Value.h>
 
 #include "CGNodeInfo.h"
 #include "data/DecisionTree.h"
@@ -16,7 +16,7 @@ class CompilerSession;
 class CGConditionVectorEmitterBase {
 public:
   CGConditionVectorEmitterBase(const CompilerSession &session);
-  virtual ~CGConditionVectorEmitterBase () {}
+  virtual ~CGConditionVectorEmitterBase() {}
 
   virtual llvm::Value *run(CGNodeInfo subtreeRoot) = 0;
 
@@ -39,7 +39,7 @@ private:
   constexpr static uint8_t AvxPackSize = 8;
 
   DecisionSubtreeRef Subtree;
-  std::array<DecisionTreeNode*, AvxPackSize - 1> Nodes;
+  std::array<DecisionTreeNode *, AvxPackSize - 1> Nodes;
 
   llvm::Type *Int8Ty = llvm::Type::getInt8Ty(Ctx);
   llvm::Type *Int32Ty = llvm::Type::getInt32Ty(Ctx);

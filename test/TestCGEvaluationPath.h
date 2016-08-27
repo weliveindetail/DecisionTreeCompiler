@@ -12,7 +12,7 @@ TEST(CGEvaluationPath, RegularTree1) {
 
   DecisionTreeFactory treeFactory;
   auto tree = treeFactory.makeRandomRegular(1, 100);
-  auto s = tree->getSubtreeRef(/*root*/0, /*levels*/1);
+  auto s = tree->getSubtreeRef(/*root*/ 0, /*levels*/ 1);
 
   // create path 0 -> 2
   {
@@ -34,7 +34,7 @@ TEST(CGEvaluationPath, RegularTree2) {
   //           looking at this subtree
 
   auto tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
-  auto s = tree->getSubtreeRef(/*root*/2, /*levels*/2);
+  auto s = tree->getSubtreeRef(/*root*/ 2, /*levels*/ 2);
 
   // create path 2 -> 5 -> 12
   {
@@ -42,9 +42,9 @@ TEST(CGEvaluationPath, RegularTree2) {
     p.addParent(s.getNode(5), NodeEvaluation_t::ContinueOneRight);
     p.addParent(s.getNode(2), NodeEvaluation_t::ContinueZeroLeft);
 
-    EXPECT_EQ(s.getNode( 2).NodeIdx, p.Nodes[0].getNodeData().NodeIdx);
-    EXPECT_EQ(s.getNode( 5).NodeIdx, p.Nodes[0].getChildNodeData().NodeIdx);
-    EXPECT_EQ(s.getNode( 5).NodeIdx, p.Nodes[1].getNodeData().NodeIdx);
+    EXPECT_EQ(s.getNode(2).NodeIdx, p.Nodes[0].getNodeData().NodeIdx);
+    EXPECT_EQ(s.getNode(5).NodeIdx, p.Nodes[0].getChildNodeData().NodeIdx);
+    EXPECT_EQ(s.getNode(5).NodeIdx, p.Nodes[1].getNodeData().NodeIdx);
     EXPECT_EQ(s.getNode(12).NodeIdx, p.Nodes[1].getChildNodeData().NodeIdx);
   }
 
@@ -54,9 +54,9 @@ TEST(CGEvaluationPath, RegularTree2) {
     p.addParent(s.getNode(6), NodeEvaluation_t::ContinueOneRight);
     p.addParent(s.getNode(2), NodeEvaluation_t::ContinueOneRight);
 
-    EXPECT_EQ(&s.getNode( 2), &p.Nodes[0].getNodeData());
-    EXPECT_EQ(&s.getNode( 6), &p.Nodes[0].getChildNodeData());
-    EXPECT_EQ(&s.getNode( 6), &p.Nodes[1].getNodeData());
+    EXPECT_EQ(&s.getNode(2), &p.Nodes[0].getNodeData());
+    EXPECT_EQ(&s.getNode(6), &p.Nodes[0].getChildNodeData());
+    EXPECT_EQ(&s.getNode(6), &p.Nodes[1].getNodeData());
     EXPECT_EQ(&s.getNode(14), &p.Nodes[1].getChildNodeData());
   }
 }
@@ -70,7 +70,7 @@ TEST(CGEvaluationPath, RegularTree3) {
 
   DecisionTreeFactory treeFactory;
   auto tree = treeFactory.makeRandomRegular(3, 100);
-  auto s = tree->getSubtreeRef(/*root*/0, /*levels*/3);
+  auto s = tree->getSubtreeRef(/*root*/ 0, /*levels*/ 3);
 
   // create path 0 -> 1 -> 3 -> 8
   {
@@ -94,11 +94,11 @@ TEST(CGEvaluationPath, RegularTree3) {
     p.addParent(s.getNode(2), NodeEvaluation_t::ContinueOneRight);
     p.addParent(s.getNode(0), NodeEvaluation_t::ContinueOneRight);
 
-    EXPECT_EQ(&s.getNode( 0), &p.Nodes[0].getNodeData());
-    EXPECT_EQ(&s.getNode( 2), &p.Nodes[0].getChildNodeData());
-    EXPECT_EQ(&s.getNode( 2), &p.Nodes[1].getNodeData());
-    EXPECT_EQ(&s.getNode( 6), &p.Nodes[1].getChildNodeData());
-    EXPECT_EQ(&s.getNode( 6), &p.Nodes[2].getNodeData());
+    EXPECT_EQ(&s.getNode(0), &p.Nodes[0].getNodeData());
+    EXPECT_EQ(&s.getNode(2), &p.Nodes[0].getChildNodeData());
+    EXPECT_EQ(&s.getNode(2), &p.Nodes[1].getNodeData());
+    EXPECT_EQ(&s.getNode(6), &p.Nodes[1].getChildNodeData());
+    EXPECT_EQ(&s.getNode(6), &p.Nodes[2].getNodeData());
     EXPECT_EQ(&s.getNode(14), &p.Nodes[2].getChildNodeData());
   }
 }

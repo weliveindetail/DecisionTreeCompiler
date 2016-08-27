@@ -44,8 +44,7 @@ private:
   void connectSubtreeEndpoints(const CompilerSession &session,
                                std::vector<CGNodeInfo> evaluatorEndPoints);
 
-  CGNodeInfo makeEvalRoot(CompilerSession& session,
-                          std::string functionName);
+  CGNodeInfo makeEvalRoot(CompilerSession &session, std::string functionName);
 
   llvm::FunctionType *getEvalFunctionTy(const CompilerSession &session);
 

@@ -10,8 +10,8 @@
 #include <llvm/Support/Path.h>
 #include <llvm/Support/raw_ostream.h>
 
-#include "data/DecisionTree.h"
 #include "compiler/DecisionTreeCompiler.h"
+#include "data/DecisionTree.h"
 
 class StaticDriver {
 public:
@@ -56,17 +56,11 @@ public:
     writeModuleToFile(FD, result.Module.get());
   }
 
-  bool isConfigurationComplete() const {
-    return !InputFileName.empty();
-  }
+  bool isConfigurationComplete() const { return !InputFileName.empty(); }
 
-  void enableDebug() {
-    Debug = true;
-  }
+  void enableDebug() { Debug = true; }
 
-  void setOutputFormatText() {
-    WriteAsBitcode = false;
-  }
+  void setOutputFormatText() { WriteAsBitcode = false; }
 
   void setOutputFileName(std::string fileName) {
     OutputFileName = std::move(fileName);
@@ -153,8 +147,7 @@ private:
     if (lastDot == std::string::npos) {
       front = fileName + " (";
       back = ")";
-    }
-    else {
+    } else {
       front = fileName.substr(0, lastDot) + " (";
       back = ")" + fileName.substr(lastDot);
     }

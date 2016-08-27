@@ -15,7 +15,7 @@ TEST(CGEvaluationPathsBuilder, RegularTree1) {
   //        1         2   (implicit result nodes)
 
   auto treeData = (DecisionTreeFactory()).makeRandomRegular(1, 100);
-  auto tree = treeData->getSubtreeRef(/*root*/0, /*levels*/1);
+  auto tree = treeData->getSubtreeRef(/*root*/ 0, /*levels*/ 1);
 
   CGEvaluationPathsBuilder builder(tree);
   std::vector<CGEvaluationPath> paths = builder.run();
@@ -25,7 +25,8 @@ TEST(CGEvaluationPathsBuilder, RegularTree1) {
 
   ASSERT_EQ(expectedPaths, paths.size());
   ASSERT_EQ(expectedNodesPerPath, paths[0].Nodes.size() + 1); //
-  ASSERT_EQ(expectedNodesPerPath, paths[1].Nodes.size() + 1); // +1 for continuation node
+  ASSERT_EQ(expectedNodesPerPath,
+            paths[1].Nodes.size() + 1); // +1 for continuation node
 
   EXPECT_EQ(&tree.getNode(0), &paths[0].Nodes[0].getNodeData());
   EXPECT_EQ(&tree.getNode(1), &paths[0].Nodes[0].getChildNodeData());
@@ -44,7 +45,7 @@ TEST(CGEvaluationPathsBuilder, RegularTree2) {
   //           looking at this subtree
 
   auto treeData = (DecisionTreeFactory()).makeRandomRegular(3, 100);
-  auto tree = treeData->getSubtreeRef(/*root*/2, /*levels*/2);
+  auto tree = treeData->getSubtreeRef(/*root*/ 2, /*levels*/ 2);
 
   CGEvaluationPathsBuilder builder(tree);
   std::vector<CGEvaluationPath> paths = builder.run();
@@ -56,7 +57,8 @@ TEST(CGEvaluationPathsBuilder, RegularTree2) {
   // check paths by bubbling through and checking results
   int sumResultNodeIdxs = 0;
   for (auto path : paths) {
-    uint64_t nodeIdx; size_t nodeCount;
+    uint64_t nodeIdx;
+    size_t nodeCount;
     std::tie(nodeIdx, nodeCount) = bubbleDown(tree, std::move(path));
 
     EXPECT_EQ(expectedNodesPerPath, nodeCount);
@@ -75,7 +77,7 @@ TEST(CGEvaluationPathsBuilder, RegularTree4) {
   // 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30  (implicit result nodes)
 
   auto treeData = (DecisionTreeFactory()).makeRandomRegular(4, 100);
-  auto tree = treeData->getSubtreeRef(/*root*/0, /*levels*/4);
+  auto tree = treeData->getSubtreeRef(/*root*/ 0, /*levels*/ 4);
 
   CGEvaluationPathsBuilder builder(tree);
   std::vector<CGEvaluationPath> paths = builder.run();
@@ -87,7 +89,8 @@ TEST(CGEvaluationPathsBuilder, RegularTree4) {
   // check paths by bubbling through and checking results
   int sumResultNodeIdxs = 0;
   for (auto path : paths) {
-    uint64_t nodeIdx; size_t nodeCount;
+    uint64_t nodeIdx;
+    size_t nodeCount;
     std::tie(nodeIdx, nodeCount) = bubbleDown(tree, std::move(path));
 
     EXPECT_EQ(expectedNodesPerPath, nodeCount);
@@ -111,8 +114,7 @@ std::pair<uint64_t, size_t> bubbleDown(DecisionSubtreeRef tree,
 
     if (pathIt->getEvaluationValue() == 0) {
       nodeIdx = tree.getNode(nodeIdx).FalseChildNodeIdx;
-    }
-    else {
+    } else {
       nodeIdx = tree.getNode(nodeIdx).TrueChildNodeIdx;
     }
 

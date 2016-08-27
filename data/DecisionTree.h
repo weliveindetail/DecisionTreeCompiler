@@ -8,10 +8,7 @@
 
 #include "LegacyDecisionTree.h"
 
-enum class NodeEvaluation_t {
-  ContinueZeroLeft = 0,
-  ContinueOneRight = 1
-};
+enum class NodeEvaluation_t { ContinueZeroLeft = 0, ContinueOneRight = 1 };
 
 class DecisionSubtreeRef;
 
@@ -31,26 +28,22 @@ struct DecisionTreeNode {
   uint64_t FalseChildNodeIdx = NoNodeIdx;
 
   bool hasChildForEvaluation(NodeEvaluation_t evaluation) const {
-    return (evaluation == NodeEvaluation_t::ContinueZeroLeft)
-           ? hasLeftChild()
-           : hasRightChild();
+    return (evaluation == NodeEvaluation_t::ContinueZeroLeft) ? hasLeftChild()
+                                                              : hasRightChild();
   }
 
   uint64_t getChildIdx(NodeEvaluation_t evaluation) const {
     return (evaluation == NodeEvaluation_t::ContinueZeroLeft)
-        ? FalseChildNodeIdx
-        : TrueChildNodeIdx;
+               ? FalseChildNodeIdx
+               : TrueChildNodeIdx;
   }
 
-  bool isLeaf() const {
-    return !hasLeftChild() && !hasRightChild();
-  }
+  bool isLeaf() const { return !hasLeftChild() && !hasRightChild(); }
 
   bool isImplicit() const {
-    bool allDefaulted = (std::isnan(Bias) &&
-                         DataSetFeatureIdx == NoFeatureIdx &&
-                         TrueChildNodeIdx == NoNodeIdx &&
-                         FalseChildNodeIdx == NoNodeIdx);
+    bool allDefaulted =
+        (std::isnan(Bias) && DataSetFeatureIdx == NoFeatureIdx &&
+         TrueChildNodeIdx == NoNodeIdx && FalseChildNodeIdx == NoNodeIdx);
 
     return allDefaulted && NodeIdx != NoNodeIdx;
   }
@@ -61,8 +54,9 @@ struct DecisionTreeNode {
 private:
   DecisionTreeNode(uint64_t nodeIdx, float bias, uint32_t dataSetFeatureIdx,
                    uint64_t zeroFalseChildIdx, uint64_t oneTrueChildIdx)
-      : NodeIdx(nodeIdx), DataSetFeatureIdx(dataSetFeatureIdx), Bias(bias)
-      , FalseChildNodeIdx(zeroFalseChildIdx), TrueChildNodeIdx(oneTrueChildIdx) {}
+      : NodeIdx(nodeIdx), DataSetFeatureIdx(dataSetFeatureIdx), Bias(bias),
+        FalseChildNodeIdx(zeroFalseChildIdx),
+        TrueChildNodeIdx(oneTrueChildIdx) {}
 
   DecisionTreeNode(uint64_t nodeIdx) : NodeIdx(nodeIdx) {}
 
@@ -132,19 +126,16 @@ struct DecisionSubtreeRef {
   DecisionSubtreeRef &operator=(DecisionSubtreeRef &&) = default;
   DecisionSubtreeRef &operator=(const DecisionSubtreeRef &) = default;
 
-  DecisionSubtreeRef(const DecisionTree *tree, uint64_t rootIndex, uint8_t levels);
+  DecisionSubtreeRef(const DecisionTree *tree, uint64_t rootIndex,
+                     uint8_t levels);
 
-  const DecisionTreeNode& getNode(uint64_t idx) const {
+  const DecisionTreeNode &getNode(uint64_t idx) const {
     return Tree->Nodes.at(idx);
   }
 
-  uint8_t getNodeCount() const {
-    return (uint8_t)(PowerOf2(Levels) - 1);
-  }
+  uint8_t getNodeCount() const { return (uint8_t)(PowerOf2(Levels) - 1); }
 
-  uint8_t getContinuationNodeCount() const {
-    return PowerOf2<uint8_t>(Levels);
-  }
+  uint8_t getContinuationNodeCount() const { return PowerOf2<uint8_t>(Levels); }
 
   std::vector<uint64_t> collectNodeIndices() const;
 
@@ -155,5 +146,4 @@ struct DecisionSubtreeRef {
 private:
   std::vector<uint64_t> collectNodeIndicesOnSubtreeLevel(uint8_t level) const;
   uint64_t getFirstSubtreeNodeIdxOnSubtreeLevel(uint8_t subtreeLevel) const;
-
 };

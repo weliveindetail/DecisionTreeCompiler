@@ -13,7 +13,8 @@ DecisionSubtreeRef::DecisionSubtreeRef(const DecisionTree *tree,
   assert(Levels <= std::min<uint8_t>(4, tree->Levels)); // max node count is 31
 
   assert(RootIndex >= 0);
-  assert(RootIndex < DecisionTree::getFirstNodeIdxOnLevel(tree->Levels - Levels + 1));
+  assert(RootIndex <
+         DecisionTree::getFirstNodeIdxOnLevel(tree->Levels - Levels + 1));
 }
 
 std::vector<uint64_t> DecisionSubtreeRef::collectNodeIndices() const {
@@ -28,8 +29,8 @@ std::vector<uint64_t> DecisionSubtreeRef::collectNodeIndices() const {
   return idxs;
 }
 
-std::vector<uint64_t> DecisionSubtreeRef::collectNodeIndicesOnSubtreeLevel(
-    uint8_t level) const {
+std::vector<uint64_t>
+DecisionSubtreeRef::collectNodeIndicesOnSubtreeLevel(uint8_t level) const {
   std::vector<uint64_t> idxs(PowerOf2(level));
 
   uint64_t firstSubtreeIdxOnNodeLevel =
@@ -44,7 +45,8 @@ uint64_t DecisionSubtreeRef::getFirstSubtreeNodeIdxOnSubtreeLevel(
   uint64_t numSubtreeNodesOnLevel = PowerOf2(subtreeLevel);
 
   uint8_t rootLevel = DecisionTree::getLevelForNodeIdx(RootIndex);
-  uint64_t rootOffset = RootIndex - DecisionTree::getFirstNodeIdxOnLevel(rootLevel);
+  uint64_t rootOffset =
+      RootIndex - DecisionTree::getFirstNodeIdxOnLevel(rootLevel);
   uint64_t nodeOffset = rootOffset * numSubtreeNodesOnLevel;
 
   uint8_t treeLevel = rootLevel + subtreeLevel;
@@ -85,16 +87,15 @@ void DecisionTree::finalize() {
 }
 
 DecisionTreeFactory::DecisionTreeFactory(std::string cacheDirName)
-    : CacheDir(initCacheDir(std::move(cacheDirName))) {
-}
+    : CacheDir(initCacheDir(std::move(cacheDirName))) {}
 
 std::string DecisionTreeFactory::initCacheDir(std::string cacheDirName) {
   if (cacheDirName.empty()) {
     llvm::SmallString<256> defaultCacheDirName;
-    if (llvm::sys::path::user_cache_directory(defaultCacheDirName, "libEvalTreeJit", "cache")) {
+    if (llvm::sys::path::user_cache_directory(defaultCacheDirName,
+                                              "libEvalTreeJit", "cache")) {
       cacheDirName = defaultCacheDirName.str();
-    }
-    else {
+    } else {
       llvm::sys::fs::current_path(defaultCacheDirName);
       cacheDirName = defaultCacheDirName.str().str() + "/cache";
     }
@@ -109,8 +110,8 @@ std::string DecisionTreeFactory::initCacheDir(std::string cacheDirName) {
   return cacheDirName;
 }
 
-DecisionTree DecisionTreeFactory::makeRandomRegular(
-    uint8_t levels, uint32_t dataSetFeatures) {
+DecisionTree DecisionTreeFactory::makeRandomRegular(uint8_t levels,
+                                                    uint32_t dataSetFeatures) {
   uint64_t nodes = TreeNodes(levels);
   DecisionTree tree(levels, nodes);
 
@@ -122,10 +123,8 @@ DecisionTree DecisionTreeFactory::makeRandomRegular(
       float bias = makeBalancedBias(OperationType::Bypass);
       auto featureIdx = makeRandomInt<uint32_t>(0, dataSetFeatures);
 
-      DecisionTreeNode node(firstIdx + i,
-                            bias, featureIdx,
-                            firstChildIdx + 2 * i,
-                            firstChildIdx + 2 * i + 1);
+      DecisionTreeNode node(firstIdx + i, bias, featureIdx,
+                            firstChildIdx + 2 * i, firstChildIdx + 2 * i + 1);
 
       tree.Nodes.emplace(firstIdx + i, std::move(node));
     }
