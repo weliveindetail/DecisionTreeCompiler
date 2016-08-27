@@ -1,7 +1,7 @@
 #include "resolver/CompilerSession.h"
 
 #include "codegen/CGBase.h"
-#include "resolver/Driver.h"
+#include "resolver/DecisionTreeCompiler.h"
 
 using namespace llvm;
 

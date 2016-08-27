@@ -11,7 +11,7 @@
 #include <llvm/Support/raw_ostream.h>
 
 #include "resolver/DecisionTree.h"
-#include "resolver/Driver.h"
+#include "resolver/DecisionTreeCompiler.h"
 
 class StaticDriver {
 public:

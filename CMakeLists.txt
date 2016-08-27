@@ -44,8 +44,8 @@ set(SOURCE_FILES
         codegen/CGEvaluationPathsBuilder.h
         codegen/CGEvaluationPathsBuilder.cpp
         codegen/CGNodeInfo.h
-        resolver/Driver.h
-        resolver/Driver.cpp
+        resolver/DecisionTreeCompiler.h
+        resolver/DecisionTreeCompiler.cpp
         resolver/DecisionTree.h
         resolver/DecisionTree.cpp
         resolver/CompilerSession.h
