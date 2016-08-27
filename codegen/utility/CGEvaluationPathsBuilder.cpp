@@ -3,17 +3,15 @@
 
 std::vector<CGEvaluationPath> CGEvaluationPathsBuilder::run() {
   std::list<CGEvaluationPath> paths =
-      buildPathsRecursively(Subtree.RootIndex, Subtree.Levels);
+      buildPathsRecursively(Subtree.Tree->getNode(Subtree.RootIndex), Subtree.Levels);
 
   assert(paths.size() == Subtree.getContinuationNodeCount());
   return moveListToVector(std::move(paths));
 }
 
 std::list<CGEvaluationPath>
-CGEvaluationPathsBuilder::buildPathsRecursively(uint64_t nodeIdx,
+CGEvaluationPathsBuilder::buildPathsRecursively(DecisionTreeNode node,
                                                 uint8_t remainingLevels) {
-  const DecisionTreeNode &node = Subtree.getNode(nodeIdx);
-
   // subtree continuation nodes insert a new path
   if (node.isLeaf() || remainingLevels == 0)
     return {CGEvaluationPath(Subtree, node)};
@@ -34,13 +32,13 @@ CGEvaluationPathsBuilder::buildPathsRecursively(uint64_t nodeIdx,
 
 std::list<CGEvaluationPath>
 CGEvaluationPathsBuilder::recurseToChildNode(NodeEvaluation eval,
-                                             const DecisionTreeNode &node,
+                                             DecisionTreeNode node,
                                              uint8_t remainingLevels) {
   if (!node.hasChildForEvaluation(eval))
     return {};
 
   std::list<CGEvaluationPath> paths =
-      buildPathsRecursively(node.getChildIdx(eval), remainingLevels - 1);
+      buildPathsRecursively(node.getChild(eval), remainingLevels - 1);
 
   for (CGEvaluationPath &p : paths)
     p.addParent(node, eval);

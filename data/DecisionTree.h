@@ -10,6 +10,7 @@
 enum class NodeEvaluation { ContinueZeroLeft = 0, ContinueOneRight = 1 };
 
 class DecisionSubtreeRef;
+class DecisionTree;
 
 struct DecisionTreeNode {
   DecisionTreeNode() = default;
@@ -38,15 +39,12 @@ struct DecisionTreeNode {
   }
 
   bool hasChildForEvaluation(NodeEvaluation evaluation) const {
-    return (evaluation == NodeEvaluation::ContinueZeroLeft) ? hasLeftChild()
-                                                              : hasRightChild();
+    return (evaluation == NodeEvaluation::ContinueZeroLeft)
+               ? this->hasLeftChild()
+               : this->hasRightChild();
   }
 
-  uint64_t getChildIdx(NodeEvaluation evaluation) const {
-    return (evaluation == NodeEvaluation::ContinueZeroLeft)
-               ? FalseChildNodeIdx
-               : TrueChildNodeIdx;
-  }
+  DecisionTreeNode getChild(NodeEvaluation evaluation) const;
 
   bool isLeaf() const { return !hasLeftChild() && !hasRightChild(); }
 
@@ -61,12 +59,12 @@ struct DecisionTreeNode {
   bool hasLeftChild() const { return FalseChildNodeIdx != NoNodeIdx; }
   bool hasRightChild() const { return TrueChildNodeIdx != NoNodeIdx; }
 
-  const uint64_t NodeIdx = NoNodeIdx;
-  const uint64_t TrueChildNodeIdx = NoNodeIdx;
-  const uint64_t FalseChildNodeIdx = NoNodeIdx;
+  uint64_t NodeIdx = NoNodeIdx;
+  uint64_t TrueChildNodeIdx = NoNodeIdx;
+  uint64_t FalseChildNodeIdx = NoNodeIdx;
 
-  const uint32_t DataSetFeatureIdx = NoFeatureIdx;
-  const float Bias = NoBias;
+  uint32_t DataSetFeatureIdx = NoFeatureIdx;
+  float Bias = NoBias;
 
 private:
   const DecisionTree *OwnerTree = nullptr;
@@ -97,6 +95,10 @@ public:
   uint8_t getNumLevels() const { return Levels; }
   uint64_t getRootNodeIdx() const { return 0; }
   DecisionSubtreeRef getSubtreeRef(uint64_t rootIndex, uint8_t levels) const;
+
+  DecisionTreeNode getNode(uint64_t idx) const {
+    return Nodes.at(idx);
+  }
 
   void addNode(uint64_t idx, DecisionTreeNode node) {
     assert(!Finalized);
@@ -152,7 +154,7 @@ struct DecisionSubtreeRef {
   DecisionSubtreeRef(const DecisionTree *tree, uint64_t rootIndex,
                      uint8_t levels);
 
-  const DecisionTreeNode &getNode(uint64_t idx) const {
+  DecisionTreeNode getNode(uint64_t idx) const {
     return Tree->Nodes.at(idx);
   }
 
@@ -160,12 +162,22 @@ struct DecisionSubtreeRef {
   uint8_t getContinuationNodeCount() const { return PowerOf2<uint8_t>(Levels); }
 
   std::vector<uint64_t> collectNodeIndices() const;
+  std::list<DecisionTreeNode> collectNodes() const;
 
   const DecisionTree *Tree;
   uint64_t RootIndex;
   uint8_t Levels;
 
 private:
+  std::list<DecisionTreeNode> collectNodesRecursively(
+      DecisionTreeNode n, int levels) const;
+
   std::vector<uint64_t> collectNodeIndicesOnSubtreeLevel(uint8_t level) const;
   uint64_t getFirstSubtreeNodeIdxOnSubtreeLevel(uint8_t subtreeLevel) const;
 };
+
+inline DecisionTreeNode DecisionTreeNode::getChild(NodeEvaluation evaluation) const {
+  return (evaluation == NodeEvaluation::ContinueZeroLeft)
+         ? OwnerTree->getNode(FalseChildNodeIdx)
+         : OwnerTree->getNode(TrueChildNodeIdx);
+}

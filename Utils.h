@@ -80,6 +80,14 @@ template <class T> static std::vector<T> moveListToVector(std::list<T> l) {
   return v;
 }
 
+template <class Collection_t, class Item_t>
+static Collection_t moveListTo(std::list<Item_t> list) {
+  Collection_t v;
+  v.reserve(list.size());
+  std::move(std::begin(list), std::end(list), std::back_inserter(v));
+  return v;
+}
+
 template <class T>
 static std::list<T> concatLists(std::list<T> l1, std::list<T> l2) {
   std::list<uint32_t> concatenation;

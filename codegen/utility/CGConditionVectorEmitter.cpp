@@ -1,6 +1,8 @@
 #include "CGConditionVectorEmitter.h"
 #include "compiler/CompilerSession.h"
 
+#include <algorithm>
+
 using namespace llvm;
 
 CGConditionVectorEmitterBase::CGConditionVectorEmitterBase(
@@ -16,14 +18,10 @@ CGConditionVectorEmitterAVX::CGConditionVectorEmitterAVX(
 }
 
 void CGConditionVectorEmitterAVX::collectSubtreeNodes() {
-  std::vector<uint64_t> nodeIdxs = Subtree.collectNodeIndices();
-
-  auto getNodeFromIdx = [this](uint64_t idx) {
-    return const_cast<DecisionTreeNode *>(&Subtree.getNode(idx));
-  };
-
-  assert(nodeIdxs.size() == Nodes.size());
-  transform(nodeIdxs.begin(), nodeIdxs.end(), Nodes.begin(), getNodeFromIdx);
+  size_t idx = 0;
+  for (DecisionTreeNode node : Subtree.collectNodes()) {
+    Nodes[idx++] = std::move(node);
+  }
 }
 
 Value *CGConditionVectorEmitterAVX::run(CGNodeInfo subtreeRoot) {
@@ -46,8 +44,8 @@ Value *CGConditionVectorEmitterAVX::emitCollectDataSetValues() {
       new AllocaInst(FloatTy, AvxPackSizeVal, AvxAlignment), "featureValues");
 
   uint8_t bitOffset = 0;
-  for (DecisionTreeNode *node : Nodes) {
-    Builder.CreateStore(emitLoadFeatureValue(node),
+  for (DecisionTreeNode node : Nodes) {
+    Builder.CreateStore(emitLoadFeatureValue(std::move(node)),
                         Builder.CreateConstGEP1_32(featureValues, bitOffset++));
   }
 
@@ -55,9 +53,9 @@ Value *CGConditionVectorEmitterAVX::emitCollectDataSetValues() {
 }
 
 Value *
-CGConditionVectorEmitterAVX::emitLoadFeatureValue(DecisionTreeNode *node) {
+CGConditionVectorEmitterAVX::emitLoadFeatureValue(DecisionTreeNode node) {
   llvm::Value *dataSetFeaturePtr = Builder.CreateConstGEP1_32(
-      Session.InputDataSetPtr, node->DataSetFeatureIdx);
+      Session.InputDataSetPtr, node.DataSetFeatureIdx);
 
   return Builder.CreateLoad(dataSetFeaturePtr);
 }
@@ -67,8 +65,8 @@ Value *CGConditionVectorEmitterAVX::emitDefineTreeNodeValues() {
       new AllocaInst(FloatTy, AvxPackSizeVal, AvxAlignment), "compareValues");
 
   uint8_t bitOffset = 0;
-  for (DecisionTreeNode *node : Nodes) {
-    Builder.CreateStore(ConstantFP::get(FloatTy, node->Bias),
+  for (DecisionTreeNode node : Nodes) {
+    Builder.CreateStore(ConstantFP::get(FloatTy, node.Bias),
                         Builder.CreateConstGEP1_32(compareValues, bitOffset++));
   }
 

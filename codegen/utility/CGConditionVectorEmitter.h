@@ -40,7 +40,7 @@ private:
   constexpr static unsigned AvxAlignment = 32;
 
   DecisionSubtreeRef Subtree;
-  std::array<DecisionTreeNode *, AvxPackSize - 1> Nodes;
+  std::array<DecisionTreeNode, AvxPackSize - 1> Nodes;
 
   llvm::Type *Int8Ty = llvm::Type::getInt8Ty(Ctx);
   llvm::Type *Int32Ty = llvm::Type::getInt32Ty(Ctx);
@@ -48,7 +48,7 @@ private:
 
   llvm::Constant *AvxPackSizeVal = llvm::ConstantInt::get(Int8Ty, AvxPackSize);
 
-  llvm::Value *emitLoadFeatureValue(DecisionTreeNode *node);
+  llvm::Value *emitLoadFeatureValue(DecisionTreeNode node);
 
   llvm::Value *emitCollectDataSetValues();
   llvm::Value *emitDefineTreeNodeValues();

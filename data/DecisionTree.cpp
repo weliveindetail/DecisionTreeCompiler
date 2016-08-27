@@ -18,6 +18,37 @@ DecisionSubtreeRef::DecisionSubtreeRef(const DecisionTree *tree,
          DecisionTree::getFirstNodeIdxOnLevel(tree->Levels - Levels + 1));
 }
 
+std::list<DecisionTreeNode> DecisionSubtreeRef::collectNodes() const {
+  DecisionTreeNode root = Tree->getNode(RootIndex);
+
+  std::list<DecisionTreeNode> nodes = collectNodesRecursively(root, Levels - 1);
+  nodes.push_front(std::move(root));
+
+  return nodes;
+}
+
+std::list<DecisionTreeNode>
+DecisionSubtreeRef::collectNodesRecursively(DecisionTreeNode n,
+                                            int levels) const {
+  if (levels > 0) {
+    std::list<DecisionTreeNode> ns;
+
+    if (n.hasLeftChild()) {
+      ns.push_back(n.getChild(NodeEvaluation::ContinueZeroLeft));
+      ns.splice(ns.end(), collectNodesRecursively(ns.back(), levels - 1));
+    }
+
+    if (n.hasRightChild()) {
+      ns.push_back(n.getChild(NodeEvaluation::ContinueOneRight));
+      ns.splice(ns.end(), collectNodesRecursively(ns.back(), levels - 1));
+    }
+
+    return ns;
+  }
+
+  return {};
+}
+
 std::vector<uint64_t> DecisionSubtreeRef::collectNodeIndices() const {
   std::vector<uint64_t> idxs;
   idxs.reserve(getNodeCount());
