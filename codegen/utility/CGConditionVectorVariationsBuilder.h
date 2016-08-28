@@ -15,6 +15,15 @@ public:
 
   std::vector<uint32_t> run(CGEvaluationPath pathInfo);
 
+  uint32_t getBitOffsetForNode(DecisionTreeNode node) const {
+    auto it = std::find(Nodes.begin(), Nodes.end(), node);
+    return (it == Nodes.end()) ? 0xFFFFFFFF : std::distance(Nodes.begin(), it);
+  }
+
+  DecisionTreeNode getNodeForBitOffset(uint32_t offset) const {
+    return (offset >= Nodes.size()) ? DecisionTreeNode() : Nodes[offset];
+  }
+
 private:
   const DecisionSubtreeRef Subtree;
   const std::vector<DecisionTreeNode> Nodes;
