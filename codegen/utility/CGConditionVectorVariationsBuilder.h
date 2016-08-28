@@ -10,14 +10,14 @@
 class CGConditionVectorVariationsBuilder {
 public:
   CGConditionVectorVariationsBuilder(DecisionSubtreeRef subtreeRef)
-      : Subtree(std::move(subtreeRef)), NodeIdxs(Subtree.collectNodeIndices()) {
-  }
+      : Subtree(std::move(subtreeRef)),
+        Nodes(moveListToVector(Subtree.collectNodesPreOrder())) {}
 
   std::vector<uint32_t> run(CGEvaluationPath pathInfo);
 
 private:
   const DecisionSubtreeRef Subtree;
-  const std::vector<uint64_t> NodeIdxs;
+  const std::vector<DecisionTreeNode> Nodes;
 
   uint32_t buildFixedBitsTemplate(CGEvaluationPath path) const;
   std::vector<uint8_t> collectVariableBitOffsets(CGEvaluationPath path) const;

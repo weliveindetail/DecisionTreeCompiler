@@ -28,10 +28,12 @@ struct DecisionTreeNode {
   friend bool operator==(const DecisionTreeNode &lhs,
                          const DecisionTreeNode &rhs) {
     if (lhs.OwnerTree == rhs.OwnerTree && lhs.NodeIdx == rhs.NodeIdx) {
-      assert(lhs.Bias == rhs.Bias);
+#    ifndef NDEBUG
+      assert(lhs.isImplicit() == rhs.isImplicit());
       assert(lhs.DataSetFeatureIdx == rhs.DataSetFeatureIdx);
       assert(lhs.TrueChildNodeIdx == rhs.TrueChildNodeIdx);
       assert(lhs.FalseChildNodeIdx == rhs.FalseChildNodeIdx);
+#    endif
       return true;
     }
 
@@ -162,7 +164,7 @@ struct DecisionSubtreeRef {
   uint8_t getContinuationNodeCount() const { return PowerOf2<uint8_t>(Levels); }
 
   std::vector<uint64_t> collectNodeIndices() const;
-  std::list<DecisionTreeNode> collectNodes() const;
+  std::list<DecisionTreeNode> collectNodesPreOrder() const;
 
   const DecisionTree *Tree;
   uint64_t RootIndex;

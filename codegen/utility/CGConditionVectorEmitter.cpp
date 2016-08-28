@@ -19,7 +19,7 @@ CGConditionVectorEmitterAVX::CGConditionVectorEmitterAVX(
 
 void CGConditionVectorEmitterAVX::collectSubtreeNodes() {
   size_t idx = 0;
-  for (DecisionTreeNode node : Subtree.collectNodes()) {
+  for (DecisionTreeNode node : Subtree.collectNodesPreOrder()) {
     Nodes[idx++] = std::move(node);
   }
 }

@@ -18,7 +18,7 @@ DecisionSubtreeRef::DecisionSubtreeRef(const DecisionTree *tree,
          DecisionTree::getFirstNodeIdxOnLevel(tree->Levels - Levels + 1));
 }
 
-std::list<DecisionTreeNode> DecisionSubtreeRef::collectNodes() const {
+std::list<DecisionTreeNode> DecisionSubtreeRef::collectNodesPreOrder() const {
   DecisionTreeNode root = Tree->getNode(RootIndex);
 
   std::list<DecisionTreeNode> nodes = collectNodesRecursively(root, Levels - 1);

@@ -30,11 +30,11 @@ TEST(CGEvaluationPathsBuilder, RegularTree1) {
   ASSERT_EQ(expectedNodesPerPath,
             paths[1].Nodes.size() + 1); // +1 for continuation node
 
-  EXPECT_EQ(&subtree.getNode(0), &paths[0].Nodes[0].getNodeData());
-  EXPECT_EQ(&subtree.getNode(1), &paths[0].Nodes[0].getChildNodeData());
+  EXPECT_EQ(subtree.getNode(0), paths[0].Nodes[0].getNodeData());
+  EXPECT_EQ(subtree.getNode(1), paths[0].Nodes[0].getChildNodeData());
 
-  EXPECT_EQ(&subtree.getNode(0), &paths[1].Nodes[0].getNodeData());
-  EXPECT_EQ(&subtree.getNode(2), &paths[1].Nodes[0].getChildNodeData());
+  EXPECT_EQ(subtree.getNode(0), paths[1].Nodes[0].getNodeData());
+  EXPECT_EQ(subtree.getNode(2), paths[1].Nodes[0].getChildNodeData());
 }
 
 TEST(CGEvaluationPathsBuilder, RegularTree2) {

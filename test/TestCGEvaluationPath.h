@@ -18,8 +18,8 @@ TEST(CGEvaluationPath, RegularTree1) {
     CGEvaluationPath p(s, s.getNode(2));
     p.addParent(s.getNode(0), NodeEvaluation::ContinueOneRight);
 
-    EXPECT_EQ(&s.getNode(0), &p.Nodes[0].getNodeData());
-    EXPECT_EQ(&s.getNode(2), &p.Nodes[0].getChildNodeData());
+    EXPECT_EQ(s.getNode(0), p.Nodes[0].getNodeData());
+    EXPECT_EQ(s.getNode(2), p.Nodes[0].getChildNodeData());
   }
 }
 
@@ -53,10 +53,10 @@ TEST(CGEvaluationPath, RegularTree2) {
     p.addParent(s.getNode(6), NodeEvaluation::ContinueOneRight);
     p.addParent(s.getNode(2), NodeEvaluation::ContinueOneRight);
 
-    EXPECT_EQ(&s.getNode(2), &p.Nodes[0].getNodeData());
-    EXPECT_EQ(&s.getNode(6), &p.Nodes[0].getChildNodeData());
-    EXPECT_EQ(&s.getNode(6), &p.Nodes[1].getNodeData());
-    EXPECT_EQ(&s.getNode(14), &p.Nodes[1].getChildNodeData());
+    EXPECT_EQ(s.getNode(2), p.Nodes[0].getNodeData());
+    EXPECT_EQ(s.getNode(6), p.Nodes[0].getChildNodeData());
+    EXPECT_EQ(s.getNode(6), p.Nodes[1].getNodeData());
+    EXPECT_EQ(s.getNode(14), p.Nodes[1].getChildNodeData());
   }
 }
 
@@ -77,12 +77,12 @@ TEST(CGEvaluationPath, RegularTree3) {
     p.addParent(s.getNode(1), NodeEvaluation::ContinueZeroLeft);
     p.addParent(s.getNode(0), NodeEvaluation::ContinueZeroLeft);
 
-    EXPECT_EQ(&s.getNode(0), &p.Nodes[0].getNodeData());
-    EXPECT_EQ(&s.getNode(1), &p.Nodes[0].getChildNodeData());
-    EXPECT_EQ(&s.getNode(1), &p.Nodes[1].getNodeData());
-    EXPECT_EQ(&s.getNode(3), &p.Nodes[1].getChildNodeData());
-    EXPECT_EQ(&s.getNode(3), &p.Nodes[2].getNodeData());
-    EXPECT_EQ(&s.getNode(8), &p.Nodes[2].getChildNodeData());
+    EXPECT_EQ(s.getNode(0), p.Nodes[0].getNodeData());
+    EXPECT_EQ(s.getNode(1), p.Nodes[0].getChildNodeData());
+    EXPECT_EQ(s.getNode(1), p.Nodes[1].getNodeData());
+    EXPECT_EQ(s.getNode(3), p.Nodes[1].getChildNodeData());
+    EXPECT_EQ(s.getNode(3), p.Nodes[2].getNodeData());
+    EXPECT_EQ(s.getNode(8), p.Nodes[2].getChildNodeData());
   }
 
   // create path 0 -> 2 -> 6 -> 14
@@ -92,11 +92,11 @@ TEST(CGEvaluationPath, RegularTree3) {
     p.addParent(s.getNode(2), NodeEvaluation::ContinueOneRight);
     p.addParent(s.getNode(0), NodeEvaluation::ContinueOneRight);
 
-    EXPECT_EQ(&s.getNode(0), &p.Nodes[0].getNodeData());
-    EXPECT_EQ(&s.getNode(2), &p.Nodes[0].getChildNodeData());
-    EXPECT_EQ(&s.getNode(2), &p.Nodes[1].getNodeData());
-    EXPECT_EQ(&s.getNode(6), &p.Nodes[1].getChildNodeData());
-    EXPECT_EQ(&s.getNode(6), &p.Nodes[2].getNodeData());
-    EXPECT_EQ(&s.getNode(14), &p.Nodes[2].getChildNodeData());
+    EXPECT_EQ(s.getNode(0), p.Nodes[0].getNodeData());
+    EXPECT_EQ(s.getNode(2), p.Nodes[0].getChildNodeData());
+    EXPECT_EQ(s.getNode(2), p.Nodes[1].getNodeData());
+    EXPECT_EQ(s.getNode(6), p.Nodes[1].getChildNodeData());
+    EXPECT_EQ(s.getNode(6), p.Nodes[2].getNodeData());
+    EXPECT_EQ(s.getNode(14), p.Nodes[2].getChildNodeData());
   }
 }
