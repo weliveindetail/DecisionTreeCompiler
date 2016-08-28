@@ -3,7 +3,7 @@
 
 std::vector<CGEvaluationPath> CGEvaluationPathsBuilder::run() {
   std::list<CGEvaluationPath> paths =
-      buildPathsRecursively(Subtree.Tree->getNode(Subtree.RootIndex), Subtree.Levels);
+      buildPathsRecursively(Subtree.Root, Subtree.Levels);
 
   assert(paths.size() == Subtree.getContinuationNodeCount());
   return moveToVector(std::move(paths));

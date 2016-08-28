@@ -80,14 +80,12 @@ private:
     OwnerTree = tree;
   }
 
-  // special-purpose ctor used during DecisionTree finalization
-  DecisionTreeNode(uint64_t nodeIdx) : NodeIdx(nodeIdx) {}
-
   static constexpr uint32_t NoFeatureIdx = 0xFFFFFFFF;
   static constexpr uint64_t NoNodeIdx = 0xFFFFFFFFFFFFFFFF;
   static constexpr float NoBias = std::numeric_limits<float>::quiet_NaN();
 
   friend class DecisionTree;
+  friend class DecisionSubtreeRef;
 };
 
 class DecisionTree {
@@ -130,6 +128,15 @@ private:
     Finalized = false;
   }
 
+  void addImplicitNode(uint64_t nodeIdx) {
+    DecisionTreeNode node;
+    node.NodeIdx = nodeIdx;
+    node.setOwner(this);
+
+    assert(node.isImplicit());
+    Nodes.emplace(nodeIdx, node);
+  }
+
   void finalize();
 
   bool Finalized = false;
@@ -158,29 +165,23 @@ struct DecisionSubtreeRef {
   DecisionSubtreeRef &operator=(DecisionSubtreeRef &&) = default;
   DecisionSubtreeRef &operator=(const DecisionSubtreeRef &) = default;
 
-  DecisionSubtreeRef(const DecisionTree *tree, uint64_t rootIndex,
-                     uint8_t levels);
+  DecisionSubtreeRef(DecisionTreeNode root, uint8_t levels);
 
   DecisionTreeNode getNode(uint64_t idx) const {
-    return Tree->Nodes.at(idx);
+    return Root.OwnerTree->Nodes.at(idx);
   }
 
   uint8_t getNodeCount() const { return (uint8_t)(PowerOf2(Levels) - 1); }
   uint8_t getContinuationNodeCount() const { return PowerOf2<uint8_t>(Levels); }
 
-  std::vector<uint64_t> collectNodeIndices() const;
   std::list<DecisionTreeNode> collectNodesPreOrder() const;
 
-  const DecisionTree *Tree;
-  uint64_t RootIndex;
+  DecisionTreeNode Root;
   uint8_t Levels;
 
 private:
   std::list<DecisionTreeNode> collectNodesRecursively(
       DecisionTreeNode n, int levels) const;
-
-  std::vector<uint64_t> collectNodeIndicesOnSubtreeLevel(uint8_t level) const;
-  uint64_t getFirstSubtreeNodeIdxOnSubtreeLevel(uint8_t subtreeLevel) const;
 };
 
 inline DecisionTreeNode DecisionTreeNode::getChild(NodeEvaluation evaluation) const {
