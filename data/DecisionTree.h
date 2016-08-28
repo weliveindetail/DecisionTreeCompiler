@@ -40,6 +40,11 @@ struct DecisionTreeNode {
     return false;
   }
 
+  friend bool operator!=(const DecisionTreeNode &lhs,
+                         const DecisionTreeNode &rhs) {
+    return !(lhs == rhs);
+  }
+
   bool hasChildForEvaluation(NodeEvaluation evaluation) const {
     return (evaluation == NodeEvaluation::ContinueZeroLeft)
                ? this->hasLeftChild()

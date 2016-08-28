@@ -8,28 +8,38 @@
 
 #include "data/DecisionTree.h"
 
-struct CGEvaluationPathNode {
-  CGEvaluationPathNode() = default;
-  CGEvaluationPathNode(CGEvaluationPathNode &&) = default;
-  CGEvaluationPathNode(const CGEvaluationPathNode &) = default;
-  CGEvaluationPathNode &operator=(CGEvaluationPathNode &&) = default;
-  CGEvaluationPathNode &operator=(const CGEvaluationPathNode &) = default;
+struct CGEvaluationStep {
+  CGEvaluationStep() = default;
+  CGEvaluationStep(CGEvaluationStep &&) = default;
+  CGEvaluationStep(const CGEvaluationStep &) = default;
+  CGEvaluationStep &operator=(CGEvaluationStep &&) = default;
+  CGEvaluationStep &operator=(const CGEvaluationStep &) = default;
 
-  CGEvaluationPathNode(const DecisionTreeNode &currentNode,
-                       const DecisionTreeNode &nextNode,
-                       NodeEvaluation evaluation)
-      : Node(&currentNode), ChildNode(&nextNode), Evaluation(evaluation) {}
+  CGEvaluationStep(DecisionTreeNode fromNode, DecisionTreeNode toNode,
+                   NodeEvaluation fromNodeEval)
+      : FromNode(fromNode), ToNode(toNode), FromNodeEval(fromNodeEval) {}
 
-  uint8_t getEvaluationValue() const { return (uint8_t)Evaluation; }
+  friend bool operator==(const CGEvaluationStep &lhs,
+                         const CGEvaluationStep &rhs) {
+    bool equal = lhs.FromNode == rhs.FromNode && lhs.ToNode == rhs.ToNode;
+    assert(!equal || lhs.FromNodeEval == rhs.FromNodeEval);
+    return equal;
+  }
 
-  const DecisionTreeNode &getNodeData() const { return *Node; }
+  friend bool operator!=(const CGEvaluationStep &lhs,
+                         const CGEvaluationStep &rhs) {
+    return !(lhs == rhs);
+  }
 
-  const DecisionTreeNode &getChildNodeData() const { return *ChildNode; }
+  uint8_t getSrcNodeEvalValue() const { return (uint8_t)FromNodeEval; }
+
+  DecisionTreeNode getSrcNode() const { return FromNode; }
+  DecisionTreeNode getDestNode() const { return ToNode; }
 
 private:
-  const DecisionTreeNode *Node;
-  const DecisionTreeNode *ChildNode;
-  NodeEvaluation Evaluation;
+  DecisionTreeNode FromNode;
+  DecisionTreeNode ToNode;
+  NodeEvaluation FromNodeEval;
 };
 
 struct CGEvaluationPath {
@@ -39,42 +49,83 @@ struct CGEvaluationPath {
   CGEvaluationPath &operator=(CGEvaluationPath &&) = default;
   CGEvaluationPath &operator=(const CGEvaluationPath &) = default;
 
-  using Data_t = std::vector<CGEvaluationPathNode>;
-
   CGEvaluationPath(DecisionSubtreeRef subtree,
-                   const DecisionTreeNode &continuationNode)
-      : Nodes(subtree.Levels), ContinuationNode(&continuationNode),
-        InsertIdx(Nodes.size()) {}
+                   DecisionTreeNode destinationNode)
+      : Steps(subtree.Levels), DestinationNode(destinationNode),
+        InsertIdx(Steps.size()) {}
 
-  void addParent(const DecisionTreeNode &node, NodeEvaluation evaluation) {
-    const DecisionTreeNode &child = (InsertIdx == Nodes.size())
-                                        ? getContinuationNode()
-                                        : Nodes[InsertIdx].getNodeData();
+  friend bool operator==(const CGEvaluationPath &lhs,
+                         const CGEvaluationPath &rhs) {
+    if (lhs.Steps.size() != rhs.Steps.size())
+      return false;
 
-    Nodes[--InsertIdx] = CGEvaluationPathNode(node, child, evaluation);
+    if (lhs.InsertIdx != rhs.InsertIdx)
+      return false;
+
+    for (size_t i = lhs.Steps.size() - 1; i >= lhs.InsertIdx; i++)
+      if (lhs.Steps[i] != rhs.Steps[i])
+        return false;
+
+    return lhs.DestinationNode == rhs.DestinationNode;
   }
 
-  bool hasNodeIdx(uint64_t idx) const { return (bool)findNode(idx); }
-
-  std::experimental::optional<CGEvaluationPathNode>
-  findNode(uint64_t idx) const {
-    auto findIdx = [=](const CGEvaluationPathNode &node) {
-      return node.getNodeData().NodeIdx == idx;
-    };
-
-    auto it = std::find_if(Nodes.begin(), Nodes.end(), findIdx);
-    return (it == Nodes.end())
-               ? std::experimental::optional<CGEvaluationPathNode>()
-               : *it;
+  friend bool operator!=(const CGEvaluationPath &lhs,
+                         const CGEvaluationPath &rhs) {
+    return !(lhs == rhs);
   }
 
-  const DecisionTreeNode &getContinuationNode() const {
-    return *ContinuationNode;
+  size_t getNumSteps() const { return Steps.size(); };
+  size_t getNumNodes() const { return Steps.size() + 1; };
+
+  void addParent(DecisionTreeNode node, NodeEvaluation evaluation) {
+    assert(!isFinalized());
+    DecisionTreeNode child = (InsertIdx == Steps.size())
+                                        ? getDestNode()
+                                        : getStep(InsertIdx).getSrcNode();
+
+    Steps[--InsertIdx] = CGEvaluationStep(node, child, evaluation);
   }
 
-  Data_t Nodes;
+  bool hasNode(DecisionTreeNode node) const {
+    assert(isFinalized());
+    for (CGEvaluationStep step : Steps)
+      if (node == step.getSrcNode())
+        return true;
+
+    return (node == DestinationNode);
+  }
+
+  std::experimental::optional<CGEvaluationStep>
+  findStepFromNode(DecisionTreeNode node) const {
+    assert(isFinalized());
+    for (CGEvaluationStep step : Steps)
+      if (node == step.getSrcNode())
+        return step;
+
+    return std::experimental::optional<CGEvaluationStep>();
+  }
+
+  DecisionTreeNode getSrcNode() const {
+    // source node is only valid if all parents were added
+    assert(isFinalized());
+    return Steps.front().getSrcNode();
+  }
+
+  DecisionTreeNode getDestNode() const {
+    // destination node is always valid
+    return DestinationNode;
+  }
+
+  CGEvaluationStep getStep(size_t idx) {
+    assert(InsertIdx <= idx);
+    return Steps[idx];
+  }
+
+  std::vector<CGEvaluationStep> Steps;
 
 private:
-  const DecisionTreeNode *ContinuationNode;
-  Data_t::size_type InsertIdx;
+  DecisionTreeNode DestinationNode;
+  size_t InsertIdx;
+
+  bool isFinalized() const { return InsertIdx == 0; }
 };

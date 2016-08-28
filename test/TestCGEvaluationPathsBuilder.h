@@ -6,8 +6,8 @@
 #include "data/DecisionTree.h"
 
 // helpers
-std::pair<uint64_t, size_t> bubbleDown(DecisionSubtreeRef tree,
-                                       CGEvaluationPath path);
+std::pair<DecisionTreeNode, size_t> bubbleDown(DecisionSubtreeRef tree,
+                                               CGEvaluationPath path);
 
 // ----------------------------------------------------------------------------
 
@@ -26,15 +26,18 @@ TEST(CGEvaluationPathsBuilder, RegularTree1) {
   size_t expectedNodesPerPath = 2;
 
   ASSERT_EQ(expectedPaths, paths.size());
-  ASSERT_EQ(expectedNodesPerPath, paths[0].Nodes.size() + 1); //
-  ASSERT_EQ(expectedNodesPerPath,
-            paths[1].Nodes.size() + 1); // +1 for continuation node
+  ASSERT_EQ(expectedNodesPerPath, paths[0].getNumNodes());
+  ASSERT_EQ(expectedNodesPerPath, paths[1].getNumNodes());
 
-  EXPECT_EQ(subtree.getNode(0), paths[0].Nodes[0].getNodeData());
-  EXPECT_EQ(subtree.getNode(1), paths[0].Nodes[0].getChildNodeData());
+  EXPECT_EQ(tree.getNode(0), paths[0].getSrcNode());
+  EXPECT_EQ(tree.getNode(0), paths[0].getStep(0).getSrcNode());
+  EXPECT_EQ(tree.getNode(1), paths[0].getStep(0).getDestNode());
+  EXPECT_EQ(tree.getNode(1), paths[0].getDestNode());
 
-  EXPECT_EQ(subtree.getNode(0), paths[1].Nodes[0].getNodeData());
-  EXPECT_EQ(subtree.getNode(2), paths[1].Nodes[0].getChildNodeData());
+  EXPECT_EQ(tree.getNode(0), paths[1].getSrcNode());
+  EXPECT_EQ(tree.getNode(0), paths[1].getStep(0).getSrcNode());
+  EXPECT_EQ(tree.getNode(2), paths[1].getStep(0).getDestNode());
+  EXPECT_EQ(tree.getNode(2), paths[1].getDestNode());
 }
 
 TEST(CGEvaluationPathsBuilder, RegularTree2) {
@@ -59,12 +62,12 @@ TEST(CGEvaluationPathsBuilder, RegularTree2) {
   // check paths by bubbling through and checking results
   int sumResultNodeIdxs = 0;
   for (auto path : paths) {
-    uint64_t nodeIdx;
+    DecisionTreeNode node;
     size_t nodeCount;
-    std::tie(nodeIdx, nodeCount) = bubbleDown(subtree, std::move(path));
+    std::tie(node, nodeCount) = bubbleDown(subtree, std::move(path));
 
     EXPECT_EQ(expectedNodesPerPath, nodeCount);
-    sumResultNodeIdxs += nodeIdx;
+    sumResultNodeIdxs += node.NodeIdx;
   }
 
   EXPECT_EQ(11 + 12 + 13 + 14, sumResultNodeIdxs);
@@ -91,12 +94,12 @@ TEST(CGEvaluationPathsBuilder, RegularTree4) {
   // check paths by bubbling through and checking results
   int sumResultNodeIdxs = 0;
   for (auto path : paths) {
-    uint64_t nodeIdx;
+    DecisionTreeNode node;
     size_t nodeCount;
-    std::tie(nodeIdx, nodeCount) = bubbleDown(subtree, std::move(path));
+    std::tie(node, nodeCount) = bubbleDown(subtree, std::move(path));
 
     EXPECT_EQ(expectedNodesPerPath, nodeCount);
-    sumResultNodeIdxs += nodeIdx;
+    sumResultNodeIdxs += node.NodeIdx;
   }
 
   EXPECT_EQ(8 * (15 + 30), sumResultNodeIdxs);
@@ -104,26 +107,23 @@ TEST(CGEvaluationPathsBuilder, RegularTree4) {
 
 // ----------------------------------------------------------------------------
 
-std::pair<uint64_t, size_t> bubbleDown(DecisionSubtreeRef tree,
-                                       CGEvaluationPath path) {
-  auto pathIt = path.Nodes.begin();
-  uint64_t nodeIdx = pathIt->getNodeData().NodeIdx;
+std::pair<DecisionTreeNode, size_t> bubbleDown(DecisionSubtreeRef tree,
+                                               CGEvaluationPath path) {
+  DecisionTreeNode node = path.getSrcNode();
   size_t nodeCount = 1;
 
-  while (!tree.getNode(nodeIdx).isLeaf()) {
-    uint64_t expectedChildIdx =
-        path.findNode(nodeIdx)->getChildNodeData().NodeIdx;
+  while (node != path.getDestNode()) {
+    EXPECT_EQ(path.getStep(nodeCount - 1).getSrcNode(), node);
 
-    if (pathIt->getEvaluationValue() == 0) {
-      nodeIdx = tree.getNode(nodeIdx).FalseChildNodeIdx;
-    } else {
-      nodeIdx = tree.getNode(nodeIdx).TrueChildNodeIdx;
+    if (auto stepOrNull = path.findStepFromNode(node)) {
+      node = stepOrNull->getDestNode();
+      EXPECT_EQ(path.getStep(nodeCount - 1).getDestNode(), node);
+      nodeCount++;
     }
-
-    EXPECT_EQ(nodeIdx, expectedChildIdx);
-    ++nodeCount;
-    ++pathIt;
+    else {
+      break;
+    }
   }
 
-  return std::make_pair(nodeIdx, nodeCount);
+  return std::make_pair(node, nodeCount);
 }
