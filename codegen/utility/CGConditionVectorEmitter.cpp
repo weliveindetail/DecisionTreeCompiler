@@ -12,16 +12,9 @@ CGConditionVectorEmitterBase::CGConditionVectorEmitterBase(
 
 CGConditionVectorEmitterAVX::CGConditionVectorEmitterAVX(
     const CompilerSession &session, DecisionSubtreeRef subtree)
-    : CGConditionVectorEmitterBase(session), Subtree(std::move(subtree)) {
+    : CGConditionVectorEmitterBase(session), Subtree(std::move(subtree)),
+      Nodes(moveToArray<AvxPackSize - 1>(Subtree.collectNodesPreOrder())) {
   assert(Subtree.getNodeCount() == AvxPackSize - 1);
-  collectSubtreeNodes();
-}
-
-void CGConditionVectorEmitterAVX::collectSubtreeNodes() {
-  size_t idx = 0;
-  for (DecisionTreeNode node : Subtree.collectNodesPreOrder()) {
-    Nodes[idx++] = std::move(node);
-  }
 }
 
 Value *CGConditionVectorEmitterAVX::run(CGNodeInfo subtreeRoot) {

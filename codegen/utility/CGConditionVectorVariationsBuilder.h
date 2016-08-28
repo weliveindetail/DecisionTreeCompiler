@@ -11,7 +11,7 @@ class CGConditionVectorVariationsBuilder {
 public:
   CGConditionVectorVariationsBuilder(DecisionSubtreeRef subtreeRef)
       : Subtree(std::move(subtreeRef)),
-        Nodes(moveListToVector(Subtree.collectNodesPreOrder())) {}
+        Nodes(moveToVector(Subtree.collectNodesPreOrder())) {}
 
   std::vector<uint32_t> run(CGEvaluationPath pathInfo);
 

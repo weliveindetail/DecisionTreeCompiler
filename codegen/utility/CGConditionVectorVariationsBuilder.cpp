@@ -13,7 +13,7 @@ CGConditionVectorVariationsBuilder::run(CGEvaluationPath path) {
       buildVariantsRecursively(fixedBitsTemplate, variableBitOffsets, 0);
 
   assert(variants.size() == PowerOf2(variableBitOffsets.size()));
-  return copyListToVector(std::move(variants));
+  return moveToVector(std::move(variants));
 }
 
 uint32_t CGConditionVectorVariationsBuilder::buildFixedBitsTemplate(
