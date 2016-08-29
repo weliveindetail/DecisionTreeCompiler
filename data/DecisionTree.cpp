@@ -7,10 +7,12 @@
 
 // -----------------------------------------------------------------------------
 
-DecisionSubtreeRef::DecisionSubtreeRef(DecisionTreeNode root, uint8_t levels)
-    : Root(std::move(root)), Levels(levels) {
+DecisionSubtreeRef::DecisionSubtreeRef(const DecisionTree *tree,
+                                       DecisionTreeNode root, uint8_t levels)
+    : Tree(tree), Root(std::move(root)), Levels(levels) {
   assert(!Root.isImplicit());
   assert(Levels > 0 && Levels <= 4); // max node count is 31
+  assert(Tree->getNode(Root.getIdx()) == Root);
 }
 
 std::list<DecisionTreeNode> DecisionSubtreeRef::collectNodesPreOrder() const {
@@ -27,12 +29,12 @@ DecisionSubtreeRef::collectNodesRecursively(DecisionTreeNode n,
     std::list<DecisionTreeNode> ns;
 
     if (n.hasLeftChild()) {
-      ns.push_back(n.getChild(NodeEvaluation::ContinueZeroLeft));
+      ns.push_back(n.getChildFor(NodeEvaluation::ContinueZeroLeft, *this));
       ns.splice(ns.end(), collectNodesRecursively(ns.back(), levels - 1));
     }
 
     if (n.hasRightChild()) {
-      ns.push_back(n.getChild(NodeEvaluation::ContinueOneRight));
+      ns.push_back(n.getChildFor(NodeEvaluation::ContinueOneRight, *this));
       ns.splice(ns.end(), collectNodesRecursively(ns.back(), levels - 1));
     }
 
@@ -47,7 +49,7 @@ DecisionSubtreeRef::collectNodesRecursively(DecisionTreeNode n,
 DecisionSubtreeRef DecisionTree::getSubtreeRef(uint64_t rootIndex,
                                                uint8_t levels) const {
   assert(Finalized);
-  return DecisionSubtreeRef(getNode(rootIndex), levels);
+  return DecisionSubtreeRef(this, getNode(rootIndex), levels);
 }
 
 void DecisionTree::finalize() {

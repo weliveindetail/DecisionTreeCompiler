@@ -27,7 +27,7 @@ struct DecisionTreeNode {
 
   friend bool operator==(const DecisionTreeNode &lhs,
                          const DecisionTreeNode &rhs) {
-    if (lhs.OwnerTree == rhs.OwnerTree && lhs.NodeIdx == rhs.NodeIdx) {
+    if (lhs.NodeIdx == rhs.NodeIdx) {
 #    ifndef NDEBUG
       assert(lhs.isImplicit() == rhs.isImplicit());
       assert(lhs.DataSetFeatureIdx == rhs.DataSetFeatureIdx);
@@ -51,7 +51,8 @@ struct DecisionTreeNode {
                : this->hasRightChild();
   }
 
-  DecisionTreeNode getChild(NodeEvaluation evaluation) const;
+  DecisionTreeNode getChildFor(NodeEvaluation evaluation,
+                               DecisionSubtreeRef subtree) const;
 
   bool isLeaf() const { return !hasLeftChild() && !hasRightChild(); }
 
@@ -74,10 +75,10 @@ struct DecisionTreeNode {
   float Bias = NoBias;
 
 private:
-  const DecisionTree *OwnerTree = nullptr;
-
-  void setOwner(const DecisionTree *tree) {
-    OwnerTree = tree;
+  uint64_t getChildIdxFor(NodeEvaluation evaluation) const {
+    return (evaluation == NodeEvaluation::ContinueZeroLeft)
+                       ? FalseChildNodeIdx
+                       : TrueChildNodeIdx;
   }
 
   static constexpr uint32_t NoFeatureIdx = 0xFFFFFFFF;
@@ -108,8 +109,6 @@ public:
   void addNode(uint64_t idx, DecisionTreeNode node) {
     assert(!Finalized);
     assert(Nodes.find(idx) == Nodes.end());
-
-    node.setOwner(this);
     Nodes.emplace(idx, std::move(node));
   }
 
@@ -131,10 +130,8 @@ private:
   void addImplicitNode(uint64_t nodeIdx) {
     DecisionTreeNode node;
     node.NodeIdx = nodeIdx;
-    node.setOwner(this);
-
     assert(node.isImplicit());
-    Nodes.emplace(nodeIdx, node);
+    Nodes.emplace(nodeIdx, std::move(node));
   }
 
   void finalize();
@@ -165,10 +162,11 @@ struct DecisionSubtreeRef {
   DecisionSubtreeRef &operator=(DecisionSubtreeRef &&) = default;
   DecisionSubtreeRef &operator=(const DecisionSubtreeRef &) = default;
 
-  DecisionSubtreeRef(DecisionTreeNode root, uint8_t levels);
+  DecisionSubtreeRef(const DecisionTree *tree, DecisionTreeNode root,
+                     uint8_t levels);
 
   DecisionTreeNode getNode(uint64_t idx) const {
-    return Root.OwnerTree->Nodes.at(idx);
+    return Tree->getNode(idx);
   }
 
   uint8_t getNodeCount() const { return (uint8_t)(PowerOf2(Levels) - 1); }
@@ -180,12 +178,14 @@ struct DecisionSubtreeRef {
   uint8_t Levels;
 
 private:
+  const DecisionTree *Tree;
+
   std::list<DecisionTreeNode> collectNodesRecursively(
       DecisionTreeNode n, int levels) const;
 };
 
-inline DecisionTreeNode DecisionTreeNode::getChild(NodeEvaluation evaluation) const {
-  return (evaluation == NodeEvaluation::ContinueZeroLeft)
-         ? OwnerTree->getNode(FalseChildNodeIdx)
-         : OwnerTree->getNode(TrueChildNodeIdx);
+inline DecisionTreeNode
+DecisionTreeNode::getChildFor(NodeEvaluation evaluation,
+                              DecisionSubtreeRef subtree) const {
+  return subtree.getNode(getChildIdxFor(evaluation));
 }

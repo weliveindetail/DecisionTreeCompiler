@@ -37,8 +37,8 @@ CGEvaluationPathsBuilder::recurseToChildNode(NodeEvaluation eval,
   if (!node.hasChildForEvaluation(eval))
     return {};
 
-  std::list<CGEvaluationPath> paths =
-      buildPathsRecursively(node.getChild(eval), remainingLevels - 1);
+  std::list<CGEvaluationPath> paths = buildPathsRecursively(
+      node.getChildFor(eval, Subtree), remainingLevels - 1);
 
   for (CGEvaluationPath &p : paths)
     p.addParent(node, eval);
