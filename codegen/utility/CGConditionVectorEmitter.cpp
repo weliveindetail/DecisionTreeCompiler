@@ -48,7 +48,7 @@ Value *CGConditionVectorEmitterAVX::emitCollectDataSetValues() {
 Value *
 CGConditionVectorEmitterAVX::emitLoadFeatureValue(DecisionTreeNode node) {
   llvm::Value *dataSetFeaturePtr = Builder.CreateConstGEP1_32(
-      Session.InputDataSetPtr, node.DataSetFeatureIdx);
+      Session.InputDataSetPtr, node.getFeatureIdx());
 
   return Builder.CreateLoad(dataSetFeaturePtr);
 }
@@ -59,7 +59,7 @@ Value *CGConditionVectorEmitterAVX::emitDefineTreeNodeValues() {
 
   uint8_t bitOffset = 0;
   for (DecisionTreeNode node : Nodes) {
-    Builder.CreateStore(ConstantFP::get(FloatTy, node.Bias),
+    Builder.CreateStore(ConstantFP::get(FloatTy, node.getFeatureBias()),
                         Builder.CreateConstGEP1_32(compareValues, bitOffset++));
   }
 

@@ -45,7 +45,7 @@ struct DecisionTreeNode {
     return !(lhs == rhs);
   }
 
-  bool hasChildForEvaluation(NodeEvaluation evaluation) const {
+  bool hasChildFor(NodeEvaluation evaluation) const {
     return (evaluation == NodeEvaluation::ContinueZeroLeft)
                ? this->hasLeftChild()
                : this->hasRightChild();
@@ -67,6 +67,11 @@ struct DecisionTreeNode {
   bool hasLeftChild() const { return FalseChildNodeIdx != NoNodeIdx; }
   bool hasRightChild() const { return TrueChildNodeIdx != NoNodeIdx; }
 
+  uint64_t getIdx() const { return NodeIdx; }
+  uint32_t getFeatureIdx() const { return DataSetFeatureIdx; }
+  float getFeatureBias() const { return Bias; }
+
+private:
   uint64_t NodeIdx = NoNodeIdx;
   uint64_t TrueChildNodeIdx = NoNodeIdx;
   uint64_t FalseChildNodeIdx = NoNodeIdx;
@@ -74,7 +79,6 @@ struct DecisionTreeNode {
   uint32_t DataSetFeatureIdx = NoFeatureIdx;
   float Bias = NoBias;
 
-private:
   uint64_t getChildIdxFor(NodeEvaluation evaluation) const {
     return (evaluation == NodeEvaluation::ContinueZeroLeft)
                        ? FalseChildNodeIdx
@@ -86,7 +90,6 @@ private:
   static constexpr float NoBias = std::numeric_limits<float>::quiet_NaN();
 
   friend class DecisionTree;
-  friend class DecisionSubtreeRef;
 };
 
 class DecisionTree {

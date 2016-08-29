@@ -34,7 +34,7 @@ std::list<CGEvaluationPath>
 CGEvaluationPathsBuilder::recurseToChildNode(NodeEvaluation eval,
                                              DecisionTreeNode node,
                                              uint8_t remainingLevels) {
-  if (!node.hasChildForEvaluation(eval))
+  if (!node.hasChildFor(eval))
     return {};
 
   std::list<CGEvaluationPath> paths = buildPathsRecursively(

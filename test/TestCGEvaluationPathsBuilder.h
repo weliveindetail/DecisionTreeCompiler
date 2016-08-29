@@ -67,7 +67,7 @@ TEST(CGEvaluationPathsBuilder, RegularTree2) {
     std::tie(node, nodeCount) = bubbleDown(subtree, std::move(path));
 
     EXPECT_EQ(expectedNodesPerPath, nodeCount);
-    sumResultNodeIdxs += node.NodeIdx;
+    sumResultNodeIdxs += node.getIdx();
   }
 
   EXPECT_EQ(11 + 12 + 13 + 14, sumResultNodeIdxs);
@@ -99,7 +99,7 @@ TEST(CGEvaluationPathsBuilder, RegularTree4) {
     std::tie(node, nodeCount) = bubbleDown(subtree, std::move(path));
 
     EXPECT_EQ(expectedNodesPerPath, nodeCount);
-    sumResultNodeIdxs += node.NodeIdx;
+    sumResultNodeIdxs += node.getIdx();
   }
 
   EXPECT_EQ(8 * (15 + 30), sumResultNodeIdxs);

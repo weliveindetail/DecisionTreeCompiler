@@ -57,8 +57,8 @@ void DecisionTree::finalize() {
   assert(!Finalized);
 
   auto idxLess = [](const auto &lhsPair, const auto &rhsPair) {
-    assert(lhsPair.first == lhsPair.second.NodeIdx);
-    assert(rhsPair.first == rhsPair.second.NodeIdx);
+    assert(lhsPair.first == lhsPair.second.getIdx());
+    assert(rhsPair.first == rhsPair.second.getIdx());
     return lhsPair.first < rhsPair.first;
   };
 
@@ -69,7 +69,7 @@ void DecisionTree::finalize() {
   };
 
   auto maxIdxIt = std::max_element(Nodes.begin(), Nodes.end(), idxLess);
-  FirstResultIdx = maxIdxIt->second.NodeIdx + 1;
+  FirstResultIdx = maxIdxIt->second.getIdx() + 1;
 
   for (const auto &pairIdxNode : Nodes) {
     addResultNodeIfNecessary(pairIdxNode.second.FalseChildNodeIdx);
