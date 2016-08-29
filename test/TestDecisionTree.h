@@ -101,10 +101,10 @@ TEST(DecisionTreeNode, isImplicit) {
   DecisionSubtreeRef subtree = tree.getSubtreeRef(0, 3);
 
   for (int i = 0; i < 7; i++)
-    EXPECT_FALSE(subtree.getNode(i).isImplicit());
+    EXPECT_FALSE(tree.getNode(i).isImplicit());
 
   for (int i = 7; i < 15; i++)
-    EXPECT_TRUE(subtree.getNode(i).isImplicit());
+    EXPECT_TRUE(tree.getNode(i).isImplicit());
 }
 
 TEST(DecisionTreeNode, isLeaf) {
@@ -118,8 +118,8 @@ TEST(DecisionTreeNode, isLeaf) {
   DecisionSubtreeRef subtree = tree.getSubtreeRef(0, 3);
 
   for (int i = 0; i < 7; i++)
-    EXPECT_FALSE(subtree.getNode(i).isLeaf());
+    EXPECT_FALSE(tree.getNode(i).isLeaf());
 
   for (int i = 7; i < 15; i++)
-    EXPECT_TRUE(subtree.getNode(i).isLeaf());
+    EXPECT_TRUE(tree.getNode(i).isLeaf());
 }
