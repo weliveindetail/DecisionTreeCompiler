@@ -24,8 +24,8 @@ public:
   virtual uint8_t getOptimalJointEvaluationDepth() const = 0;
 
   virtual std::vector<CGNodeInfo>
-  emitSubtreeEvaluation(const CompilerSession &session,
-                        CGNodeInfo subtreeRoot) = 0;
+  emitSubtreeEvaluation(CGNodeInfo subtreeRoot,
+                        const CompilerSession &session) = 0;
 
 protected:
   llvm::LLVMContext &Ctx;

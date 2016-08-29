@@ -14,8 +14,8 @@ public:
   uint8_t getOptimalJointEvaluationDepth() const override { return 2; }
 
   std::vector<CGNodeInfo>
-  emitSubtreeEvaluation(const CompilerSession &session,
-                        CGNodeInfo subtreeRoot) override {
+  emitSubtreeEvaluation(CGNodeInfo subtreeRoot,
+                        const CompilerSession &session) override {
     return {};
   }
 

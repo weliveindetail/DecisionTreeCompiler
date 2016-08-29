@@ -16,8 +16,8 @@ CGBase *L3SubtreeSwitchAVX::getFallbackCG() {
 }
 
 std::vector<CGNodeInfo>
-L3SubtreeSwitchAVX::emitSubtreeEvaluation(const CompilerSession &session,
-                                          CGNodeInfo subtreeRoot) {
+L3SubtreeSwitchAVX::emitSubtreeEvaluation(CGNodeInfo subtreeRoot,
+                                          const CompilerSession &session) {
   DecisionSubtreeRef subtreeRef =
       session.Tree.getSubtreeRef(subtreeRoot.Index, Levels);
 

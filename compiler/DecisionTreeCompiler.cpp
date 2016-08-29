@@ -19,14 +19,14 @@ CompileResult DecisionTreeCompiler::compile(CodeGeneratorType codegenType,
   CompilerSession session(this, std::move(tree), std::move(codegen),
                           "sessionName");
 
-  CGNodeInfo root = makeEvalRoot(session, "EvaluatorFunction");
+  CGNodeInfo root = makeEvalRoot("EvaluatorFunction", session);
 
   session.Builder.SetInsertPoint(root.EvalBlock);
   session.OutputNodeIdxPtr = allocOutputVal(session);
   session.InputDataSetPtr = &*root.OwnerFunction->arg_begin();
 
-  std::vector<CGNodeInfo> leafNodes = compileSubtrees(session, root);
-  connectSubtreeEndpoints(session, std::move(leafNodes));
+  std::vector<CGNodeInfo> leafNodes = compileSubtrees(root, session);
+  connectSubtreeEndpoints(std::move(leafNodes), session);
 
   session.Builder.SetInsertPoint(root.ContinuationBlock);
   session.Builder.CreateRet(
@@ -55,8 +55,8 @@ DecisionTreeCompiler::makeCodeGenerator(CodeGeneratorType type) {
   }
 }
 
-CGNodeInfo DecisionTreeCompiler::makeEvalRoot(CompilerSession &session,
-                                              std::string functionName) {
+CGNodeInfo DecisionTreeCompiler::makeEvalRoot(std::string functionName,
+                                              const CompilerSession &session) {
   CGNodeInfo root;
   root.Index = session.Tree.getRootNodeIdx();
 
@@ -102,8 +102,8 @@ Value *DecisionTreeCompiler::allocOutputVal(const CompilerSession &session) {
 }
 
 std::vector<CGNodeInfo>
-DecisionTreeCompiler::compileSubtrees(CompilerSession &session,
-                                      CGNodeInfo rootNode) {
+DecisionTreeCompiler::compileSubtrees(CGNodeInfo rootNode,
+                                      const CompilerSession &session) {
   std::vector<CGNodeInfo> nodesNextLevel = {rootNode};
   uint8_t remainingLevels = session.Tree.getNumLevels();
 
@@ -114,7 +114,7 @@ DecisionTreeCompiler::compileSubtrees(CompilerSession &session,
 
     for (CGNodeInfo node : roots) {
       std::vector<CGNodeInfo> continuationNodes =
-          codegen->emitSubtreeEvaluation(session, node);
+          codegen->emitSubtreeEvaluation(node, session);
 
       std::move(continuationNodes.begin(), continuationNodes.end(),
                 std::back_inserter(nodesNextLevel));
@@ -127,8 +127,8 @@ DecisionTreeCompiler::compileSubtrees(CompilerSession &session,
 }
 
 void DecisionTreeCompiler::connectSubtreeEndpoints(
-    const CompilerSession &session,
-    std::vector<CGNodeInfo> evaluatorEndPoints) {
+    std::vector<CGNodeInfo> evaluatorEndPoints,
+    const CompilerSession &session) {
   for (CGNodeInfo node : evaluatorEndPoints) {
     session.Builder.SetInsertPoint(node.EvalBlock);
 

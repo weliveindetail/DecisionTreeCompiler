@@ -19,8 +19,8 @@ public:
   uint8_t getOptimalJointEvaluationDepth() const override { return Levels; };
 
   std::vector<CGNodeInfo>
-  emitSubtreeEvaluation(const CompilerSession &session,
-                        CGNodeInfo subtreeRoot) override;
+  emitSubtreeEvaluation(CGNodeInfo subtreeRoot,
+                        const CompilerSession &session) override;
 
 private:
   std::unique_ptr<LXSubtreeSwitch> FallbackCGL2 = nullptr;
