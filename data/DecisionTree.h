@@ -98,14 +98,24 @@ public:
   DecisionTree(DecisionTree &&) = default;
   DecisionTree &operator=(DecisionTree &&) = default;
 
+  // no copies as they'd be too expensive
   DecisionTree(const DecisionTree &) = delete;
   DecisionTree &operator=(const DecisionTree &) = delete;
+
+  DecisionTree(uint8_t levels, uint64_t nodes) {
+    Levels = levels;
+    Nodes.reserve(nodes);
+    Finalized = false;
+  }
+
+  void finalize();
 
   uint8_t getNumLevels() const { return Levels; }
   uint64_t getRootNodeIdx() const { return 0; }
   DecisionSubtreeRef getSubtreeRef(uint64_t rootIndex, uint8_t levels) const;
 
   DecisionTreeNode getNode(uint64_t idx) const {
+    assert(Nodes.find(idx) != Nodes.end());
     return Nodes.at(idx);
   }
 
@@ -124,11 +134,10 @@ public:
   }
 
 private:
-  DecisionTree(uint8_t levels, uint64_t nodes) {
-    Levels = levels;
-    Nodes.reserve(nodes);
-    Finalized = false;
-  }
+  bool Finalized = false;
+  uint8_t Levels = 0;
+  uint64_t FirstResultIdx = DecisionTreeNode::NoNodeIdx;
+  std::unordered_map<uint64_t, DecisionTreeNode> Nodes;
 
   void addImplicitNode(uint64_t nodeIdx) {
     DecisionTreeNode node;
@@ -136,16 +145,6 @@ private:
     assert(node.isImplicit());
     Nodes.emplace(nodeIdx, std::move(node));
   }
-
-  void finalize();
-
-  bool Finalized = false;
-  uint8_t Levels = 0;
-  uint64_t FirstResultIdx = DecisionTreeNode::NoNodeIdx;
-  std::unordered_map<uint64_t, DecisionTreeNode> Nodes;
-
-  friend class DecisionTreeFactory;
-  friend class DecisionSubtreeRef;
 };
 
 class DecisionTreeFactory {
