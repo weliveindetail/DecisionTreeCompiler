@@ -20,8 +20,7 @@ public:
   CGBase(llvm::LLVMContext &ctx) : Ctx(ctx) {}
   virtual ~CGBase() {}
 
-  virtual CGBase *getFallbackCG() = 0;
-  virtual uint8_t getOptimalJointEvaluationDepth() const = 0;
+  virtual uint8_t getJointSubtreeDepth() const = 0;
 
   virtual std::vector<CGNodeInfo>
   emitSubtreeEvaluation(CGNodeInfo subtreeRoot,

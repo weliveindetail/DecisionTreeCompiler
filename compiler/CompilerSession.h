@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <memory>
 #include <string>
 
@@ -13,6 +14,10 @@
 class CGBase;
 class DecisionTreeCompiler;
 
+class L1IfThenElse;
+class LXSubtreeSwitch;
+class L3SubtreeSwitchAVX;
+
 struct CompilerSession final {
   CompilerSession() = delete;
   CompilerSession(CompilerSession &&) = delete;
@@ -20,14 +25,12 @@ struct CompilerSession final {
   CompilerSession &operator=(CompilerSession &&) = delete;
   CompilerSession &operator=(const CompilerSession &) = delete;
 
-  CompilerSession(DecisionTreeCompiler *compiler, DecisionTree tree,
-                  std::unique_ptr<CGBase> preferredCodegen, std::string name);
+  CompilerSession(DecisionTreeCompiler *compiler, std::string name);
 
   mutable llvm::IRBuilder<> Builder;
 
   DecisionTree Tree;
-  std::unique_ptr<llvm::Module> Module;
-  std::unique_ptr<CGBase> PreferredCodegen;
+  std::unique_ptr<llvm::Module> Module = nullptr;
 
   llvm::Type *NodeIdxTy;
   llvm::Type *DataSetFeatureValueTy;
@@ -35,5 +38,12 @@ struct CompilerSession final {
   llvm::Value *InputDataSetPtr;
   llvm::Value *OutputNodeIdxPtr;
 
+  bool AvxSupport = false;
+
   CGBase *selectCodeGenerator(uint8_t remainingLevels) const;
+
+private:
+  mutable std::unique_ptr<L1IfThenElse> CachedGenL1IfThenElse;
+  mutable std::unique_ptr<L3SubtreeSwitchAVX> CachedGenL3SubtreeSwitchAVX;
+  mutable std::map<int, std::unique_ptr<LXSubtreeSwitch>> CachedGensLXSubtreeSwitch;
 };

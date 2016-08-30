@@ -5,19 +5,18 @@
 #include "codegen/CGBase.h"
 
 class CompilerSession;
-class L1IfThenElse;
 
 class LXSubtreeSwitch : public CGBase {
 public:
-  LXSubtreeSwitch(llvm::LLVMContext &ctx) : CGBase(ctx) {}
+  LXSubtreeSwitch(llvm::LLVMContext &ctx, uint8_t levels)
+      : CGBase(ctx), Levels(levels) {}
 
-  CGBase *getFallbackCG() override;
-  uint8_t getOptimalJointEvaluationDepth() const override { return 2; }
+  uint8_t getJointSubtreeDepth() const override { return Levels; }
 
   std::vector<CGNodeInfo>
   emitSubtreeEvaluation(CGNodeInfo subtreeRoot,
                         const CompilerSession &session) override;
 
 private:
-  std::unique_ptr<L1IfThenElse> FallbackCGL1 = nullptr;
+  uint8_t Levels;
 };

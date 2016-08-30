@@ -1,19 +1,11 @@
 #include "codegen/L3SubtreeSwitchAVX.h"
 
-#include "codegen/LXSubtreeSwitch.h"
 #include "codegen/utility/CGConditionVectorEmitter.h"
 #include "codegen/utility/CGConditionVectorVariationsBuilder.h"
 #include "codegen/utility/CGEvaluationPathsBuilder.h"
 #include "compiler/CompilerSession.h"
 
 using namespace llvm;
-
-CGBase *L3SubtreeSwitchAVX::getFallbackCG() {
-  if (!FallbackCGL2)
-    FallbackCGL2 = std::make_unique<LXSubtreeSwitch>(Ctx);
-
-  return FallbackCGL2.get();
-}
 
 std::vector<CGNodeInfo>
 L3SubtreeSwitchAVX::emitSubtreeEvaluation(CGNodeInfo subtreeRoot,

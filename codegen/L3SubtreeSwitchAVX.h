@@ -8,7 +8,6 @@
 #include "codegen/utility/CGEvaluationPath.h"
 
 class CompilerSession;
-class LXSubtreeSwitch;
 
 class L3SubtreeSwitchAVX : public CGBase {
   constexpr static uint8_t Levels = 3;
@@ -16,16 +15,13 @@ class L3SubtreeSwitchAVX : public CGBase {
 public:
   L3SubtreeSwitchAVX(llvm::LLVMContext &ctx) : CGBase(ctx) {}
 
-  CGBase *getFallbackCG() override;
-  uint8_t getOptimalJointEvaluationDepth() const override { return Levels; };
+  uint8_t getJointSubtreeDepth() const override { return Levels; };
 
   std::vector<CGNodeInfo>
   emitSubtreeEvaluation(CGNodeInfo subtreeRoot,
                         const CompilerSession &session) override;
 
 private:
-  std::unique_ptr<LXSubtreeSwitch> FallbackCGL2 = nullptr;
-
   std::vector<CGNodeInfo>
   emitSwitchTargets(const std::vector<CGEvaluationPath> &evaluationPaths,
                     llvm::Function *ownerFunction, llvm::BasicBlock *returnBB);

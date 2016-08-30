@@ -8,8 +8,7 @@ class L1IfThenElse : public CGBase {
 public:
   L1IfThenElse(llvm::LLVMContext &ctx) : CGBase(ctx) {}
 
-  CGBase *getFallbackCG() override { return this; }
-  uint8_t getOptimalJointEvaluationDepth() const override { return 1; }
+  uint8_t getJointSubtreeDepth() const override { return 1; }
 
   std::vector<CGNodeInfo>
   emitSubtreeEvaluation(CGNodeInfo subtreeRoot,

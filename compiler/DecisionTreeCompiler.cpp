@@ -1,23 +1,26 @@
 #include "DecisionTreeCompiler.h"
 
-#include <llvm/ExecutionEngine/ExecutionEngine.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Support/Host.h>
 #include <llvm/Support/ManagedStatic.h>
 #include <llvm/Support/TargetSelect.h>
 
 #include "codegen/L1IfThenElse.h"
-#include "codegen/L3SubtreeSwitchAVX.h"
 #include "codegen/LXSubtreeSwitch.h"
+#include "codegen/L3SubtreeSwitchAVX.h"
 
-#include "CompilerSession.h"
+#include "compiler/CompilerSession.h"
 
 using namespace llvm;
 
-CompileResult DecisionTreeCompiler::compile(CodeGeneratorType codegenType,
-                                            DecisionTree tree) {
-  std::unique_ptr<CGBase> codegen = makeCodeGenerator(codegenType);
-  CompilerSession session(this, std::move(tree), std::move(codegen),
-                          "sessionName");
+DecisionTreeCompiler::DecisionTreeCompiler() {
+  llvm::sys::getHostCPUFeatures(CpuFeatures);
+}
+
+CompileResult DecisionTreeCompiler::compile(DecisionTree tree) {
+  CompilerSession session(this, "sessionName");
+  session.AvxSupport = CpuFeatures["avx"];
+  session.Tree = std::move(tree);
 
   CGNodeInfo root = makeEvalRoot("EvaluatorFunction", session);
 
@@ -39,20 +42,6 @@ CompileResult DecisionTreeCompiler::compile(CodeGeneratorType codegenType,
   result.Success = verifyFunction(*root.OwnerFunction);
 
   return result;
-}
-
-std::unique_ptr<CGBase>
-DecisionTreeCompiler::makeCodeGenerator(CodeGeneratorType type) {
-  switch (type) {
-  case CodeGeneratorType::L1IfThenElse:
-    return std::make_unique<L1IfThenElse>(Ctx);
-
-  case CodeGeneratorType::LXSubtreeSwitch:
-    return std::make_unique<LXSubtreeSwitch>(Ctx);
-
-  case CodeGeneratorType::L3SubtreeSwitchAVX:
-    return std::make_unique<L3SubtreeSwitchAVX>(Ctx);
-  }
 }
 
 CGNodeInfo DecisionTreeCompiler::makeEvalRoot(std::string functionName,
@@ -120,7 +109,7 @@ DecisionTreeCompiler::compileSubtrees(CGNodeInfo rootNode,
                 std::back_inserter(nodesNextLevel));
     }
 
-    remainingLevels -= codegen->getOptimalJointEvaluationDepth();
+    remainingLevels -= codegen->getJointSubtreeDepth();
   }
 
   return nodesNextLevel;
@@ -136,14 +125,6 @@ void DecisionTreeCompiler::connectSubtreeEndpoints(
     session.Builder.CreateStore(nodeIdxVal, session.OutputNodeIdxPtr);
     session.Builder.CreateBr(node.ContinuationBlock);
   }
-}
-
-std::unique_ptr<llvm::Module>
-DecisionTreeCompiler::makeModule(std::string name) {
-  auto M = std::make_unique<llvm::Module>("file:" + name, Ctx);
-  M->setDataLayout(EngineBuilder().selectTarget()->createDataLayout());
-
-  return M;
 }
 
 DecisionTreeCompiler::AutoSetUpTearDownLLVM::AutoSetUpTearDownLLVM() {
@@ -162,5 +143,5 @@ DecisionTreeCompiler::AutoSetUpTearDownLLVM::~AutoSetUpTearDownLLVM() {
   }
 }
 
-// static inti
+// static init
 std::atomic<int> DecisionTreeCompiler::AutoSetUpTearDownLLVM::instances{0};

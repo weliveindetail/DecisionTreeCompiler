@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include <llvm/ADT/StringMap.h>
 #include <llvm/IR/Function.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
@@ -14,12 +15,6 @@
 
 class CGBase;
 class CompilerSession;
-
-enum class CodeGeneratorType {
-  L1IfThenElse,
-  LXSubtreeSwitch,
-  L3SubtreeSwitchAVX
-};
 
 struct CompileResult {
   DecisionTree Tree;
@@ -32,10 +27,8 @@ class DecisionTreeCompiler {
 public:
   llvm::LLVMContext Ctx;
 
-  std::unique_ptr<llvm::Module> makeModule(std::string name);
-  std::unique_ptr<CGBase> makeCodeGenerator(CodeGeneratorType type);
-
-  CompileResult compile(CodeGeneratorType codegenType, DecisionTree tree);
+  DecisionTreeCompiler();
+  CompileResult compile(DecisionTree tree);
 
 private:
   std::vector<CGNodeInfo> compileSubtrees(CGNodeInfo rootNode,
@@ -56,6 +49,8 @@ private:
   llvm::Value *allocOutputVal(const CompilerSession &session);
 
 private:
+  llvm::StringMap<bool> CpuFeatures;
+
   struct AutoSetUpTearDownLLVM {
     AutoSetUpTearDownLLVM();
     ~AutoSetUpTearDownLLVM();
