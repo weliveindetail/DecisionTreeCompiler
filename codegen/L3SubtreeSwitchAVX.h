@@ -4,16 +4,16 @@
 
 #include <llvm/IR/Instructions.h>
 
-#include "codegen/CGBase.h"
+#include "codegen/CodeGenerator.h"
 #include "codegen/utility/CGEvaluationPath.h"
 
 class CompilerSession;
 
-class L3SubtreeSwitchAVX : public CGBase {
+class L3SubtreeSwitchAVX : public CodeGenerator {
   constexpr static uint8_t Levels = 3;
 
 public:
-  L3SubtreeSwitchAVX(llvm::LLVMContext &ctx) : CGBase(ctx) {}
+  L3SubtreeSwitchAVX(llvm::LLVMContext &ctx) : CodeGenerator(ctx) {}
 
   uint8_t getJointSubtreeDepth() const override { return Levels; };
 

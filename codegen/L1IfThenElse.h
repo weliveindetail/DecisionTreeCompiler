@@ -1,12 +1,12 @@
 #pragma once
 
-#include "codegen/CGBase.h"
+#include "codegen/CodeGenerator.h"
 
 class CompilerSession;
 
-class L1IfThenElse : public CGBase {
+class L1IfThenElse : public CodeGenerator {
 public:
-  L1IfThenElse(llvm::LLVMContext &ctx) : CGBase(ctx) {}
+  L1IfThenElse(llvm::LLVMContext &ctx) : CodeGenerator(ctx) {}
 
   uint8_t getJointSubtreeDepth() const override { return 1; }
 

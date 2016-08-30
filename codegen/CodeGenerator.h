@@ -9,16 +9,16 @@
 
 class CompilerSession;
 
-class CGBase {
+class CodeGenerator {
 public:
-  CGBase() = delete;
-  CGBase(CGBase &&) = delete;
-  CGBase(const CGBase &) = delete;
-  CGBase &operator=(CGBase &&) = delete;
-  CGBase &operator=(const CGBase &) = delete;
+  CodeGenerator() = delete;
+  CodeGenerator(CodeGenerator &&) = delete;
+  CodeGenerator(const CodeGenerator &) = delete;
+  CodeGenerator &operator=(CodeGenerator &&) = delete;
+  CodeGenerator &operator=(const CodeGenerator &) = delete;
 
-  CGBase(llvm::LLVMContext &ctx) : Ctx(ctx) {}
-  virtual ~CGBase() {}
+  CodeGenerator(llvm::LLVMContext &ctx) : Ctx(ctx) {}
+  virtual ~CodeGenerator() {}
 
   virtual uint8_t getJointSubtreeDepth() const = 0;
 

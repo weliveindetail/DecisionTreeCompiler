@@ -11,7 +11,7 @@
 
 #include "data/DecisionTree.h"
 
-class CGBase;
+class CodeGenerator;
 class DecisionTreeCompiler;
 
 class L1IfThenElse;
@@ -40,7 +40,7 @@ struct CompilerSession final {
 
   bool AvxSupport = false;
 
-  CGBase *selectCodeGenerator(uint8_t remainingLevels) const;
+  CodeGenerator *selectCodeGenerator(uint8_t remainingLevels) const;
 
 private:
   mutable std::unique_ptr<L1IfThenElse> CachedGenL1IfThenElse;

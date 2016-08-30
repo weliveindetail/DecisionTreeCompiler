@@ -13,7 +13,6 @@
 #include "codegen/utility/CGNodeInfo.h"
 #include "data/DecisionTree.h"
 
-class CGBase;
 class CompilerSession;
 
 struct CompileResult {

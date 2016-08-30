@@ -2,14 +2,14 @@
 
 #include <memory>
 
-#include "codegen/CGBase.h"
+#include "codegen/CodeGenerator.h"
 
 class CompilerSession;
 
-class LXSubtreeSwitch : public CGBase {
+class LXSubtreeSwitch : public CodeGenerator {
 public:
   LXSubtreeSwitch(llvm::LLVMContext &ctx, uint8_t levels)
-      : CGBase(ctx), Levels(levels) {}
+      : CodeGenerator(ctx), Levels(levels) {}
 
   uint8_t getJointSubtreeDepth() const override { return Levels; }
 

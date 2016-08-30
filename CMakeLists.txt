@@ -31,7 +31,7 @@ set(SOURCE_FILES
         SimpleOrcJit.h
         SimpleObjectCache.h
         Utils.h
-        codegen/CGBase.h
+        codegen/CodeGenerator.h
         codegen/L1IfThenElse.h
         codegen/L3SubtreeSwitchAVX.h
         codegen/L3SubtreeSwitchAVX.cpp

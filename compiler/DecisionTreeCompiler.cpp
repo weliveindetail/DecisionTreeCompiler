@@ -97,7 +97,7 @@ DecisionTreeCompiler::compileSubtrees(CGNodeInfo rootNode,
   uint8_t remainingLevels = session.Tree.getNumLevels();
 
   while (remainingLevels > 0) {
-    CGBase *codegen = session.selectCodeGenerator(remainingLevels);
+    CodeGenerator *codegen = session.selectCodeGenerator(remainingLevels);
     std::vector<CGNodeInfo> roots = std::move(nodesNextLevel);
     nodesNextLevel.clear();
 
