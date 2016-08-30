@@ -167,6 +167,11 @@ struct DecisionSubtreeRef {
   DecisionSubtreeRef(const DecisionTree *tree, DecisionTreeNode root,
                      uint8_t levels);
 
+  bool isComplete() const {
+    // todo: implement this for non-regular trees
+    return true;
+  }
+
   DecisionTreeNode getNode(uint64_t idx) const {
     return Tree->getNode(idx);
   }

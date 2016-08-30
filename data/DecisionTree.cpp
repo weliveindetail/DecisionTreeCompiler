@@ -13,6 +13,9 @@ DecisionSubtreeRef::DecisionSubtreeRef(const DecisionTree *tree,
   assert(!Root.isImplicit());
   assert(Levels > 0 && Levels <= 4); // max node count is 31
   assert(Tree->getNode(Root.getIdx()) == Root);
+
+  // make sure we have a complete subtree
+  assert(collectNodesPreOrder().size() == TreeNodes(Levels));
 }
 
 std::list<DecisionTreeNode> DecisionSubtreeRef::collectNodesPreOrder() const {
