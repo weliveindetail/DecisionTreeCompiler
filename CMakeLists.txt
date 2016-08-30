@@ -48,37 +48,35 @@ set(SOURCE_FILES
         compiler/CompilerSession.cpp
         compiler/DecisionTreeCompiler.h
         compiler/DecisionTreeCompiler.cpp
+        data/DecisionSubtreeRef.h
         data/DecisionTree.h
         data/DecisionTree.cpp
+        data/DecisionTreeNode.h
+        data/DecisionTreeNode.cpp
         test/TestCGConditionVectorVariationsBuilder.h
         test/TestCGEvaluationPath.h
         test/TestCGEvaluationPathsBuilder.h
         test/TestDecisionTree.h)
 
-# libEvalTreeJit project
+# libEvalTreeJit
 add_library(EvalTreeJit ${SOURCE_FILES})
-target_include_directories(EvalTreeJit
-        PUBLIC ${CMAKE_CURRENT_SOURCE_DIR} ${LLVM_INCLUDE_DIRS} 3rdparty/json/src)
-target_link_libraries(EvalTreeJit
-        PUBLIC ${LLVM_LIBS})
+target_include_directories(EvalTreeJit            PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+                                                         ${LLVM_INCLUDE_DIRS}
+                                                         3rdparty/json/src)
 
-# static driver for libEvalTreeJit
+target_link_libraries     (EvalTreeJit            PUBLIC ${LLVM_LIBS})
+
+# static driver
 add_executable(EvalTreeJit_Static main_static.cpp driver/StaticDriver.h)
-target_include_directories(EvalTreeJit_Static
-        PRIVATE EvalTreeJit)
-target_link_libraries(EvalTreeJit_Static
-        PRIVATE EvalTreeJit)
+target_include_directories(EvalTreeJit_Static     PRIVATE EvalTreeJit)
+target_link_libraries     (EvalTreeJit_Static     PRIVATE EvalTreeJit)
 
-# benchmarking libEvalTreeJit
+# benchmark
 add_executable(EvalTreeJit_Benchmark main_benchmark.cpp)
-target_include_directories(EvalTreeJit_Benchmark
-        PRIVATE EvalTreeJit benchmark)
-target_link_libraries(EvalTreeJit_Benchmark
-        PRIVATE EvalTreeJit benchmark)
+target_include_directories(EvalTreeJit_Benchmark  PRIVATE EvalTreeJit benchmark)
+target_link_libraries     (EvalTreeJit_Benchmark  PRIVATE EvalTreeJit benchmark)
 
-# testing libEvalTreeJit
+# unit tests
 add_executable(EvalTreeJit_Test main_test.cpp)
-target_include_directories(EvalTreeJit_Test
-        PRIVATE EvalTreeJit googletest)
-target_link_libraries(EvalTreeJit_Test
-        PRIVATE EvalTreeJit gtest)
+target_include_directories(EvalTreeJit_Test       PRIVATE EvalTreeJit googletest)
+target_link_libraries     (EvalTreeJit_Test       PRIVATE EvalTreeJit gtest)

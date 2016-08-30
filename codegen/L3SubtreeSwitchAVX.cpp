@@ -16,8 +16,8 @@ CGBase *L3SubtreeSwitchAVX::getFallbackCG() {
 }
 
 std::vector<CGNodeInfo>
-L3SubtreeSwitchAVX::emitSubtreeEvaluation(const CompilerSession &session,
-                                          CGNodeInfo subtreeRoot) {
+L3SubtreeSwitchAVX::emitSubtreeEvaluation(CGNodeInfo subtreeRoot,
+                                          const CompilerSession &session) {
   DecisionSubtreeRef subtreeRef =
       session.Tree.getSubtreeRef(subtreeRoot.Index, Levels);
 
@@ -74,7 +74,7 @@ std::vector<CGNodeInfo> L3SubtreeSwitchAVX::emitSwitchTargets(
 
   // create a continuation node-info for each path endpoint
   for (const CGEvaluationPath &path : evaluationPaths) {
-    uint64_t idx = path.getContinuationNode().NodeIdx;
+    uint64_t idx = path.getDestNode().getIdx();
     std::string label = "n" + std::to_string(idx);
     BasicBlock *BB = BasicBlock::Create(Ctx, label, ownerFunction);
 

@@ -13,8 +13,7 @@
 class CGBase;
 class DecisionTreeCompiler;
 
-class CompilerSession {
-public:
+struct CompilerSession final {
   CompilerSession() = delete;
   CompilerSession(CompilerSession &&) = delete;
   CompilerSession(const CompilerSession &) = delete;

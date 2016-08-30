@@ -38,13 +38,14 @@ public:
   CompileResult compile(CodeGeneratorType codegenType, DecisionTree tree);
 
 private:
-  std::vector<CGNodeInfo> compileSubtrees(CompilerSession &session,
-                                          CGNodeInfo rootNode);
+  std::vector<CGNodeInfo> compileSubtrees(CGNodeInfo rootNode,
+                                          const CompilerSession &session);
 
-  void connectSubtreeEndpoints(const CompilerSession &session,
-                               std::vector<CGNodeInfo> evaluatorEndPoints);
+  void connectSubtreeEndpoints(std::vector<CGNodeInfo> evaluatorEndPoints,
+                               const CompilerSession &session);
 
-  CGNodeInfo makeEvalRoot(CompilerSession &session, std::string functionName);
+  CGNodeInfo makeEvalRoot(std::string functionName,
+                          const CompilerSession &session);
 
   llvm::FunctionType *getEvalFunctionTy(const CompilerSession &session);
 

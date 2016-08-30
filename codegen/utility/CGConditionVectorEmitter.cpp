@@ -1,6 +1,8 @@
 #include "CGConditionVectorEmitter.h"
 #include "compiler/CompilerSession.h"
 
+#include <algorithm>
+
 using namespace llvm;
 
 CGConditionVectorEmitterBase::CGConditionVectorEmitterBase(
@@ -10,20 +12,9 @@ CGConditionVectorEmitterBase::CGConditionVectorEmitterBase(
 
 CGConditionVectorEmitterAVX::CGConditionVectorEmitterAVX(
     const CompilerSession &session, DecisionSubtreeRef subtree)
-    : CGConditionVectorEmitterBase(session), Subtree(std::move(subtree)) {
+    : CGConditionVectorEmitterBase(session), Subtree(std::move(subtree)),
+      Nodes(moveToArray<AvxPackSize - 1>(Subtree.collectNodesPreOrder())) {
   assert(Subtree.getNodeCount() == AvxPackSize - 1);
-  collectSubtreeNodes();
-}
-
-void CGConditionVectorEmitterAVX::collectSubtreeNodes() {
-  std::vector<uint64_t> nodeIdxs = Subtree.collectNodeIndices();
-
-  auto getNodeFromIdx = [this](uint64_t idx) {
-    return const_cast<DecisionTreeNode *>(&Subtree.getNode(idx));
-  };
-
-  assert(nodeIdxs.size() == Nodes.size());
-  transform(nodeIdxs.begin(), nodeIdxs.end(), Nodes.begin(), getNodeFromIdx);
 }
 
 Value *CGConditionVectorEmitterAVX::run(CGNodeInfo subtreeRoot) {
@@ -46,8 +37,8 @@ Value *CGConditionVectorEmitterAVX::emitCollectDataSetValues() {
       new AllocaInst(FloatTy, AvxPackSizeVal, AvxAlignment), "featureValues");
 
   uint8_t bitOffset = 0;
-  for (DecisionTreeNode *node : Nodes) {
-    Builder.CreateStore(emitLoadFeatureValue(node),
+  for (DecisionTreeNode node : Nodes) {
+    Builder.CreateStore(emitLoadFeatureValue(std::move(node)),
                         Builder.CreateConstGEP1_32(featureValues, bitOffset++));
   }
 
@@ -55,9 +46,9 @@ Value *CGConditionVectorEmitterAVX::emitCollectDataSetValues() {
 }
 
 Value *
-CGConditionVectorEmitterAVX::emitLoadFeatureValue(DecisionTreeNode *node) {
+CGConditionVectorEmitterAVX::emitLoadFeatureValue(DecisionTreeNode node) {
   llvm::Value *dataSetFeaturePtr = Builder.CreateConstGEP1_32(
-      Session.InputDataSetPtr, node->DataSetFeatureIdx);
+      Session.InputDataSetPtr, node.getFeatureIdx());
 
   return Builder.CreateLoad(dataSetFeaturePtr);
 }
@@ -67,8 +58,8 @@ Value *CGConditionVectorEmitterAVX::emitDefineTreeNodeValues() {
       new AllocaInst(FloatTy, AvxPackSizeVal, AvxAlignment), "compareValues");
 
   uint8_t bitOffset = 0;
-  for (DecisionTreeNode *node : Nodes) {
-    Builder.CreateStore(ConstantFP::get(FloatTy, node->Bias),
+  for (DecisionTreeNode node : Nodes) {
+    Builder.CreateStore(ConstantFP::get(FloatTy, node.getFeatureBias()),
                         Builder.CreateConstGEP1_32(compareValues, bitOffset++));
   }
 

@@ -13,17 +13,16 @@ CGConditionVectorVariationsBuilder::run(CGEvaluationPath path) {
       buildVariantsRecursively(fixedBitsTemplate, variableBitOffsets, 0);
 
   assert(variants.size() == PowerOf2(variableBitOffsets.size()));
-  return copyListToVector(std::move(variants));
+  return moveToVector(std::move(variants));
 }
 
 uint32_t CGConditionVectorVariationsBuilder::buildFixedBitsTemplate(
     CGEvaluationPath path) const {
   uint32_t fixedBits = 0;
 
-  for (uint8_t bitOffset = 0; bitOffset < NodeIdxs.size(); bitOffset++) {
-    uint64_t idx = NodeIdxs.at(bitOffset);
-    if (auto node = path.findNode(idx)) {
-      uint32_t bit = node->getEvaluationValue();
+  for (uint8_t bitOffset = 0; bitOffset < Nodes.size(); bitOffset++) {
+    if (auto step = path.findStepFromNode(Nodes.at(bitOffset))) {
+      uint32_t bit = step->getSrcNodeEvalValue();
       uint32_t vectorBit = bit << bitOffset;
       fixedBits |= vectorBit;
     }
@@ -37,8 +36,8 @@ CGConditionVectorVariationsBuilder::collectVariableBitOffsets(
     CGEvaluationPath path) const {
   std::vector<uint8_t> variableBitOffsets;
 
-  for (uint8_t bitOffset = 0; bitOffset < NodeIdxs.size(); bitOffset++) {
-    if (!path.hasNodeIdx(NodeIdxs.at(bitOffset))) {
+  for (uint8_t bitOffset = 0; bitOffset < Nodes.size(); bitOffset++) {
+    if (!path.hasNode(Nodes.at(bitOffset))) {
       variableBitOffsets.push_back(bitOffset);
     }
   }

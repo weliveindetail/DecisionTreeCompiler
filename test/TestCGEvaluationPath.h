@@ -11,15 +11,17 @@ TEST(CGEvaluationPath, RegularTree1) {
   //        1         2   (implicit result nodes)
 
   DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(1, 100);
-  DecisionSubtreeRef s = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 1);
+  DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 1);
 
-  // create path 0 -> 2
+  // test path 0 -> 2
   {
-    CGEvaluationPath p(s, s.getNode(2));
-    p.addParent(s.getNode(0), NodeEvaluation::ContinueOneRight);
+    CGEvaluationPath path(subtree, tree.getNode(2));
+    path.addParent(tree.getNode(0), NodeEvaluation::ContinueOneRight);
 
-    EXPECT_EQ(&s.getNode(0), &p.Nodes[0].getNodeData());
-    EXPECT_EQ(&s.getNode(2), &p.Nodes[0].getChildNodeData());
+    EXPECT_EQ(tree.getNode(0), path.getSrcNode());
+    EXPECT_EQ(tree.getNode(0), path.getStep(0).getSrcNode());
+    EXPECT_EQ(tree.getNode(2), path.getStep(0).getDestNode());
+    EXPECT_EQ(tree.getNode(2), path.getDestNode());
   }
 }
 
@@ -29,34 +31,38 @@ TEST(CGEvaluationPath, RegularTree2) {
   //        1         2
   //    3     4     5     6
   //  7 8   9 10  11 12  13 14   (implicit result nodes)
-  //                 ^^^^^^^^^^^^
-  //           looking at this subtree
+  //              ^^^^^^^^^^^^
+  //        looking at this subtree
 
   DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
-  DecisionSubtreeRef s = tree.getSubtreeRef(/*root*/ 2, /*levels*/ 2);
+  DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 2, /*levels*/ 2);
 
-  // create path 2 -> 5 -> 12
+  // test path 2 -> 5 -> 12
   {
-    CGEvaluationPath p(s, s.getNode(12));
-    p.addParent(s.getNode(5), NodeEvaluation::ContinueOneRight);
-    p.addParent(s.getNode(2), NodeEvaluation::ContinueZeroLeft);
+    CGEvaluationPath path(subtree, tree.getNode(12));
+    path.addParent(tree.getNode(5), NodeEvaluation::ContinueOneRight);
+    path.addParent(tree.getNode(2), NodeEvaluation::ContinueZeroLeft);
 
-    EXPECT_EQ(s.getNode(2).NodeIdx, p.Nodes[0].getNodeData().NodeIdx);
-    EXPECT_EQ(s.getNode(5).NodeIdx, p.Nodes[0].getChildNodeData().NodeIdx);
-    EXPECT_EQ(s.getNode(5).NodeIdx, p.Nodes[1].getNodeData().NodeIdx);
-    EXPECT_EQ(s.getNode(12).NodeIdx, p.Nodes[1].getChildNodeData().NodeIdx);
+    EXPECT_EQ(tree.getNode(2), path.getSrcNode());
+    EXPECT_EQ(tree.getNode(2), path.getStep(0).getSrcNode());
+    EXPECT_EQ(tree.getNode(5), path.getStep(0).getDestNode());
+    EXPECT_EQ(tree.getNode(5), path.getStep(1).getSrcNode());
+    EXPECT_EQ(tree.getNode(12), path.getStep(1).getDestNode());
+    EXPECT_EQ(tree.getNode(12), path.getDestNode());
   }
 
-  // create path 2 -> 6 -> 14
+  // test path 2 -> 6 -> 14
   {
-    CGEvaluationPath p(s, s.getNode(14));
-    p.addParent(s.getNode(6), NodeEvaluation::ContinueOneRight);
-    p.addParent(s.getNode(2), NodeEvaluation::ContinueOneRight);
+    CGEvaluationPath path(subtree, tree.getNode(14));
+    path.addParent(tree.getNode(6), NodeEvaluation::ContinueOneRight);
+    path.addParent(tree.getNode(2), NodeEvaluation::ContinueOneRight);
 
-    EXPECT_EQ(&s.getNode(2), &p.Nodes[0].getNodeData());
-    EXPECT_EQ(&s.getNode(6), &p.Nodes[0].getChildNodeData());
-    EXPECT_EQ(&s.getNode(6), &p.Nodes[1].getNodeData());
-    EXPECT_EQ(&s.getNode(14), &p.Nodes[1].getChildNodeData());
+    EXPECT_EQ(tree.getNode(2), path.getSrcNode());
+    EXPECT_EQ(tree.getNode(2), path.getStep(0).getSrcNode());
+    EXPECT_EQ(tree.getNode(6), path.getStep(0).getDestNode());
+    EXPECT_EQ(tree.getNode(6), path.getStep(1).getSrcNode());
+    EXPECT_EQ(tree.getNode(14), path.getStep(1).getDestNode());
+    EXPECT_EQ(tree.getNode(14), path.getDestNode());
   }
 }
 
@@ -68,35 +74,39 @@ TEST(CGEvaluationPath, RegularTree3) {
   //  7 8   9 10  11 12  13 14   (implicit result nodes)
 
   DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
-  DecisionSubtreeRef s = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 3);
+  DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 3);
 
-  // create path 0 -> 1 -> 3 -> 8
+  // test path 0 -> 1 -> 3 -> 8
   {
-    CGEvaluationPath p(s, s.getNode(8));
-    p.addParent(s.getNode(3), NodeEvaluation::ContinueOneRight);
-    p.addParent(s.getNode(1), NodeEvaluation::ContinueZeroLeft);
-    p.addParent(s.getNode(0), NodeEvaluation::ContinueZeroLeft);
+    CGEvaluationPath path(subtree, tree.getNode(8));
+    path.addParent(tree.getNode(3), NodeEvaluation::ContinueOneRight);
+    path.addParent(tree.getNode(1), NodeEvaluation::ContinueZeroLeft);
+    path.addParent(tree.getNode(0), NodeEvaluation::ContinueZeroLeft);
 
-    EXPECT_EQ(&s.getNode(0), &p.Nodes[0].getNodeData());
-    EXPECT_EQ(&s.getNode(1), &p.Nodes[0].getChildNodeData());
-    EXPECT_EQ(&s.getNode(1), &p.Nodes[1].getNodeData());
-    EXPECT_EQ(&s.getNode(3), &p.Nodes[1].getChildNodeData());
-    EXPECT_EQ(&s.getNode(3), &p.Nodes[2].getNodeData());
-    EXPECT_EQ(&s.getNode(8), &p.Nodes[2].getChildNodeData());
+    EXPECT_EQ(tree.getNode(0), path.getSrcNode());
+    EXPECT_EQ(tree.getNode(0), path.getStep(0).getSrcNode());
+    EXPECT_EQ(tree.getNode(1), path.getStep(0).getDestNode());
+    EXPECT_EQ(tree.getNode(1), path.getStep(1).getSrcNode());
+    EXPECT_EQ(tree.getNode(3), path.getStep(1).getDestNode());
+    EXPECT_EQ(tree.getNode(3), path.getStep(2).getSrcNode());
+    EXPECT_EQ(tree.getNode(8), path.getStep(2).getDestNode());
+    EXPECT_EQ(tree.getNode(8), path.getDestNode());
   }
 
-  // create path 0 -> 2 -> 6 -> 14
+  // test path 0 -> 2 -> 6 -> 14
   {
-    CGEvaluationPath p(s, s.getNode(14));
-    p.addParent(s.getNode(6), NodeEvaluation::ContinueOneRight);
-    p.addParent(s.getNode(2), NodeEvaluation::ContinueOneRight);
-    p.addParent(s.getNode(0), NodeEvaluation::ContinueOneRight);
+    CGEvaluationPath path(subtree, tree.getNode(14));
+    path.addParent(tree.getNode(6), NodeEvaluation::ContinueOneRight);
+    path.addParent(tree.getNode(2), NodeEvaluation::ContinueOneRight);
+    path.addParent(tree.getNode(0), NodeEvaluation::ContinueOneRight);
 
-    EXPECT_EQ(&s.getNode(0), &p.Nodes[0].getNodeData());
-    EXPECT_EQ(&s.getNode(2), &p.Nodes[0].getChildNodeData());
-    EXPECT_EQ(&s.getNode(2), &p.Nodes[1].getNodeData());
-    EXPECT_EQ(&s.getNode(6), &p.Nodes[1].getChildNodeData());
-    EXPECT_EQ(&s.getNode(6), &p.Nodes[2].getNodeData());
-    EXPECT_EQ(&s.getNode(14), &p.Nodes[2].getChildNodeData());
+    EXPECT_EQ(tree.getNode(0), path.getSrcNode());
+    EXPECT_EQ(tree.getNode(0), path.getStep(0).getSrcNode());
+    EXPECT_EQ(tree.getNode(2), path.getStep(0).getDestNode());
+    EXPECT_EQ(tree.getNode(2), path.getStep(1).getSrcNode());
+    EXPECT_EQ(tree.getNode(6), path.getStep(1).getDestNode());
+    EXPECT_EQ(tree.getNode(6), path.getStep(2).getSrcNode());
+    EXPECT_EQ(tree.getNode(14), path.getStep(2).getDestNode());
+    EXPECT_EQ(tree.getNode(14), path.getDestNode());
   }
 }

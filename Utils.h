@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <list>
 #include <random>
 #include <sstream>
@@ -73,11 +74,29 @@ template <class T> static std::vector<T> copyListToVector(std::list<T> l) {
   return v;
 }
 
-template <class T> static std::vector<T> moveListToVector(std::list<T> l) {
-  std::vector<T> v;
-  v.reserve(l.size());
-  std::move(std::begin(l), std::end(l), std::back_inserter(v));
-  return v;
+template <class SourceColl_t>
+static std::vector<typename SourceColl_t::value_type>
+moveToVector(SourceColl_t source) {
+  std::vector<typename SourceColl_t::value_type> destVector;
+  destVector.reserve(source.size());
+
+  std::move(std::begin(source), std::end(source),
+            std::back_inserter(destVector));
+
+  return destVector;
+}
+
+template <size_t Items_, class SourceColl_t>
+static std::array<typename SourceColl_t::value_type, Items_>
+moveToArray(SourceColl_t source) {
+  std::array<typename SourceColl_t::value_type, Items_> a;
+  auto sourceIt = std::begin(source);
+
+  for (size_t i = 0; i < Items_; ++i, ++sourceIt)
+    a[i] = std::move(*sourceIt);
+
+  assert(sourceIt == std::end(source));
+  return a;
 }
 
 template <class T>

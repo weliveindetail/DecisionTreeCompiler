@@ -3,8 +3,8 @@
 #include <list>
 #include <vector>
 
-#include "CGEvaluationPath.h"
-#include "data/DecisionTree.h"
+#include "codegen/utility/CGEvaluationPath.h"
+#include "data/DecisionSubtreeRef.h"
 
 class CGEvaluationPathsBuilder {
 public:
@@ -16,10 +16,10 @@ public:
 private:
   DecisionSubtreeRef Subtree;
 
-  std::list<CGEvaluationPath> buildPathsRecursively(uint64_t nodeIdx,
+  std::list<CGEvaluationPath> buildPathsRecursively(DecisionTreeNode node,
                                                     uint8_t remainingLevels);
 
   std::list<CGEvaluationPath> recurseToChildNode(NodeEvaluation eval,
-                                                 const DecisionTreeNode &node,
+                                                 DecisionTreeNode node,
                                                  uint8_t remainingLevels);
 };

@@ -8,8 +8,10 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 
-#include "CGNodeInfo.h"
-#include "data/DecisionTree.h"
+#include "codegen/utility/CGNodeInfo.h"
+
+#include "data/DecisionSubtreeRef.h"
+#include "data/DecisionTreeNode.h"
 
 class CompilerSession;
 
@@ -40,7 +42,7 @@ private:
   constexpr static unsigned AvxAlignment = 32;
 
   DecisionSubtreeRef Subtree;
-  std::array<DecisionTreeNode *, AvxPackSize - 1> Nodes;
+  std::array<DecisionTreeNode, AvxPackSize - 1> Nodes;
 
   llvm::Type *Int8Ty = llvm::Type::getInt8Ty(Ctx);
   llvm::Type *Int32Ty = llvm::Type::getInt32Ty(Ctx);
@@ -48,7 +50,7 @@ private:
 
   llvm::Constant *AvxPackSizeVal = llvm::ConstantInt::get(Int8Ty, AvxPackSize);
 
-  llvm::Value *emitLoadFeatureValue(DecisionTreeNode *node);
+  llvm::Value *emitLoadFeatureValue(DecisionTreeNode node);
 
   llvm::Value *emitCollectDataSetValues();
   llvm::Value *emitDefineTreeNodeValues();
@@ -57,6 +59,4 @@ private:
   llvm::Value *emitComputeCompareAvx(llvm::Value *lhs, llvm::Value *rhs);
   llvm::Value *emitComputeBitShiftsAvx(llvm::Value *avxPackedCmpResults);
   llvm::Value *emitComputeHorizontalOrAvx(llvm::Value *avxPackedInts);
-
-  void collectSubtreeNodes();
 };

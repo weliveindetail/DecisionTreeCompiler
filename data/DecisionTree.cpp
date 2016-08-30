@@ -1,85 +1,35 @@
-#include "DecisionTree.h"
+#include "data/DecisionTree.h"
 
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
 
-#include "Utils.h"
+#include "data/DecisionSubtreeRef.h"
+#include "data/DecisionTreeNode.h"
 
-// -----------------------------------------------------------------------------
-
-DecisionSubtreeRef::DecisionSubtreeRef(const DecisionTree *tree,
-                                       uint64_t rootIndex, uint8_t levels)
-    : Tree(tree), RootIndex(rootIndex), Levels(levels) {
-  assert(Levels > 0);
-  assert(Levels <= std::min<uint8_t>(4, tree->Levels)); // max node count is 31
-
-  assert(RootIndex >= 0);
-  assert(RootIndex <
-         DecisionTree::getFirstNodeIdxOnLevel(tree->Levels - Levels + 1));
+DecisionTree::DecisionTree(uint8_t levels, uint64_t nodes) {
+  Levels = levels;
+  Nodes.reserve(nodes);
+  Finalized = false;
 }
-
-std::vector<uint64_t> DecisionSubtreeRef::collectNodeIndices() const {
-  std::vector<uint64_t> idxs;
-  idxs.reserve(getNodeCount());
-
-  for (uint8_t i = 0; i < Levels; i++) {
-    auto idxsOnLevel = collectNodeIndicesOnSubtreeLevel(i);
-    idxs.insert(idxs.end(), idxsOnLevel.begin(), idxsOnLevel.end());
-  }
-
-  return idxs;
-}
-
-std::vector<uint64_t>
-DecisionSubtreeRef::collectNodeIndicesOnSubtreeLevel(uint8_t level) const {
-  std::vector<uint64_t> idxs(PowerOf2(level));
-
-  uint64_t firstSubtreeIdxOnNodeLevel =
-      getFirstSubtreeNodeIdxOnSubtreeLevel(level);
-
-  std::iota(idxs.begin(), idxs.end(), firstSubtreeIdxOnNodeLevel);
-  return idxs;
-}
-
-uint64_t DecisionSubtreeRef::getFirstSubtreeNodeIdxOnSubtreeLevel(
-    uint8_t subtreeLevel) const {
-  uint64_t numSubtreeNodesOnLevel = PowerOf2(subtreeLevel);
-
-  uint8_t rootLevel = DecisionTree::getLevelForNodeIdx(RootIndex);
-  uint64_t rootOffset =
-      RootIndex - DecisionTree::getFirstNodeIdxOnLevel(rootLevel);
-  uint64_t nodeOffset = rootOffset * numSubtreeNodesOnLevel;
-
-  uint8_t treeLevel = rootLevel + subtreeLevel;
-  return DecisionTree::getFirstNodeIdxOnLevel(treeLevel) + nodeOffset;
-}
-
-DecisionSubtreeRef DecisionTree::getSubtreeRef(uint64_t rootIndex,
-                                               uint8_t levels) const {
-  assert(Finalized);
-  return DecisionSubtreeRef(this, rootIndex, levels);
-}
-
-// -----------------------------------------------------------------------------
 
 void DecisionTree::finalize() {
   assert(Nodes.size() == TreeNodes(Levels));
   assert(!Finalized);
 
   auto idxLess = [](const auto &lhsPair, const auto &rhsPair) {
-    assert(lhsPair.first == lhsPair.second.NodeIdx);
-    assert(rhsPair.first == rhsPair.second.NodeIdx);
+    assert(lhsPair.first == lhsPair.second.getIdx());
+    assert(rhsPair.first == rhsPair.second.getIdx());
     return lhsPair.first < rhsPair.first;
   };
 
   auto addResultNodeIfNecessary = [this](uint64_t idx) {
     if (idx != DecisionTreeNode::NoNodeIdx && idx >= FirstResultIdx) {
-      Nodes.emplace(idx, DecisionTreeNode(idx));
+      addImplicitNode(idx);
     }
   };
 
   auto maxIdxIt = std::max_element(Nodes.begin(), Nodes.end(), idxLess);
-  FirstResultIdx = maxIdxIt->second.NodeIdx + 1;
+  FirstResultIdx = maxIdxIt->second.getIdx() + 1;
 
   for (const auto &pairIdxNode : Nodes) {
     addResultNodeIfNecessary(pairIdxNode.second.FalseChildNodeIdx);
@@ -89,7 +39,11 @@ void DecisionTree::finalize() {
   Finalized = true;
 }
 
-// -----------------------------------------------------------------------------
+DecisionSubtreeRef DecisionTree::getSubtreeRef(uint64_t rootIndex,
+                                               uint8_t levels) const {
+  assert(Finalized);
+  return DecisionSubtreeRef(this, getNode(rootIndex), levels);
+}
 
 DecisionTreeFactory::DecisionTreeFactory(std::string cacheDirName)
     : CacheDir(initCacheDir(std::move(cacheDirName))) {}
@@ -131,7 +85,7 @@ DecisionTree DecisionTreeFactory::makeRandomRegular(uint8_t levels,
       DecisionTreeNode node(firstIdx + i, bias, featureIdx,
                             firstChildIdx + 2 * i, firstChildIdx + 2 * i + 1);
 
-      tree.Nodes.emplace(firstIdx + i, std::move(node));
+      tree.addNode(firstIdx + i, std::move(node));
     }
   }
 
