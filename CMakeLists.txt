@@ -32,10 +32,11 @@ set(SOURCE_FILES
         SimpleObjectCache.h
         Utils.h
         codegen/CGBase.h
-        codegen/CGL1IfThenElse.h
+        codegen/L1IfThenElse.h
         codegen/L3SubtreeSwitchAVX.h
         codegen/L3SubtreeSwitchAVX.cpp
         codegen/LXSubtreeSwitch.h
+        codegen/LXSubtreeSwitch.cpp
         codegen/utility/CGConditionVectorEmitter.h
         codegen/utility/CGConditionVectorEmitter.cpp
         codegen/utility/CGConditionVectorVariationsBuilder.h

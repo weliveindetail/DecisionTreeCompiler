@@ -4,10 +4,9 @@
 
 class CompilerSession;
 
-class CGL1IfThenElse : public CGBase {
+class L1IfThenElse : public CGBase {
 public:
-  CGL1IfThenElse(llvm::LLVMContext &ctx) : CGBase(ctx) {}
-  ~CGL1IfThenElse() override{};
+  L1IfThenElse(llvm::LLVMContext &ctx) : CGBase(ctx) {}
 
   CGBase *getFallbackCG() override { return this; }
   uint8_t getOptimalJointEvaluationDepth() const override { return 1; }

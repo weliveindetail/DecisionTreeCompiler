@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <llvm/IR/Instructions.h>
 
 #include "codegen/CGBase.h"
@@ -13,7 +15,6 @@ class L3SubtreeSwitchAVX : public CGBase {
 
 public:
   L3SubtreeSwitchAVX(llvm::LLVMContext &ctx) : CGBase(ctx) {}
-  ~L3SubtreeSwitchAVX() override{};
 
   CGBase *getFallbackCG() override;
   uint8_t getOptimalJointEvaluationDepth() const override { return Levels; };

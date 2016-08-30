@@ -5,7 +5,7 @@
 #include <llvm/Support/ManagedStatic.h>
 #include <llvm/Support/TargetSelect.h>
 
-#include "codegen/CGL1IfThenElse.h"
+#include "codegen/L1IfThenElse.h"
 #include "codegen/L3SubtreeSwitchAVX.h"
 #include "codegen/LXSubtreeSwitch.h"
 
@@ -45,7 +45,7 @@ std::unique_ptr<CGBase>
 DecisionTreeCompiler::makeCodeGenerator(CodeGeneratorType type) {
   switch (type) {
   case CodeGeneratorType::L1IfThenElse:
-    return std::make_unique<CGL1IfThenElse>(Ctx);
+    return std::make_unique<L1IfThenElse>(Ctx);
 
   case CodeGeneratorType::LXSubtreeSwitch:
     return std::make_unique<LXSubtreeSwitch>(Ctx);
