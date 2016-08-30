@@ -5,92 +5,8 @@
 #include <system_error>
 #include <unordered_map>
 
+#include "data/DecisionTreeNode.h"
 #include "Utils.h"
-
-enum class NodeEvaluation { ContinueZeroLeft = 0, ContinueOneRight = 1 };
-
-class DecisionSubtreeRef;
-class DecisionTree;
-
-struct DecisionTreeNode {
-  DecisionTreeNode() = default;
-  DecisionTreeNode(DecisionTreeNode &&) = default;
-  DecisionTreeNode(const DecisionTreeNode &) = default;
-  DecisionTreeNode &operator=(DecisionTreeNode &&) = default;
-  DecisionTreeNode &operator=(const DecisionTreeNode &) = default;
-
-  DecisionTreeNode(uint64_t nodeIdx, float bias, uint32_t dataSetFeatureIdx,
-                   uint64_t zeroFalseChildIdx, uint64_t oneTrueChildIdx)
-      : NodeIdx(nodeIdx), DataSetFeatureIdx(dataSetFeatureIdx), Bias(bias),
-        FalseChildNodeIdx(zeroFalseChildIdx),
-        TrueChildNodeIdx(oneTrueChildIdx) {}
-
-  friend bool operator==(const DecisionTreeNode &lhs,
-                         const DecisionTreeNode &rhs) {
-    if (lhs.NodeIdx == rhs.NodeIdx) {
-#    ifndef NDEBUG
-      assert(lhs.isImplicit() == rhs.isImplicit());
-      assert(lhs.DataSetFeatureIdx == rhs.DataSetFeatureIdx);
-      assert(lhs.TrueChildNodeIdx == rhs.TrueChildNodeIdx);
-      assert(lhs.FalseChildNodeIdx == rhs.FalseChildNodeIdx);
-#    endif
-      return true;
-    }
-
-    return false;
-  }
-
-  friend bool operator!=(const DecisionTreeNode &lhs,
-                         const DecisionTreeNode &rhs) {
-    return !(lhs == rhs);
-  }
-
-  bool hasChildFor(NodeEvaluation evaluation) const {
-    return (evaluation == NodeEvaluation::ContinueZeroLeft)
-               ? this->hasLeftChild()
-               : this->hasRightChild();
-  }
-
-  DecisionTreeNode getChildFor(NodeEvaluation evaluation,
-                               DecisionSubtreeRef subtree) const;
-
-  bool isLeaf() const { return !hasLeftChild() && !hasRightChild(); }
-
-  bool isImplicit() const {
-    bool allDefaulted =
-        (std::isnan(Bias) && DataSetFeatureIdx == NoFeatureIdx &&
-         TrueChildNodeIdx == NoNodeIdx && FalseChildNodeIdx == NoNodeIdx);
-
-    return allDefaulted && NodeIdx != NoNodeIdx;
-  }
-
-  bool hasLeftChild() const { return FalseChildNodeIdx != NoNodeIdx; }
-  bool hasRightChild() const { return TrueChildNodeIdx != NoNodeIdx; }
-
-  uint64_t getIdx() const { return NodeIdx; }
-  uint32_t getFeatureIdx() const { return DataSetFeatureIdx; }
-  float getFeatureBias() const { return Bias; }
-
-private:
-  uint64_t NodeIdx = NoNodeIdx;
-  uint64_t TrueChildNodeIdx = NoNodeIdx;
-  uint64_t FalseChildNodeIdx = NoNodeIdx;
-
-  uint32_t DataSetFeatureIdx = NoFeatureIdx;
-  float Bias = NoBias;
-
-  uint64_t getChildIdxFor(NodeEvaluation evaluation) const {
-    return (evaluation == NodeEvaluation::ContinueZeroLeft)
-                       ? FalseChildNodeIdx
-                       : TrueChildNodeIdx;
-  }
-
-  static constexpr uint32_t NoFeatureIdx = 0xFFFFFFFF;
-  static constexpr uint64_t NoNodeIdx = 0xFFFFFFFFFFFFFFFF;
-  static constexpr float NoBias = std::numeric_limits<float>::quiet_NaN();
-
-  friend class DecisionTree;
-};
 
 class DecisionTree {
 public:
@@ -190,9 +106,3 @@ private:
   std::list<DecisionTreeNode> collectNodesRecursively(
       DecisionTreeNode n, int levels) const;
 };
-
-inline DecisionTreeNode
-DecisionTreeNode::getChildFor(NodeEvaluation evaluation,
-                              DecisionSubtreeRef subtree) const {
-  return subtree.getNode(getChildIdxFor(evaluation));
-}

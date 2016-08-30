@@ -50,6 +50,8 @@ set(SOURCE_FILES
         compiler/DecisionTreeCompiler.cpp
         data/DecisionTree.h
         data/DecisionTree.cpp
+        data/DecisionTreeNode.h
+        data/DecisionTreeNode.cpp
         test/TestCGConditionVectorVariationsBuilder.h
         test/TestCGEvaluationPath.h
         test/TestCGEvaluationPathsBuilder.h
@@ -82,3 +84,6 @@ target_include_directories(EvalTreeJit_Test
         PRIVATE EvalTreeJit googletest)
 target_link_libraries(EvalTreeJit_Test
         PRIVATE EvalTreeJit gtest)
+
+# examples
+add_subdirectory(examples/HelloStatic)
