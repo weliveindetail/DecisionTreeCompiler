@@ -8,8 +8,10 @@
 #include <llvm/IR/Type.h>
 #include <llvm/IR/Value.h>
 
-#include "CGNodeInfo.h"
-#include "data/DecisionTree.h"
+#include "codegen/utility/CGNodeInfo.h"
+
+#include "data/DecisionSubtreeRef.h"
+#include "data/DecisionTreeNode.h"
 
 class CompilerSession;
 
@@ -57,6 +59,4 @@ private:
   llvm::Value *emitComputeCompareAvx(llvm::Value *lhs, llvm::Value *rhs);
   llvm::Value *emitComputeBitShiftsAvx(llvm::Value *avxPackedCmpResults);
   llvm::Value *emitComputeHorizontalOrAvx(llvm::Value *avxPackedInts);
-
-  void collectSubtreeNodes();
 };

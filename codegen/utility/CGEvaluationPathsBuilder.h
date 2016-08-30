@@ -3,8 +3,8 @@
 #include <list>
 #include <vector>
 
-#include "CGEvaluationPath.h"
-#include "data/DecisionTree.h"
+#include "codegen/utility/CGEvaluationPath.h"
+#include "data/DecisionSubtreeRef.h"
 
 class CGEvaluationPathsBuilder {
 public:

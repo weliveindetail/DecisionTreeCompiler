@@ -1,12 +1,12 @@
 #pragma once
 
 #include <cstdint>
-#include <memory>
 #include <vector>
 
 #include <experimental/optional>
 
-#include "data/DecisionTree.h"
+#include "data/DecisionSubtreeRef.h"
+#include "data/DecisionTreeNode.h"
 
 struct CGEvaluationStep {
   CGEvaluationStep() = default;

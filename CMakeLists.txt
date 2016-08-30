@@ -48,6 +48,7 @@ set(SOURCE_FILES
         compiler/CompilerSession.cpp
         compiler/DecisionTreeCompiler.h
         compiler/DecisionTreeCompiler.cpp
+        data/DecisionSubtreeRef.h
         data/DecisionTree.h
         data/DecisionTree.cpp
         data/DecisionTreeNode.h

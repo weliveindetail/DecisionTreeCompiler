@@ -1,8 +1,5 @@
 #pragma once
 
-#include <limits>
-#include <memory>
-#include <system_error>
 #include <unordered_map>
 
 #include "data/DecisionTreeNode.h"
@@ -18,12 +15,7 @@ public:
   DecisionTree(const DecisionTree &) = delete;
   DecisionTree &operator=(const DecisionTree &) = delete;
 
-  DecisionTree(uint8_t levels, uint64_t nodes) {
-    Levels = levels;
-    Nodes.reserve(nodes);
-    Finalized = false;
-  }
-
+  DecisionTree(uint8_t levels, uint64_t nodes);
   void finalize();
 
   uint8_t getNumLevels() const { return Levels; }
@@ -71,38 +63,4 @@ public:
 private:
   std::string CacheDir;
   std::string initCacheDir(std::string cacheDirName);
-};
-
-struct DecisionSubtreeRef {
-  DecisionSubtreeRef() = default;
-  DecisionSubtreeRef(DecisionSubtreeRef &&) = default;
-  DecisionSubtreeRef(const DecisionSubtreeRef &) = default;
-  DecisionSubtreeRef &operator=(DecisionSubtreeRef &&) = default;
-  DecisionSubtreeRef &operator=(const DecisionSubtreeRef &) = default;
-
-  DecisionSubtreeRef(const DecisionTree *tree, DecisionTreeNode root,
-                     uint8_t levels);
-
-  bool isComplete() const {
-    // todo: implement this for non-regular trees
-    return true;
-  }
-
-  DecisionTreeNode getNode(uint64_t idx) const {
-    return Tree->getNode(idx);
-  }
-
-  uint8_t getNodeCount() const { return (uint8_t)(PowerOf2(Levels) - 1); }
-  uint8_t getContinuationNodeCount() const { return PowerOf2<uint8_t>(Levels); }
-
-  std::list<DecisionTreeNode> collectNodesPreOrder() const;
-
-  DecisionTreeNode Root;
-  uint8_t Levels;
-
-private:
-  const DecisionTree *Tree;
-
-  std::list<DecisionTreeNode> collectNodesRecursively(
-      DecisionTreeNode n, int levels) const;
 };

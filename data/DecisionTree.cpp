@@ -1,58 +1,15 @@
-#include "DecisionTree.h"
+#include "data/DecisionTree.h"
 
 #include <llvm/Support/FileSystem.h>
 #include <llvm/Support/Path.h>
 
-#include "Utils.h"
+#include "data/DecisionSubtreeRef.h"
+#include "data/DecisionTreeNode.h"
 
-// -----------------------------------------------------------------------------
-
-DecisionSubtreeRef::DecisionSubtreeRef(const DecisionTree *tree,
-                                       DecisionTreeNode root, uint8_t levels)
-    : Tree(tree), Root(std::move(root)), Levels(levels) {
-  assert(!Root.isImplicit());
-  assert(Levels > 0 && Levels <= 4); // max node count is 31
-  assert(Tree->getNode(Root.getIdx()) == Root);
-
-  // make sure we have a complete subtree
-  assert(collectNodesPreOrder().size() == TreeNodes(Levels));
-}
-
-std::list<DecisionTreeNode> DecisionSubtreeRef::collectNodesPreOrder() const {
-  std::list<DecisionTreeNode> nodes = collectNodesRecursively(Root, Levels - 1);
-  nodes.push_front(std::move(Root));
-
-  return nodes;
-}
-
-std::list<DecisionTreeNode>
-DecisionSubtreeRef::collectNodesRecursively(DecisionTreeNode n,
-                                            int levels) const {
-  if (levels > 0) {
-    std::list<DecisionTreeNode> ns;
-
-    if (n.hasLeftChild()) {
-      ns.push_back(n.getChildFor(NodeEvaluation::ContinueZeroLeft, *this));
-      ns.splice(ns.end(), collectNodesRecursively(ns.back(), levels - 1));
-    }
-
-    if (n.hasRightChild()) {
-      ns.push_back(n.getChildFor(NodeEvaluation::ContinueOneRight, *this));
-      ns.splice(ns.end(), collectNodesRecursively(ns.back(), levels - 1));
-    }
-
-    return ns;
-  }
-
-  return {};
-}
-
-// -----------------------------------------------------------------------------
-
-DecisionSubtreeRef DecisionTree::getSubtreeRef(uint64_t rootIndex,
-                                               uint8_t levels) const {
-  assert(Finalized);
-  return DecisionSubtreeRef(this, getNode(rootIndex), levels);
+DecisionTree::DecisionTree(uint8_t levels, uint64_t nodes) {
+  Levels = levels;
+  Nodes.reserve(nodes);
+  Finalized = false;
 }
 
 void DecisionTree::finalize() {
@@ -82,7 +39,11 @@ void DecisionTree::finalize() {
   Finalized = true;
 }
 
-// -----------------------------------------------------------------------------
+DecisionSubtreeRef DecisionTree::getSubtreeRef(uint64_t rootIndex,
+                                               uint8_t levels) const {
+  assert(Finalized);
+  return DecisionSubtreeRef(this, getNode(rootIndex), levels);
+}
 
 DecisionTreeFactory::DecisionTreeFactory(std::string cacheDirName)
     : CacheDir(initCacheDir(std::move(cacheDirName))) {}

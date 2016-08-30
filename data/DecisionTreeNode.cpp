@@ -1,4 +1,6 @@
 #include "data/DecisionTreeNode.h"
+
+#include "data/DecisionSubtreeRef.h"
 #include "data/DecisionTree.h"
 
 DecisionTreeNode::DecisionTreeNode(uint64_t nodeIdx, float bias,
