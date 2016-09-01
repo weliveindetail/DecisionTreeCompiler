@@ -54,7 +54,9 @@ set(SOURCE_FILES
         data/DecisionTree.h
         data/DecisionTree.cpp
         data/DecisionTreeNode.h
-        data/DecisionTreeNode.cpp)
+        data/DecisionTreeNode.cpp
+        driver/utility/AutoSetUpTearDownLLVM.h
+        driver/utility/AutoSetUpTearDownLLVM.cpp)
 
 # libEvalTreeJit
 add_library(EvalTreeJit ${SOURCE_FILES})

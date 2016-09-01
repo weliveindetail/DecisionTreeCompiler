@@ -8,6 +8,7 @@
 #include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
+#include <llvm/Target/TargetMachine.h>
 
 #include "data/DecisionTree.h"
 
@@ -25,7 +26,8 @@ struct CompilerSession final {
   CompilerSession &operator=(CompilerSession &&) = delete;
   CompilerSession &operator=(const CompilerSession &) = delete;
 
-  CompilerSession(DecisionTreeCompiler *compiler, std::string name);
+  CompilerSession(DecisionTreeCompiler *compiler,
+                  llvm::TargetMachine *targetMachine, std::string name);
   ~CompilerSession();
 
   mutable llvm::IRBuilder<> Builder;
