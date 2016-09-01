@@ -50,11 +50,14 @@ set(SOURCE_FILES
         compiler/CompilerSession.cpp
         compiler/DecisionTreeCompiler.h
         compiler/DecisionTreeCompiler.cpp
+        compiler/SimpleOrcJit.h
+        compiler/SimpleOrcJit.cpp
         data/DecisionSubtreeRef.h
         data/DecisionTree.h
         data/DecisionTree.cpp
         data/DecisionTreeNode.h
         data/DecisionTreeNode.cpp
+        driver/JitDriver.h
         driver/utility/AutoSetUpTearDownLLVM.h
         driver/utility/AutoSetUpTearDownLLVM.cpp)
 
