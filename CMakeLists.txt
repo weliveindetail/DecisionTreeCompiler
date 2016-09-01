@@ -84,6 +84,7 @@ set(TEST_FILES
     test/TestCGConditionVectorVariationsBuilder.h
     test/TestCGEvaluationPath.h
     test/TestCGEvaluationPathsBuilder.h
+    test/TestCodegenL1.h
     test/TestDecisionTree.h)
 
 add_executable(EvalTreeJit_Test main_test.cpp ${TEST_FILES})

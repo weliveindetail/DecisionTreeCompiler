@@ -5,6 +5,8 @@
 #include "test/TestCGEvaluationPath.h"
 #include "test/TestCGEvaluationPathsBuilder.h"
 
+#include "test/TestCodegenL1.h"
+
 #include "test/TestCGConditionVectorVariationsBuilder.h"
 
 int main(int argc, char **argv) {
