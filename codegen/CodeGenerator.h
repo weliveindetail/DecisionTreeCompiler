@@ -3,11 +3,11 @@
 #include <cstdint>
 #include <vector>
 
+#include <llvm/IR/IRBuilder.h>
 #include <llvm/IR/LLVMContext.h>
 
 #include "codegen/utility/CGNodeInfo.h"
-
-class CompilerSession;
+#include "compiler/CompilerSession.h"
 
 class CodeGenerator {
 public:
@@ -17,15 +17,16 @@ public:
   CodeGenerator &operator=(CodeGenerator &&) = delete;
   CodeGenerator &operator=(const CodeGenerator &) = delete;
 
-  CodeGenerator(llvm::LLVMContext &ctx) : Ctx(ctx) {}
+  CodeGenerator(const CompilerSession &session)
+    : Ctx(session.Builder.getContext()), Session(session) {}
   virtual ~CodeGenerator() {}
 
   virtual uint8_t getJointSubtreeDepth() const = 0;
 
   virtual std::vector<CGNodeInfo>
-  emitSubtreeEvaluation(CGNodeInfo subtreeRoot,
-                        const CompilerSession &session) = 0;
+  emitSubtreeEvaluation(CGNodeInfo subtreeRoot) = 0;
 
 protected:
   llvm::LLVMContext &Ctx;
+  const CompilerSession &Session;
 };

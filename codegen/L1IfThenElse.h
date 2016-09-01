@@ -2,17 +2,14 @@
 
 #include "codegen/CodeGenerator.h"
 
-class CompilerSession;
-
 class L1IfThenElse : public CodeGenerator {
 public:
-  L1IfThenElse(llvm::LLVMContext &ctx) : CodeGenerator(ctx) {}
+  L1IfThenElse(const CompilerSession &session) : CodeGenerator(session) {}
 
   uint8_t getJointSubtreeDepth() const override { return 1; }
 
   std::vector<CGNodeInfo>
-  emitSubtreeEvaluation(CGNodeInfo subtreeRoot,
-                        const CompilerSession &session) override {
+  emitSubtreeEvaluation(CGNodeInfo subtreeRoot) override {
     return {};
   }
 };

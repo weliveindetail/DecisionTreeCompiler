@@ -23,7 +23,7 @@ CodeGenerator *CompilerSession::selectCodeGenerator(uint8_t remainingLevels) con
   if (remainingLevels > 2 && AvxSupport) {
     if (!CachedGenL3SubtreeSwitchAVX)
       CachedGenL3SubtreeSwitchAVX =
-          std::make_unique<L3SubtreeSwitchAVX>(Builder.getContext());
+          std::make_unique<L3SubtreeSwitchAVX>(*this);
 
     return CachedGenL3SubtreeSwitchAVX.get();
   }
@@ -34,8 +34,7 @@ CodeGenerator *CompilerSession::selectCodeGenerator(uint8_t remainingLevels) con
 
     if (it == CachedGensLXSubtreeSwitch.end()) {
       CachedGensLXSubtreeSwitch[jointSubtreeLevels] =
-          std::make_unique<LXSubtreeSwitch>(Builder.getContext(),
-                                            jointSubtreeLevels);
+          std::make_unique<LXSubtreeSwitch>(*this, jointSubtreeLevels);
     }
 
     return CachedGensLXSubtreeSwitch.at(jointSubtreeLevels).get();
@@ -44,7 +43,7 @@ CodeGenerator *CompilerSession::selectCodeGenerator(uint8_t remainingLevels) con
   if (remainingLevels == 1) {
     if (!CachedGenL1IfThenElse)
       CachedGenL1IfThenElse =
-          std::make_unique<L1IfThenElse>(Builder.getContext());
+          std::make_unique<L1IfThenElse>(*this);
 
     return CachedGenL1IfThenElse.get();
   }
