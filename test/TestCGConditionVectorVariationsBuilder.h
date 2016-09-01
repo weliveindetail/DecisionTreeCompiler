@@ -6,6 +6,7 @@
 
 #include "codegen/utility/CGConditionVectorVariationsBuilder.h"
 #include "codegen/utility/CGEvaluationPathsBuilder.h"
+#include "data/DecisionSubtreeRef.h"
 #include "data/DecisionTree.h"
 
 // helpers

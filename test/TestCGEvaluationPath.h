@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 #include "codegen/utility/CGEvaluationPath.h"
+#include "data/DecisionSubtreeRef.h"
 #include "data/DecisionTree.h"
 
 TEST(CGEvaluationPath, RegularTree1) {

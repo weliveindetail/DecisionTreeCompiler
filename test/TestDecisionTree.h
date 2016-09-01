@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 
+#include "data/DecisionSubtreeRef.h"
 #include "data/DecisionTree.h"
 
 TEST(DecisionTreeFactory, getLevelForNodeIdx) {
