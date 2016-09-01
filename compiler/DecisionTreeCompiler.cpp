@@ -1,5 +1,6 @@
 #include "DecisionTreeCompiler.h"
 
+#include <llvm/ADT/StringExtras.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/Host.h>
 #include <llvm/Support/ManagedStatic.h>
@@ -73,12 +74,26 @@ Function *DecisionTreeCompiler::emitEvalFunctionDecl(std::string name,
   Function *evalFn =
       Function::Create(signature, Function::ExternalLinkage, name, module);
 
-  AttributeSet attributeSet;
-  evalFn->setAttributes(attributeSet.addAttribute(
-      Ctx, AttributeSet::FunctionIndex, "target-features", "+avx"));
-
+  evalFn->setAttributes(collectEvalFunctionAttribs());
   evalFn->setName(name);
   return evalFn;
+}
+
+AttributeSet DecisionTreeCompiler::collectEvalFunctionAttribs() {
+  std::vector<std::string> features;
+  for (const StringMapEntry<bool> &feature : CpuFeatures) {
+    if (feature.getValue())
+      features.emplace_back("+" + feature.getKey().str());
+  }
+
+  AttributeSet attributeSet;
+  if (features.empty())
+    return attributeSet;
+
+  std::sort(features.begin(), features.end());
+  return attributeSet.addAttribute(
+      Ctx, AttributeSet::FunctionIndex, "target-features",
+      join(features.begin(), features.end(), ","));
 }
 
 Value *DecisionTreeCompiler::allocOutputVal(const CompilerSession &session) {

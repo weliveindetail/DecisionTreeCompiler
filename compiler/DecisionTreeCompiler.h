@@ -39,11 +39,12 @@ private:
   CGNodeInfo makeEvalRoot(std::string functionName,
                           const CompilerSession &session);
 
-  llvm::FunctionType *getEvalFunctionTy(const CompilerSession &session);
-
   llvm::Function *emitEvalFunctionDecl(std::string name,
                                        llvm::FunctionType *signature,
                                        llvm::Module *module);
+
+  llvm::FunctionType *getEvalFunctionTy(const CompilerSession &session);
+  llvm::AttributeSet collectEvalFunctionAttribs();
 
   llvm::Value *allocOutputVal(const CompilerSession &session);
 
