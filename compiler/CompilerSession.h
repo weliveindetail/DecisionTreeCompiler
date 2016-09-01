@@ -26,6 +26,7 @@ struct CompilerSession final {
   CompilerSession &operator=(const CompilerSession &) = delete;
 
   CompilerSession(DecisionTreeCompiler *compiler, std::string name);
+  ~CompilerSession();
 
   mutable llvm::IRBuilder<> Builder;
 
@@ -38,6 +39,7 @@ struct CompilerSession final {
   llvm::Value *InputDataSetPtr;
   llvm::Value *OutputNodeIdxPtr;
 
+  // relevant target-specific features
   bool AvxSupport = false;
 
   CodeGenerator *selectCodeGenerator(uint8_t remainingLevels) const;

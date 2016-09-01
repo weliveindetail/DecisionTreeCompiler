@@ -19,6 +19,8 @@ CompilerSession::CompilerSession(DecisionTreeCompiler *compiler,
   Module->setDataLayout(EngineBuilder().selectTarget()->createDataLayout());
 }
 
+CompilerSession::~CompilerSession() = default;
+
 CodeGenerator *CompilerSession::selectCodeGenerator(uint8_t remainingLevels) const {
   if (remainingLevels > 2 && AvxSupport) {
     if (!CachedGenL3SubtreeSwitchAVX)

@@ -6,10 +6,7 @@
 #include <llvm/Support/ManagedStatic.h>
 #include <llvm/Support/TargetSelect.h>
 
-#include "codegen/L1IfThenElse.h"
-#include "codegen/LXSubtreeSwitch.h"
-#include "codegen/L3SubtreeSwitchAVX.h"
-
+#include "codegen/CodeGenerator.h"
 #include "compiler/CompilerSession.h"
 
 using namespace llvm;

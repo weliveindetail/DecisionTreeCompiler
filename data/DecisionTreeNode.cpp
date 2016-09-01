@@ -16,12 +16,10 @@ bool operator!=(const DecisionTreeNode &lhs, const DecisionTreeNode &rhs) {
 
 bool operator==(const DecisionTreeNode &lhs, const DecisionTreeNode &rhs) {
   if (lhs.NodeIdx == rhs.NodeIdx) {
-#    ifndef NDEBUG
     assert(lhs.isImplicit() == rhs.isImplicit());
     assert(lhs.DataSetFeatureIdx == rhs.DataSetFeatureIdx);
     assert(lhs.TrueChildNodeIdx == rhs.TrueChildNodeIdx);
     assert(lhs.FalseChildNodeIdx == rhs.FalseChildNodeIdx);
-#    endif
     return true;
   }
 
