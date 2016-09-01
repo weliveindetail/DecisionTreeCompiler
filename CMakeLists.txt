@@ -50,11 +50,16 @@ set(SOURCE_FILES
         compiler/CompilerSession.cpp
         compiler/DecisionTreeCompiler.h
         compiler/DecisionTreeCompiler.cpp
+        compiler/SimpleOrcJit.h
+        compiler/SimpleOrcJit.cpp
         data/DecisionSubtreeRef.h
         data/DecisionTree.h
         data/DecisionTree.cpp
         data/DecisionTreeNode.h
-        data/DecisionTreeNode.cpp)
+        data/DecisionTreeNode.cpp
+        driver/JitDriver.h
+        driver/utility/AutoSetUpTearDownLLVM.h
+        driver/utility/AutoSetUpTearDownLLVM.cpp)
 
 # libEvalTreeJit
 add_library(EvalTreeJit ${SOURCE_FILES})
@@ -79,6 +84,7 @@ set(TEST_FILES
     test/TestCGConditionVectorVariationsBuilder.h
     test/TestCGEvaluationPath.h
     test/TestCGEvaluationPathsBuilder.h
+    test/TestCodegenL1.h
     test/TestDecisionTree.h)
 
 add_executable(EvalTreeJit_Test main_test.cpp ${TEST_FILES})

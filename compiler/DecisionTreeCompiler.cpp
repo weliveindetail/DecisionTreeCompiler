@@ -3,20 +3,19 @@
 #include <llvm/ADT/StringExtras.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Support/Host.h>
-#include <llvm/Support/ManagedStatic.h>
-#include <llvm/Support/TargetSelect.h>
 
 #include "codegen/CodeGenerator.h"
 #include "compiler/CompilerSession.h"
 
 using namespace llvm;
 
-DecisionTreeCompiler::DecisionTreeCompiler() {
+DecisionTreeCompiler::DecisionTreeCompiler(TargetMachine *target)
+  : Target(target) {
   llvm::sys::getHostCPUFeatures(CpuFeatures);
 }
 
 CompileResult DecisionTreeCompiler::compile(DecisionTree tree) {
-  CompilerSession session(this, "sessionName");
+  CompilerSession session(this, Target, "sessionName");
   session.AvxSupport = CpuFeatures["avx"];
   session.Tree = std::move(tree);
 
@@ -138,22 +137,3 @@ void DecisionTreeCompiler::connectSubtreeEndpoints(
     session.Builder.CreateBr(node.ContinuationBlock);
   }
 }
-
-DecisionTreeCompiler::AutoSetUpTearDownLLVM::AutoSetUpTearDownLLVM() {
-  int existingInstancesBeforeConstruction = instances.fetch_add(1);
-  if (existingInstancesBeforeConstruction == 0) {
-    InitializeNativeTarget();
-    InitializeNativeTargetAsmPrinter();
-    InitializeNativeTargetAsmParser();
-  }
-}
-
-DecisionTreeCompiler::AutoSetUpTearDownLLVM::~AutoSetUpTearDownLLVM() {
-  int existingInstancesBeforeDestruction = instances.fetch_sub(1);
-  if (existingInstancesBeforeDestruction == 1) {
-    llvm_shutdown();
-  }
-}
-
-// static init
-std::atomic<int> DecisionTreeCompiler::AutoSetUpTearDownLLVM::instances{0};

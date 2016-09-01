@@ -12,9 +12,12 @@
 
 #include "compiler/DecisionTreeCompiler.h"
 #include "data/DecisionTree.h"
+#include "driver/utility/AutoSetUpTearDownLLVM.h"
 
 class StaticDriver {
 public:
+  StaticDriver() : Compiler(LLVM.getTargetMachine()) {}
+
   void run() {
     if (!llvm::sys::fs::is_regular_file(InputFileName)) {
       llvm::errs() << "Cannot read decision tree from file ";
@@ -69,6 +72,7 @@ public:
   }
 
 private:
+  AutoSetUpTearDownLLVM LLVM;
   DecisionTreeCompiler Compiler;
 
   std::string InputFileName;

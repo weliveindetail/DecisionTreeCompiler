@@ -11,12 +11,13 @@
 using namespace llvm;
 
 CompilerSession::CompilerSession(DecisionTreeCompiler *compiler,
+                                 TargetMachine *targetMachine,
                                  std::string name)
     : Builder(compiler->Ctx),
       NodeIdxTy(Type::getInt64Ty(compiler->Ctx)),
       DataSetFeatureValueTy(Type::getFloatTy(compiler->Ctx)) {
   Module = std::make_unique<llvm::Module>("file:" + name, compiler->Ctx);
-  Module->setDataLayout(EngineBuilder().selectTarget()->createDataLayout());
+  Module->setDataLayout(targetMachine->createDataLayout());
 }
 
 CompilerSession::~CompilerSession() = default;

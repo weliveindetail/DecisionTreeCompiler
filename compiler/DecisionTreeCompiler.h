@@ -9,6 +9,7 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 #include <llvm/IR/Value.h>
+#include <llvm/Target/TargetMachine.h>
 
 #include "codegen/utility/CGNodeInfo.h"
 #include "data/DecisionTree.h"
@@ -26,7 +27,7 @@ class DecisionTreeCompiler {
 public:
   llvm::LLVMContext Ctx;
 
-  DecisionTreeCompiler();
+  DecisionTreeCompiler(llvm::TargetMachine *target);
   CompileResult compile(DecisionTree tree);
 
 private:
@@ -49,15 +50,6 @@ private:
   llvm::Value *allocOutputVal(const CompilerSession &session);
 
 private:
+  llvm::TargetMachine *Target;
   llvm::StringMap<bool> CpuFeatures;
-
-  struct AutoSetUpTearDownLLVM {
-    AutoSetUpTearDownLLVM();
-    ~AutoSetUpTearDownLLVM();
-
-  private:
-    static std::atomic<int> instances;
-  };
-
-  AutoSetUpTearDownLLVM SetupTearDownHelper;
 };
