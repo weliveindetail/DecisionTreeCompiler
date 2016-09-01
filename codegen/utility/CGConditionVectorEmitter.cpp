@@ -1,18 +1,62 @@
 #include "CGConditionVectorEmitter.h"
 #include "compiler/CompilerSession.h"
 
-#include <algorithm>
-
 using namespace llvm;
 
-CGConditionVectorEmitterBase::CGConditionVectorEmitterBase(
+// -----------------------------------------------------------------------------
+
+CGConditionVectorEmitter::CGConditionVectorEmitter(
     const CompilerSession &session)
     : Session(session), Ctx(session.Builder.getContext()),
       Builder(session.Builder) {}
 
+Value *
+CGConditionVectorEmitter::emitLoadFeatureValue(DecisionTreeNode node) {
+  Value *dataSetFeaturePtr = Builder.CreateConstGEP1_32(
+      Session.InputDataSetPtr, node.getFeatureIdx());
+
+  return Builder.CreateLoad(dataSetFeaturePtr);
+}
+
+// -----------------------------------------------------------------------------
+
+CGConditionVectorEmitterX86::CGConditionVectorEmitterX86(
+    const CompilerSession &session, DecisionSubtreeRef subtree)
+    : CGConditionVectorEmitter(session), Subtree(std::move(subtree)),
+      Nodes(moveToVector(Subtree.collectNodesPreOrder())) {
+  assert(Subtree.getNodeCount() == Nodes.size());
+}
+
+Value *CGConditionVectorEmitterX86::run(CGNodeInfo subtreeRoot) {
+  unsigned significantBits = Nodes.size() + 1; // +1 = sign bit
+  IntegerType *vectorTy = Type::getIntNTy(Ctx, significantBits);
+
+  Value *vectorPtr = Builder.CreateAlloca(vectorTy, nullptr, "conditionVector");
+  Value *vectorInitVal = ConstantInt::get(vectorTy, 0);
+  Builder.CreateStore(vectorInitVal, vectorPtr);
+
+  uint8_t bitOffset = 0;
+  for (DecisionTreeNode node : Nodes) {
+    Value *featureVal = emitLoadFeatureValue(node);
+    Constant *biasVal = ConstantFP::get(FloatTy, node.getFeatureBias());
+
+    Value *cmpResultBit = Builder.CreateFCmpOGT(featureVal, biasVal);
+    Value *cmpResultInt = Builder.CreateZExt(cmpResultBit, vectorTy);
+    Value *vectorBit = Builder.CreateShl(cmpResultInt, APInt(8, bitOffset++));
+
+    Value *vectorValOld = Builder.CreateLoad(vectorPtr);
+    Value *vectorValNew = Builder.CreateOr(vectorValOld, vectorBit);
+    Builder.CreateStore(vectorValNew, vectorPtr);
+  }
+
+  return vectorPtr;
+}
+
+// -----------------------------------------------------------------------------
+
 CGConditionVectorEmitterAVX::CGConditionVectorEmitterAVX(
     const CompilerSession &session, DecisionSubtreeRef subtree)
-    : CGConditionVectorEmitterBase(session), Subtree(std::move(subtree)),
+    : CGConditionVectorEmitter(session), Subtree(std::move(subtree)),
       Nodes(moveToArray<AvxPackSize - 1>(Subtree.collectNodesPreOrder())) {
   assert(Subtree.getNodeCount() == AvxPackSize - 1);
 }
@@ -43,14 +87,6 @@ Value *CGConditionVectorEmitterAVX::emitCollectDataSetValues() {
   }
 
   return featureValues;
-}
-
-Value *
-CGConditionVectorEmitterAVX::emitLoadFeatureValue(DecisionTreeNode node) {
-  llvm::Value *dataSetFeaturePtr = Builder.CreateConstGEP1_32(
-      Session.InputDataSetPtr, node.getFeatureIdx());
-
-  return Builder.CreateLoad(dataSetFeaturePtr);
 }
 
 Value *CGConditionVectorEmitterAVX::emitDefineTreeNodeValues() {

@@ -1,38 +1,18 @@
 #pragma once
 
-#include <llvm/IR/Instructions.h>
+#include "codegen/LXSubtreeSwitch.h"
+#include "codegen/utility/CGConditionVectorEmitter.h"
 
-#include "codegen/CGBase.h"
-#include "codegen/utility/CGEvaluationPath.h"
-
-class CompilerSession;
-class LXSubtreeSwitch;
-
-class L3SubtreeSwitchAVX : public CGBase {
+class L3SubtreeSwitchAVX : public LXSubtreeSwitch {
   constexpr static uint8_t Levels = 3;
 
 public:
-  L3SubtreeSwitchAVX(llvm::LLVMContext &ctx) : CGBase(ctx) {}
-  ~L3SubtreeSwitchAVX() override{};
+  L3SubtreeSwitchAVX(const CompilerSession &session)
+      : LXSubtreeSwitch(session, Levels) {}
 
-  CGBase *getFallbackCG() override;
-  uint8_t getOptimalJointEvaluationDepth() const override { return Levels; };
-
-  std::vector<CGNodeInfo>
-  emitSubtreeEvaluation(CGNodeInfo subtreeRoot,
-                        const CompilerSession &session) override;
-
-private:
-  std::unique_ptr<LXSubtreeSwitch> FallbackCGL2 = nullptr;
-
-  std::vector<CGNodeInfo>
-  emitSwitchTargets(const std::vector<CGEvaluationPath> &evaluationPaths,
-                    llvm::Function *ownerFunction, llvm::BasicBlock *returnBB);
-
-  uint32_t emitSwitchCaseLabels(llvm::SwitchInst *switchInst,
-                                llvm::Type *switchCondTy,
-                                CGNodeInfo targetNodeInfo,
-                                std::vector<uint32_t> pathCaseValues);
-
-  llvm::BasicBlock *makeSwitchBB(CGNodeInfo subtreeRoot, std::string suffix);
+  llvm::Value *emitConditionVector(DecisionSubtreeRef subtree,
+                                   CGNodeInfo rootNodeInfo) override {
+    CGConditionVectorEmitterAVX emitter(Session, subtree);
+    return emitter.run(rootNodeInfo);
+  }
 };

@@ -35,7 +35,7 @@ public:
     }
 
     CompileResult result =
-        Compiler.compile(CodeGenType, std::move(decisionTree));
+        Compiler.compile(std::move(decisionTree));
 
     int FD;
     std::string uniqueName;
@@ -68,13 +68,8 @@ public:
     InputFileName = std::move(fileName);
   }
 
-  void setCodeGenerator(CodeGeneratorType codegenType) {
-    CodeGenType = codegenType;
-  }
-
 private:
   DecisionTreeCompiler Compiler;
-  CodeGeneratorType CodeGenType;
 
   std::string InputFileName;
   std::string OutputFileName;

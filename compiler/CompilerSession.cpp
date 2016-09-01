@@ -1,27 +1,53 @@
 #include "CompilerSession.h"
 
-#include "DecisionTreeCompiler.h"
-#include "codegen/CGBase.h"
+#include <llvm/ExecutionEngine/ExecutionEngine.h>
+
+#include "codegen/L1IfThenElse.h"
+#include "codegen/LXSubtreeSwitch.h"
+#include "codegen/L3SubtreeSwitchAVX.h"
+
+#include "compiler/DecisionTreeCompiler.h"
 
 using namespace llvm;
 
 CompilerSession::CompilerSession(DecisionTreeCompiler *compiler,
-                                 DecisionTree tree,
-                                 std::unique_ptr<CGBase> preferredCodegen,
                                  std::string name)
-    : Builder(compiler->Ctx), Tree(std::move(tree)),
-      Module(compiler->makeModule(std::move(name))),
-      PreferredCodegen(std::move(preferredCodegen)),
+    : Builder(compiler->Ctx),
       NodeIdxTy(Type::getInt64Ty(compiler->Ctx)),
-      DataSetFeatureValueTy(Type::getFloatTy(compiler->Ctx)) {}
+      DataSetFeatureValueTy(Type::getFloatTy(compiler->Ctx)) {
+  Module = std::make_unique<llvm::Module>("file:" + name, compiler->Ctx);
+  Module->setDataLayout(EngineBuilder().selectTarget()->createDataLayout());
+}
 
-CGBase *CompilerSession::selectCodeGenerator(uint8_t remainingLevels) const {
-  assert(remainingLevels > 0);
-  CGBase *codegen = PreferredCodegen.get();
+CodeGenerator *CompilerSession::selectCodeGenerator(uint8_t remainingLevels) const {
+  if (remainingLevels > 2 && AvxSupport) {
+    if (!CachedGenL3SubtreeSwitchAVX)
+      CachedGenL3SubtreeSwitchAVX =
+          std::make_unique<L3SubtreeSwitchAVX>(*this);
 
-  while (codegen->getOptimalJointEvaluationDepth() > remainingLevels) {
-    codegen = codegen->getFallbackCG();
+    return CachedGenL3SubtreeSwitchAVX.get();
   }
 
-  return codegen;
+  if (remainingLevels > 1) {
+    int jointSubtreeLevels = 2;
+    auto it = CachedGensLXSubtreeSwitch.find(jointSubtreeLevels);
+
+    if (it == CachedGensLXSubtreeSwitch.end()) {
+      CachedGensLXSubtreeSwitch[jointSubtreeLevels] =
+          std::make_unique<LXSubtreeSwitch>(*this, jointSubtreeLevels);
+    }
+
+    return CachedGensLXSubtreeSwitch.at(jointSubtreeLevels).get();
+  }
+
+  if (remainingLevels == 1) {
+    if (!CachedGenL1IfThenElse)
+      CachedGenL1IfThenElse =
+          std::make_unique<L1IfThenElse>(*this);
+
+    return CachedGenL1IfThenElse.get();
+  }
+
+  assert(false);
+  return nullptr;
 }
