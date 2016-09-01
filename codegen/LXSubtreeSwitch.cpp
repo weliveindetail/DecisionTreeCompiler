@@ -9,7 +9,7 @@
 using namespace llvm;
 
 std::vector<CGNodeInfo>
-LXSubtreeSwitch::emitSubtreeEvaluation(CGNodeInfo subtreeRoot) {
+LXSubtreeSwitch::emitEvaluation(CGNodeInfo subtreeRoot) {
   DecisionSubtreeRef subtreeRef =
       Session.Tree.getSubtreeRef(subtreeRoot.Index, Levels);
 

@@ -103,7 +103,7 @@ DecisionTreeCompiler::compileSubtrees(CGNodeInfo rootNode,
 
     for (CGNodeInfo node : roots) {
       std::vector<CGNodeInfo> continuationNodes =
-          codegen->emitSubtreeEvaluation(node);
+          codegen->emitEvaluation(node);
 
       std::move(continuationNodes.begin(), continuationNodes.end(),
                 std::back_inserter(nodesNextLevel));

@@ -19,7 +19,7 @@ public:
   uint8_t getJointSubtreeDepth() const override { return Levels; }
 
   std::vector<CGNodeInfo>
-  emitSubtreeEvaluation(CGNodeInfo subtreeRoot) override;
+  emitEvaluation(CGNodeInfo subtreeRoot) override;
 
 protected:
   virtual llvm::Value *emitConditionVector(DecisionSubtreeRef subtree,

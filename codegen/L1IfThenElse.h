@@ -9,7 +9,7 @@ public:
   uint8_t getJointSubtreeDepth() const override { return 1; }
 
   std::vector<CGNodeInfo>
-  emitSubtreeEvaluation(CGNodeInfo subtreeRoot) override {
+  emitEvaluation(CGNodeInfo node) override {
     return {};
   }
 };

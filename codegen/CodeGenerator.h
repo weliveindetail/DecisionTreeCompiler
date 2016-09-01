@@ -24,7 +24,7 @@ public:
   virtual uint8_t getJointSubtreeDepth() const = 0;
 
   virtual std::vector<CGNodeInfo>
-  emitSubtreeEvaluation(CGNodeInfo subtreeRoot) = 0;
+  emitEvaluation(CGNodeInfo subtreeRoot) = 0;
 
 protected:
   llvm::LLVMContext &Ctx;
