@@ -54,11 +54,7 @@ set(SOURCE_FILES
         data/DecisionTree.h
         data/DecisionTree.cpp
         data/DecisionTreeNode.h
-        data/DecisionTreeNode.cpp
-        test/TestCGConditionVectorVariationsBuilder.h
-        test/TestCGEvaluationPath.h
-        test/TestCGEvaluationPathsBuilder.h
-        test/TestDecisionTree.h)
+        data/DecisionTreeNode.cpp)
 
 # libEvalTreeJit
 add_library(EvalTreeJit ${SOURCE_FILES})
@@ -79,6 +75,12 @@ target_include_directories(EvalTreeJit_Benchmark  PRIVATE EvalTreeJit benchmark)
 target_link_libraries     (EvalTreeJit_Benchmark  PRIVATE EvalTreeJit benchmark)
 
 # unit tests
-add_executable(EvalTreeJit_Test main_test.cpp)
+set(TEST_FILES
+    test/TestCGConditionVectorVariationsBuilder.h
+    test/TestCGEvaluationPath.h
+    test/TestCGEvaluationPathsBuilder.h
+    test/TestDecisionTree.h)
+
+add_executable(EvalTreeJit_Test main_test.cpp ${TEST_FILES})
 target_include_directories(EvalTreeJit_Test       PRIVATE EvalTreeJit googletest)
 target_link_libraries     (EvalTreeJit_Test       PRIVATE EvalTreeJit gtest)
