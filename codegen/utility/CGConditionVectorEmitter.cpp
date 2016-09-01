@@ -49,7 +49,7 @@ Value *CGConditionVectorEmitterX86::run(CGNodeInfo subtreeRoot) {
     Builder.CreateStore(vectorValNew, vectorPtr);
   }
 
-  return vectorPtr;
+  return Builder.CreateLoad(vectorPtr);
 }
 
 // -----------------------------------------------------------------------------
