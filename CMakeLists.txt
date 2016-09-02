@@ -32,6 +32,8 @@ set(SOURCE_FILES
         SimpleObjectCache.h
         Utils.h
         codegen/CodeGenerator.h
+        codegen/CodeGeneratorSelector.h
+        codegen/CodeGeneratorSelector.cpp
         codegen/L1IfThenElse.h
         codegen/L1IfThenElse.cpp
         codegen/L3SubtreeSwitchAVX.h
