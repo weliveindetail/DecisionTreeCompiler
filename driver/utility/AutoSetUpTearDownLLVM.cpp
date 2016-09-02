@@ -6,9 +6,15 @@
 
 using namespace llvm;
 
+// static init
+std::atomic_flag AutoSetUpTearDownLLVM::initialized = ATOMIC_FLAG_INIT;
+TargetMachine *AutoSetUpTearDownLLVM::targetMachine = nullptr;
+
+AutoSetUpTearDownLLVM::StaticShutDownHelper
+    AutoSetUpTearDownLLVM::StaticShutdown;
+
 AutoSetUpTearDownLLVM::AutoSetUpTearDownLLVM() {
-  int existingInstancesBeforeConstruction = instances.fetch_add(1);
-  if (existingInstancesBeforeConstruction == 0) {
+  if (!initialized.test_and_set(std::memory_order_acquire)) {
     InitializeNativeTarget();
     InitializeNativeTargetAsmPrinter();
     InitializeNativeTargetAsmParser();
@@ -18,13 +24,10 @@ AutoSetUpTearDownLLVM::AutoSetUpTearDownLLVM() {
   }
 }
 
-AutoSetUpTearDownLLVM::~AutoSetUpTearDownLLVM() {
-  int existingInstancesBeforeDestruction = instances.fetch_sub(1);
-  if (existingInstancesBeforeDestruction == 1) {
+AutoSetUpTearDownLLVM::StaticShutDownHelper::~StaticShutDownHelper() {
+  if (initialized.test_and_set(std::memory_order_release)) {
     llvm_shutdown();
   }
-}
 
-// static init
-std::atomic<int> AutoSetUpTearDownLLVM::instances{0};
-TargetMachine *AutoSetUpTearDownLLVM::targetMachine{nullptr};
+  initialized.clear(std::memory_order_release); // for completeness
+}
