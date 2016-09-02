@@ -3,58 +3,75 @@
 
 #include "benchmark/benchmark.h"
 
-#include "DataSet.h"
-#include "LegacyDecisionTree.h"
-#include "RegularResolver.h"
-#include "CompiledResolver.h"
+#include "data/DataSetFactory.h"
+#include "data/DecisionTree.h"
 
-int treeDepth = 3;
-int dataSetFeatures = 100;
-int compiledFunctionLevels = 3;
-int compiledFunctionSwitchLevels = 3;
+#include "driver/JitDriver.h"
+#include "driver/utility/Interpreter.h"
 
-std::unique_ptr<RegularResolver> regularResolver;
-std::unique_ptr<CompiledResolver> compiledResolver;
+uint8_t TreeDepth = 12;
+uint32_t DataSetFeatures = 100;
+uint64_t InvalidNodeIdx = DecisionTreeNode().getIdx();
 
-DecisionTree_t tree = prepareDecisionTree(treeDepth, dataSetFeatures);
-std::vector<DataSet_t> dataSets = makeRandomDataSets(100, dataSetFeatures, tree); // hack
+DecisionTree Tree;
+std::vector<std::vector<float>> DataSets;
+std::vector<uint64_t> Results;
 
-DataSet_t& selectRandomDataSet() {
-  assert(!dataSets.empty());
-  return dataSets[makeRandomInt(0ul, dataSets.size() - 1)];
-};
+std::unique_ptr<Interpreter> InterpreterResolver;
+JitCompileResult::Evaluator_f *CompiledResolver;
+
+void submitDataSetEvalResult(size_t idx, uint64_t result) {
+  assert(Results[idx] == InvalidNodeIdx || Results[idx] == result);
+  Results[idx] = result;
+}
 
 static void BM_RegularEvaluation(benchmark::State& state) {
-  DataSet_t& dataSet = selectRandomDataSet();
-  int64_t result = 0;
+  static size_t idx = 0;
+  uint64_t result = 0;
 
   while (state.KeepRunning()) {
-    result = regularResolver->run(tree, dataSet);
+    result = InterpreterResolver->run(Tree, DataSets[idx]);
   }
 
-  assert(dataSet[dataSetFeatures] == (float)result);
+  submitDataSetEvalResult(idx, result);
+  if (idx < DataSets.size() - 1) idx++;
 }
 
 static void BM_CompiledEvaluation(benchmark::State& state) {
-  DataSet_t& dataSet = selectRandomDataSet();
-  int64_t result = 0;
+  static size_t idx = 0;
+  uint64_t result = 0;
 
   while (state.KeepRunning()) {
-    result = compiledResolver->run(tree, dataSet);
+    result = CompiledResolver(DataSets[idx].data());
   }
 
-  assert(dataSet[dataSetFeatures] == (float)result);
+  submitDataSetEvalResult(idx, result);
+  if (idx < DataSets.size() - 1) idx++;
 }
 
 BENCHMARK(BM_RegularEvaluation);
 BENCHMARK(BM_CompiledEvaluation);
 
 int main(int argc, char** argv) {
-  regularResolver = std::make_unique<RegularResolver>();
-  compiledResolver = std::make_unique<CompiledResolver>(
-      tree, dataSetFeatures, compiledFunctionLevels,
-      compiledFunctionSwitchLevels);
+  printf("Preparing benchmark data..\n");
+  DecisionTreeFactory treeFactory;
+  Tree = treeFactory.makeRandomRegular(TreeDepth, DataSetFeatures);
 
+  DataSetFactory dsFactory(Tree.copy(), DataSetFeatures);
+  DataSets = dsFactory.makeRandomDataSets(100);
+
+  Results.resize(DataSets.size());
+  std::fill(Results.begin(), Results.end(), InvalidNodeIdx);
+
+  printf("Compiling decision tree..\n");
+  JitDriver jitDriver;
+  JitCompileResult result = jitDriver.run(std::move(Tree));
+  CompiledResolver = result.EvaluatorFunction;
+  Tree = std::move(result.Tree);
+
+  InterpreterResolver = std::make_unique<Interpreter>();
+
+  printf("\n");
   ::benchmark::Initialize(&argc, argv);
   ::benchmark::RunSpecifiedBenchmarks();
 }

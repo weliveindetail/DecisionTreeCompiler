@@ -5,16 +5,30 @@
 #include "data/DecisionTree.h"
 #include "data/DecisionTreeNode.h"
 
+#include "Utils.h"
+
 class DataSetFactory {
 public:
   DataSetFactory(DecisionTree tree, uint32_t features)
       : Tree(std::move(tree)), Features(features) {}
 
   template <typename ...Args_tt>
-  std::vector<float> makeDataSet(NodeEvaluation l1, Args_tt... args) {
+  std::vector<float> makeDistinctDataSet(NodeEvaluation l1, Args_tt... args) {
     std::vector<float> ds(Features, 0.0f);
     fillDataSetRecursively(ds, Tree.getRootNode(), l1, args...);
     return ds;
+  }
+
+  std::vector<std::vector<float>> makeRandomDataSets(uint32_t count) {
+    std::vector<std::vector<float>> dataSetCollection(count);
+    std::generate(dataSetCollection.begin(), dataSetCollection.end(),
+        [this]() {
+          std::vector<float> dataSet(Features);
+          std::generate(dataSet.begin(), dataSet.end(), makeRandomFloat);
+          return dataSet;
+        });
+
+    return dataSetCollection;
   }
 
 private:
