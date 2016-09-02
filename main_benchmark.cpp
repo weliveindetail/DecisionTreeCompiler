@@ -4,38 +4,52 @@
 #include "benchmark/benchmark.h"
 
 #include "DataSet.h"
-#include "LegacyDecisionTree.h"
+#include "driver/utility/Interpreter.h"
 #include "RegularResolver.h"
 #include "CompiledResolver.h"
 
-int treeDepth = 3;
-int dataSetFeatures = 100;
-int compiledFunctionLevels = 3;
-int compiledFunctionSwitchLevels = 3;
+#include "data/DataSetFactory.h"
+#include "data/DecisionTree.h"
 
-std::unique_ptr<RegularResolver> regularResolver;
-std::unique_ptr<CompiledResolver> compiledResolver;
+#include "driver/JitDriver.h"
 
-DecisionTree_t tree = prepareDecisionTree(treeDepth, dataSetFeatures);
-std::vector<DataSet_t> dataSets = makeRandomDataSets(100, dataSetFeatures, tree); // hack
+uint8_t treeDepth = 16;
+uint32_t dataSetFeatures = 100;
 
-DataSet_t& selectRandomDataSet() {
+uint64_t InvalidNodeIdx = DecisionTreeNode().getIdx();
+
+DecisionTreeFactory treeFactory;
+DecisionTree tree = treeFactory.makeRandomRegular(treeDepth, dataSetFeatures);
+
+DataSetFactory dataSetFactory(tree.copy(), dataSetFeatures);
+std::vector<DataSet_t> dataSets = dataSetFactory.makeRandomDataSets(100);
+std::vector<uint64_t> results(dataSets.size(), InvalidNodeIdx);
+
+std::unique_ptr<Interpreter> interpreter;
+JitCompileResult::Evaluator_f *compiledResolver;
+
+size_t selectRandomDataSetIdx() {
   assert(!dataSets.empty());
-  return dataSets[makeRandomInt(0ul, dataSets.size() - 1)];
-};
+  return makeRandomInt(0ul, dataSets.size() - 1);
+}
+
+void submitDataSetInterpretedResult(size_t idx, uint64_t result) {
+  assert(results[idx] == InvalidNodeIdx || results[idx] == result);
+  results[idx] = result;
+}
 
 static void BM_RegularEvaluation(benchmark::State& state) {
-  DataSet_t& dataSet = selectRandomDataSet();
+  size_t idx = selectRandomDataSetIdx();
   int64_t result = 0;
 
   while (state.KeepRunning()) {
-    result = regularResolver->run(tree, dataSet);
+    result = interpreter->run(tree, dataSets[idx]);
   }
 
-  assert(dataSet[dataSetFeatures] == (float)result);
+  submitDataSetInterpretedResult(idx, result);
 }
 
-static void BM_CompiledEvaluation(benchmark::State& state) {
+/*static void BM_CompiledEvaluation(benchmark::State& state) {
   DataSet_t& dataSet = selectRandomDataSet();
   int64_t result = 0;
 
@@ -44,16 +58,17 @@ static void BM_CompiledEvaluation(benchmark::State& state) {
   }
 
   assert(dataSet[dataSetFeatures] == (float)result);
-}
+}*/
 
 BENCHMARK(BM_RegularEvaluation);
-BENCHMARK(BM_CompiledEvaluation);
+//BENCHMARK(BM_CompiledEvaluation);
 
 int main(int argc, char** argv) {
-  regularResolver = std::make_unique<RegularResolver>();
-  compiledResolver = std::make_unique<CompiledResolver>(
-      tree, dataSetFeatures, compiledFunctionLevels,
-      compiledFunctionSwitchLevels);
+  interpreter = std::make_unique<Interpreter>();
+
+  //compiledResolver = std::make_unique<CompiledResolver>(
+  //    tree, dataSetFeatures, compiledFunctionLevels,
+  //    compiledFunctionSwitchLevels);
 
   ::benchmark::Initialize(&argc, argv);
   ::benchmark::RunSpecifiedBenchmarks();

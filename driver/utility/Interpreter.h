@@ -5,8 +5,8 @@
 
 class Interpreter {
 public:
-    int64_t run(const DecisionTree &tree,
-                const std::vector<float> &dataSet) {
+    uint64_t run(const DecisionTree &tree,
+                 const std::vector<float> &dataSet) {
       DecisionTreeNode node = tree.getRootNode();
 
       while (!node.isImplicit()) {

@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include "data/DataSet.h"
 #include "data/DecisionTree.h"
 #include "data/DecisionTreeNode.h"
 
