@@ -54,6 +54,7 @@ set(SOURCE_FILES
         compiler/DecisionTreeCompiler.cpp
         compiler/SimpleOrcJit.h
         compiler/SimpleOrcJit.cpp
+        data/DataSetFactory.h
         data/DecisionSubtreeRef.h
         data/DecisionTree.h
         data/DecisionTree.cpp
