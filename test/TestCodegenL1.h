@@ -2,6 +2,8 @@
 
 #include <gtest/gtest.h>
 
+#include "codegen/CodeGeneratorSelector.h"
+#include "codegen/L1IfThenElse.h"
 #include "data/DecisionTree.h"
 #include "driver/JitDriver.h"
 
@@ -24,6 +26,14 @@ TEST(L1IfThenElse, RegularTree2) {
   // 3              4       5              6  (implicit result nodes)
 
   JitDriver jitDriver;
+
+  jitDriver.setCodegenSelector(makeLambdaSelector(
+      [](const CompilerSession &session,
+         int remainingLevels) {
+    static L1IfThenElse codegen(session);
+    return &codegen;
+  }));
+
   auto *fp = jitDriver.run(std::move(tree));
   {
     float dataSet[]{0.1f, 0.2f, 0.0f};
