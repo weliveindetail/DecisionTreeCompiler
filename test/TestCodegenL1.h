@@ -38,10 +38,10 @@ TEST(L1IfThenElse, RegularTree2) {
   auto left = NodeEvaluation::ContinueZeroLeft;
   auto right = NodeEvaluation::ContinueOneRight;
 
-  EXPECT_EQ(3, fp(data.makeDataSet(left, left).data()));
-  EXPECT_EQ(4, fp(data.makeDataSet(left, right).data()));
-  EXPECT_EQ(5, fp(data.makeDataSet(right, left).data()));
-  EXPECT_EQ(6, fp(data.makeDataSet(right, right).data()));
+  EXPECT_EQ(3, fp(data.makeDistinctDataSet(left, left).data()));
+  EXPECT_EQ(4, fp(data.makeDistinctDataSet(left, right).data()));
+  EXPECT_EQ(5, fp(data.makeDistinctDataSet(right, left).data()));
+  EXPECT_EQ(6, fp(data.makeDistinctDataSet(right, right).data()));
 }
 
 TEST(L1IfThenElse, RegularTree3) {
@@ -79,12 +79,12 @@ TEST(L1IfThenElse, RegularTree3) {
   auto left = NodeEvaluation::ContinueZeroLeft;
   auto right = NodeEvaluation::ContinueOneRight;
 
-  EXPECT_EQ(7, fp(data.makeDataSet(left, left, left).data()));
-  EXPECT_EQ(8, fp(data.makeDataSet(left, left, right).data()));
-  EXPECT_EQ(9, fp(data.makeDataSet(left, right, left).data()));
-  EXPECT_EQ(10, fp(data.makeDataSet(left, right, right).data()));
-  EXPECT_EQ(11, fp(data.makeDataSet(right, left, left).data()));
-  EXPECT_EQ(12, fp(data.makeDataSet(right, left, right).data()));
-  EXPECT_EQ(13, fp(data.makeDataSet(right, right, left).data()));
-  EXPECT_EQ(14, fp(data.makeDataSet(right, right, right).data()));
+  EXPECT_EQ(7, fp(data.makeDistinctDataSet(left, left, left).data()));
+  EXPECT_EQ(8, fp(data.makeDistinctDataSet(left, left, right).data()));
+  EXPECT_EQ(9, fp(data.makeDistinctDataSet(left, right, left).data()));
+  EXPECT_EQ(10, fp(data.makeDistinctDataSet(left, right, right).data()));
+  EXPECT_EQ(11, fp(data.makeDistinctDataSet(right, left, left).data()));
+  EXPECT_EQ(12, fp(data.makeDistinctDataSet(right, left, right).data()));
+  EXPECT_EQ(13, fp(data.makeDistinctDataSet(right, right, left).data()));
+  EXPECT_EQ(14, fp(data.makeDistinctDataSet(right, right, right).data()));
 }
