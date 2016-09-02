@@ -3,30 +3,23 @@
 #include <cstdint>
 #include <vector>
 
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LLVMContext.h>
-
 #include "codegen/utility/CGNodeInfo.h"
-#include "compiler/CompilerSession.h"
+
+class CompilerSession;
 
 class CodeGenerator {
 public:
-  CodeGenerator() = delete;
+  CodeGenerator() = default;
+  virtual ~CodeGenerator() = default;
+
+  // don't copy or move polymorphic class instances
   CodeGenerator(CodeGenerator &&) = delete;
   CodeGenerator(const CodeGenerator &) = delete;
   CodeGenerator &operator=(CodeGenerator &&) = delete;
   CodeGenerator &operator=(const CodeGenerator &) = delete;
 
-  CodeGenerator(const CompilerSession &session)
-    : Ctx(session.Builder.getContext()), Session(session) {}
-  virtual ~CodeGenerator() {}
-
   virtual uint8_t getJointSubtreeDepth() const = 0;
 
   virtual std::vector<CGNodeInfo>
-  emitEvaluation(CGNodeInfo subtreeRoot) = 0;
-
-protected:
-  llvm::LLVMContext &Ctx;
-  const CompilerSession &Session;
+  emitEvaluation(const CompilerSession &session, CGNodeInfo nodeInfo) = 0;
 };

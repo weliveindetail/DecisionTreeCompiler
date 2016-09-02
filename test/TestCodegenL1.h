@@ -30,7 +30,7 @@ TEST(L1IfThenElse, RegularTree2) {
   jitDriver.setCodegenSelector(makeLambdaSelector(
       [](const CompilerSession &session,
          int remainingLevels) {
-    static L1IfThenElse codegen(session);
+    static L1IfThenElse codegen;
     return &codegen;
   }));
 

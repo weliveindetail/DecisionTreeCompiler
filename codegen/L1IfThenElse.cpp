@@ -1,20 +1,24 @@
 #include "codegen/L1IfThenElse.h"
+#include "compiler/CompilerSession.h"
 
 using namespace llvm;
 
 std::vector<CGNodeInfo>
-L1IfThenElse::emitEvaluation(CGNodeInfo nodeInfo) {
-  DecisionSubtreeRef subtree = Session.Tree.getSubtreeRef(nodeInfo.Index, 2);
+L1IfThenElse::emitEvaluation(const CompilerSession &session,
+                             CGNodeInfo nodeInfo) {
+  DecisionSubtreeRef subtree = session.Tree.getSubtreeRef(nodeInfo.Index, 2);
   switch (subtree.getNodeCount()) {
     case 1:
       assert(subtree.Root.isLeaf());
       return {std::move(nodeInfo)};
 
     case 2:
-      return emitSingleChildForward(std::move(nodeInfo), std::move(subtree));
+      return emitSingleChildForward(std::move(nodeInfo),
+                                    std::move(subtree));
 
     case 3:
-      return emitConditionalBranch(std::move(nodeInfo), std::move(subtree));
+      return emitConditionalBranch(session, std::move(nodeInfo),
+                                   std::move(subtree));
   }
 
   llvm_unreachable("2-level subtree must have 1, 2 or 3 nodes");
@@ -37,27 +41,27 @@ L1IfThenElse::emitSingleChildForward(CGNodeInfo nodeInfo,
 }
 
 std::vector<CGNodeInfo>
-L1IfThenElse::emitConditionalBranch(CGNodeInfo nodeInfo,
+L1IfThenElse::emitConditionalBranch(const CompilerSession &session,
+                                    CGNodeInfo nodeInfo,
                                     DecisionSubtreeRef subtree) {
   std::vector<CGNodeInfo> continuationNodes;
+  LLVMContext &ctx = session.Builder.getContext();
 
-  LLVMContext &ctx = Session.Builder.getContext();
+  auto *leftChildBB = makeIfThenElseBB(ctx, nodeInfo, "left");
+  auto *rightChildBB = makeIfThenElseBB(ctx, nodeInfo, "right");
+  auto *mergeBB = makeIfThenElseBB(ctx, nodeInfo, "merge");
 
-  auto *leftChildBB = makeIfThenElseBB(nodeInfo, "left");
-  auto *rightChildBB = makeIfThenElseBB(nodeInfo, "right");
-  auto *mergeBB = makeIfThenElseBB(nodeInfo, "merge");
+  session.Builder.SetInsertPoint(nodeInfo.EvalBlock);
 
-  Session.Builder.SetInsertPoint(nodeInfo.EvalBlock);
-
-  Value *featureVal = emitLoadFeatureValue(subtree.Root);
+  Value *featureVal = emitLoadFeatureValue(session, subtree.Root);
   Type *floatTy = Type::getFloatTy(ctx);
   Constant *biasVal = ConstantFP::get(floatTy, subtree.Root.getFeatureBias());
-  Value *cmpResult = Session.Builder.CreateFCmpOGT(featureVal, biasVal);
+  Value *cmpResult = session.Builder.CreateFCmpOGT(featureVal, biasVal);
 
-  Session.Builder.CreateCondBr(cmpResult, rightChildBB, leftChildBB);
+  session.Builder.CreateCondBr(cmpResult, rightChildBB, leftChildBB);
 
-  Session.Builder.SetInsertPoint(mergeBB);
-  Session.Builder.CreateBr(nodeInfo.ContinuationBlock);
+  session.Builder.SetInsertPoint(mergeBB);
+  session.Builder.CreateBr(nodeInfo.ContinuationBlock);
 
   DecisionTreeNode leftChild =
       subtree.Root.getChildFor(NodeEvaluation::ContinueZeroLeft, subtree);
@@ -74,16 +78,17 @@ L1IfThenElse::emitConditionalBranch(CGNodeInfo nodeInfo,
   return continuationNodes;
 }
 
-Value *
-L1IfThenElse::emitLoadFeatureValue(DecisionTreeNode node) {
-  Value *dataSetFeaturePtr = Session.Builder.CreateConstGEP1_32(
-      Session.InputDataSetPtr, node.getFeatureIdx());
+Value *L1IfThenElse::emitLoadFeatureValue(const CompilerSession &session,
+                                          DecisionTreeNode node) {
+  Value *dataSetFeaturePtr = session.Builder.CreateConstGEP1_32(
+      session.InputDataSetPtr, node.getFeatureIdx());
 
-  return Session.Builder.CreateLoad(dataSetFeaturePtr);
+  return session.Builder.CreateLoad(dataSetFeaturePtr);
 }
 
-BasicBlock *L1IfThenElse::makeIfThenElseBB(CGNodeInfo nodeInfo,
+BasicBlock *L1IfThenElse::makeIfThenElseBB(LLVMContext &ctx,
+                                           CGNodeInfo nodeInfo,
                                            std::string suffix) {
   std::string name = "n" + std::to_string(nodeInfo.Index) + suffix;
-  return BasicBlock::Create(Ctx, name, nodeInfo.OwnerFunction);
+  return BasicBlock::Create(ctx, name, nodeInfo.OwnerFunction);
 }

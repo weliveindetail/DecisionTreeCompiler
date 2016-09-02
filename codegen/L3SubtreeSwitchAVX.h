@@ -7,12 +7,12 @@ class L3SubtreeSwitchAVX : public LXSubtreeSwitch {
   constexpr static uint8_t Levels = 3;
 
 public:
-  L3SubtreeSwitchAVX(const CompilerSession &session)
-      : LXSubtreeSwitch(session, Levels) {}
+  L3SubtreeSwitchAVX() : LXSubtreeSwitch(Levels) {}
 
-  llvm::Value *emitConditionVector(DecisionSubtreeRef subtree,
+  llvm::Value *emitConditionVector(const CompilerSession &session,
+                                   DecisionSubtreeRef subtree,
                                    CGNodeInfo rootNodeInfo) override {
-    CGConditionVectorEmitterAVX emitter(Session, subtree);
+    CGConditionVectorEmitterAVX emitter(session, subtree);
     return emitter.run(rootNodeInfo);
   }
 };

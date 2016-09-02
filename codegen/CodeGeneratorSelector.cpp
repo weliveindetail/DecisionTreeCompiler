@@ -9,8 +9,7 @@ CodeGenerator *DefaultSelector::select(const CompilerSession &session,
                                        int remainingLevels) {
   if (remainingLevels > 2 && AvxSupport) {
     if (!CachedGenL3SubtreeSwitchAVX)
-      CachedGenL3SubtreeSwitchAVX =
-          std::make_unique<L3SubtreeSwitchAVX>(session);
+      CachedGenL3SubtreeSwitchAVX = std::make_unique<L3SubtreeSwitchAVX>();
 
     return CachedGenL3SubtreeSwitchAVX.get();
   }
@@ -21,7 +20,7 @@ CodeGenerator *DefaultSelector::select(const CompilerSession &session,
 
     if (it == CachedGensLXSubtreeSwitch.end()) {
       CachedGensLXSubtreeSwitch[jointSubtreeLevels] =
-          std::make_unique<LXSubtreeSwitch>(session, jointSubtreeLevels);
+          std::make_unique<LXSubtreeSwitch>(jointSubtreeLevels);
     }
 
     return CachedGensLXSubtreeSwitch.at(jointSubtreeLevels).get();
@@ -29,8 +28,7 @@ CodeGenerator *DefaultSelector::select(const CompilerSession &session,
 
   if (remainingLevels == 1) {
     if (!CachedGenL1IfThenElse)
-      CachedGenL1IfThenElse =
-          std::make_unique<L1IfThenElse>(session);
+      CachedGenL1IfThenElse = std::make_unique<L1IfThenElse>();
 
     return CachedGenL1IfThenElse.get();
   }

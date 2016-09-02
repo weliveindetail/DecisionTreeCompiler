@@ -9,26 +9,28 @@
 using namespace llvm;
 
 std::vector<CGNodeInfo>
-LXSubtreeSwitch::emitEvaluation(CGNodeInfo subtreeRoot) {
+LXSubtreeSwitch::emitEvaluation(const CompilerSession &session,
+                                CGNodeInfo subtreeRoot) {
   DecisionSubtreeRef subtreeRef =
-      Session.Tree.getSubtreeRef(subtreeRoot.Index, Levels);
+      session.Tree.getSubtreeRef(subtreeRoot.Index, Levels);
 
-  Value *conditionVector = emitConditionVector(subtreeRef, subtreeRoot);
+  Value *conditionVector = emitConditionVector(session, subtreeRef, subtreeRoot);
+  LLVMContext &ctx = session.Builder.getContext();
 
-  auto *returnBB = makeSwitchBB(subtreeRoot, "return");
-  auto *defaultBB = makeSwitchBB(subtreeRoot, "default");
+  auto *returnBB = makeSwitchBB(ctx, subtreeRoot, "return");
+  auto *defaultBB = makeSwitchBB(ctx, subtreeRoot, "default");
 
   auto expectedCaseLabels = PowerOf2<uint32_t>(subtreeRef.getNodeCount());
 
-  Session.Builder.SetInsertPoint(subtreeRoot.EvalBlock);
-  SwitchInst *switchInst = Session.Builder.CreateSwitch(
+  session.Builder.SetInsertPoint(subtreeRoot.EvalBlock);
+  SwitchInst *switchInst = session.Builder.CreateSwitch(
       conditionVector, defaultBB, expectedCaseLabels);
 
   CGEvaluationPathsBuilder pathBuilder(subtreeRef);
   std::vector<CGEvaluationPath> evaluationPaths = pathBuilder.run();
 
   std::vector<CGNodeInfo> continuationNodes = emitSwitchTargets(
-      evaluationPaths, subtreeRoot.OwnerFunction, returnBB);
+      ctx, evaluationPaths, subtreeRoot.OwnerFunction, returnBB);
 
   assert(continuationNodes.size() == evaluationPaths.size());
 
@@ -40,26 +42,26 @@ LXSubtreeSwitch::emitEvaluation(CGNodeInfo subtreeRoot) {
         variantsBuilder.run(std::move(evaluationPaths[i]));
 
     emittedCaseLabels +=
-        emitSwitchCaseLabels(switchInst, conditionVector->getType(),
+        emitSwitchCaseLabels(ctx, switchInst, conditionVector->getType(),
                              continuationNodes[i], std::move(pathCaseValues));
   }
 
   assert(emittedCaseLabels == expectedCaseLabels);
 
   defaultBB->moveAfter(continuationNodes.back().EvalBlock);
-  Session.Builder.SetInsertPoint(defaultBB);
-  Session.Builder.CreateUnreachable();
-  Session.Builder.CreateBr(returnBB);
+  session.Builder.SetInsertPoint(defaultBB);
+  session.Builder.CreateUnreachable();
+  session.Builder.CreateBr(returnBB);
 
   returnBB->moveAfter(defaultBB);
-  Session.Builder.SetInsertPoint(returnBB);
-  Session.Builder.CreateBr(subtreeRoot.ContinuationBlock);
+  session.Builder.SetInsertPoint(returnBB);
+  session.Builder.CreateBr(subtreeRoot.ContinuationBlock);
 
   return continuationNodes;
 }
 
 std::vector<CGNodeInfo> LXSubtreeSwitch::emitSwitchTargets(
-    const std::vector<CGEvaluationPath> &evaluationPaths,
+    LLVMContext &ctx, const std::vector<CGEvaluationPath> &evaluationPaths,
     Function *ownerFunction, BasicBlock *returnBB) {
   std::vector<CGNodeInfo> continuationNodes;
 
@@ -67,7 +69,7 @@ std::vector<CGNodeInfo> LXSubtreeSwitch::emitSwitchTargets(
   for (const CGEvaluationPath &path : evaluationPaths) {
     uint64_t idx = path.getDestNode().getIdx();
     std::string label = "n" + std::to_string(idx);
-    BasicBlock *BB = BasicBlock::Create(Ctx, label, ownerFunction);
+    BasicBlock *BB = BasicBlock::Create(ctx, label, ownerFunction);
 
     continuationNodes.emplace_back(idx, ownerFunction, BB, returnBB);
   }
@@ -76,10 +78,10 @@ std::vector<CGNodeInfo> LXSubtreeSwitch::emitSwitchTargets(
 }
 
 uint32_t LXSubtreeSwitch::emitSwitchCaseLabels(
-    SwitchInst *switchInst, Type *switchCondTy, CGNodeInfo targetNodeInfo,
-    std::vector<uint32_t> pathCaseValues) {
+    LLVMContext &ctx, SwitchInst *switchInst, Type *switchCondTy,
+    CGNodeInfo targetNodeInfo, std::vector<uint32_t> pathCaseValues) {
   IntegerType *switchCondIntTy =
-      IntegerType::get(Ctx, switchCondTy->getIntegerBitWidth());
+      IntegerType::get(ctx, switchCondTy->getIntegerBitWidth());
 
   for (uint32_t variant : pathCaseValues) {
     ConstantInt *caseVal = ConstantInt::get(switchCondIntTy, variant);
@@ -89,8 +91,9 @@ uint32_t LXSubtreeSwitch::emitSwitchCaseLabels(
   return pathCaseValues.size();
 }
 
-BasicBlock *LXSubtreeSwitch::makeSwitchBB(CGNodeInfo subtreeRoot,
+BasicBlock *LXSubtreeSwitch::makeSwitchBB(LLVMContext &ctx,
+                                          CGNodeInfo subtreeRoot,
                                           std::string suffix) {
   auto lbl = "switch" + std::to_string(subtreeRoot.Index) + "_" + suffix;
-  return BasicBlock::Create(Ctx, std::move(lbl), subtreeRoot.OwnerFunction);
+  return BasicBlock::Create(ctx, std::move(lbl), subtreeRoot.OwnerFunction);
 }
