@@ -5,18 +5,28 @@
 #include <llvm/Support/Host.h>
 
 #include "codegen/CodeGenerator.h"
+#include "codegen/CodeGeneratorSelector.h"
 #include "compiler/CompilerSession.h"
 
 using namespace llvm;
 
 DecisionTreeCompiler::DecisionTreeCompiler(TargetMachine *target)
-  : Target(target) {
+  : Target(target), CodegenSelector(nullptr) {
   llvm::sys::getHostCPUFeatures(CpuFeatures);
 }
 
+void DecisionTreeCompiler::setCodegenSelector(
+      std::shared_ptr<CodeGeneratorSelector> codegenSelector) {
+  CodegenSelector = codegenSelector;
+  CodegenSelector->AvxSupport = CpuFeatures["avx"];
+}
+
 CompileResult DecisionTreeCompiler::compile(DecisionTree tree) {
+  if (CodegenSelector == nullptr)
+    setCodegenSelector(std::make_shared<DefaultSelector>());
+
   CompilerSession session(this, Target, "sessionName");
-  session.AvxSupport = CpuFeatures["avx"];
+  session.CodegenSelector = CodegenSelector;
   session.Tree = std::move(tree);
 
   CGNodeInfo root = makeEvalRoot("EvaluatorFunction", session);

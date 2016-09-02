@@ -14,6 +14,7 @@
 #include "codegen/utility/CGNodeInfo.h"
 #include "data/DecisionTree.h"
 
+class CodeGeneratorSelector;
 class CompilerSession;
 
 struct CompileResult {
@@ -28,6 +29,10 @@ public:
   llvm::LLVMContext Ctx;
 
   DecisionTreeCompiler(llvm::TargetMachine *target);
+
+  void setCodegenSelector(
+      std::shared_ptr<CodeGeneratorSelector> codegenSelector);
+
   CompileResult compile(DecisionTree tree);
 
 private:
@@ -52,4 +57,5 @@ private:
 private:
   llvm::TargetMachine *Target;
   llvm::StringMap<bool> CpuFeatures;
+  std::shared_ptr<CodeGeneratorSelector> CodegenSelector;
 };

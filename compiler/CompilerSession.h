@@ -13,6 +13,7 @@
 #include "data/DecisionTree.h"
 
 class CodeGenerator;
+class CodeGeneratorSelector;
 class DecisionTreeCompiler;
 
 class L1IfThenElse;
@@ -41,13 +42,6 @@ struct CompilerSession final {
   llvm::Value *InputDataSetPtr;
   llvm::Value *OutputNodeIdxPtr;
 
-  // relevant target-specific features
-  bool AvxSupport = false;
-
+  std::shared_ptr<CodeGeneratorSelector> CodegenSelector;
   CodeGenerator *selectCodeGenerator(uint8_t remainingLevels) const;
-
-private:
-  mutable std::unique_ptr<L1IfThenElse> CachedGenL1IfThenElse;
-  mutable std::unique_ptr<L3SubtreeSwitchAVX> CachedGenL3SubtreeSwitchAVX;
-  mutable std::map<int, std::unique_ptr<LXSubtreeSwitch>> CachedGensLXSubtreeSwitch;
 };
