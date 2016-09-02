@@ -7,6 +7,16 @@
 
 class CodeGeneratorSelector;
 
+struct JitCompileResult {
+  using Evaluator_f = uint64_t(float*);
+
+  JitCompileResult(CompileResult frontendResult, Evaluator_f *evalFunction)
+      : Tree(std::move(frontendResult.Tree)), EvaluatorFunction(evalFunction) {}
+
+  DecisionTree Tree;
+  Evaluator_f *EvaluatorFunction;
+};
+
 class JitDriver {
 public:
   JitDriver() : LLVM(),
@@ -17,13 +27,18 @@ public:
     DecisionTreeFrontend.setCodegenSelector(std::move(codegenSel));
   }
 
-  using Evaluator_f = uint64_t(float*);
-  Evaluator_f *run(DecisionTree decisionTree) {
-    CompileResult result =
+  JitCompileResult run(DecisionTree decisionTree) {
+    CompileResult frontendResult =
         DecisionTreeFrontend.compile(std::move(decisionTree));
 
-    JitBackend.submitModule(std::move(result.Module));
-    return JitBackend.getFnPtr<Evaluator_f>(result.EvaluatorFunctionName);
+    std::string entryFnName = frontendResult.EvaluatorFunctionName;
+    assert(frontendResult.Module->getFunction(entryFnName) != nullptr);
+
+    JitBackend.submitModule(std::move(frontendResult.Module));
+
+    return JitCompileResult(
+        std::move(frontendResult),
+        JitBackend.getFnPtr<JitCompileResult::Evaluator_f>(entryFnName));
   }
 
 private:

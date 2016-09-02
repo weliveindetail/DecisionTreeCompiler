@@ -25,17 +25,18 @@ TEST(L1IfThenElse, RegularTree2) {
   JitDriver jitDriver;
 
   jitDriver.setCodegenSelector(makeLambdaSelector(
-      [](const CompilerSession &session,
-         int remainingLevels) {
-    static L1IfThenElse codegen;
-    return &codegen;
-  }));
+      [](const CompilerSession &session, int remainingLevels) {
+        static L1IfThenElse codegen;
+        return &codegen;
+      }));
+
+  JitCompileResult result = jitDriver.run(std::move(tree));
+
+  auto *fp = result.EvaluatorFunction;
+  DataSetFactory data(std::move(result.Tree), 3);
 
   auto left = NodeEvaluation::ContinueZeroLeft;
   auto right = NodeEvaluation::ContinueOneRight;
-
-  DataSetFactory data(tree.copy(), 3);
-  auto *fp = jitDriver.run(std::move(tree));
 
   EXPECT_EQ(3, fp(data.makeDataSet(left, left).data()));
   EXPECT_EQ(4, fp(data.makeDataSet(left, right).data()));
@@ -65,17 +66,18 @@ TEST(L1IfThenElse, RegularTree3) {
   JitDriver jitDriver;
 
   jitDriver.setCodegenSelector(makeLambdaSelector(
-      [](const CompilerSession &session,
-         int remainingLevels) {
+      [](const CompilerSession &session, int remainingLevels) {
         static L1IfThenElse codegen;
         return &codegen;
       }));
 
+  JitCompileResult result = jitDriver.run(std::move(tree));
+
+  auto *fp = result.EvaluatorFunction;
+  DataSetFactory data(std::move(result.Tree), 7);
+
   auto left = NodeEvaluation::ContinueZeroLeft;
   auto right = NodeEvaluation::ContinueOneRight;
-
-  DataSetFactory data(tree.copy(), 7);
-  auto *fp = jitDriver.run(std::move(tree));
 
   EXPECT_EQ(7, fp(data.makeDataSet(left, left, left).data()));
   EXPECT_EQ(8, fp(data.makeDataSet(left, left, right).data()));
