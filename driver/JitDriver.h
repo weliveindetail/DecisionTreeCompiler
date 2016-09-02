@@ -5,11 +5,17 @@
 #include "data/DecisionTree.h"
 #include "driver/utility/AutoSetUpTearDownLLVM.h"
 
+class CodeGeneratorSelector;
+
 class JitDriver {
 public:
   JitDriver() : LLVM(),
                 DecisionTreeFrontend(LLVM.getTargetMachine()),
                 JitBackend(LLVM.getTargetMachine()) {}
+
+  void setCodegenSelector(std::shared_ptr<CodeGeneratorSelector> codegenSel) {
+    DecisionTreeFrontend.setCodegenSelector(std::move(codegenSel));
+  }
 
   using Evaluator_f = uint64_t(float*);
   Evaluator_f *run(DecisionTree decisionTree) {
