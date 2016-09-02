@@ -18,6 +18,7 @@ public:
 
   uint8_t getNumLevels() const { return Levels; }
   uint64_t getRootNodeIdx() const { return 0; }
+
   DecisionSubtreeRef getSubtreeRef(uint64_t rootIndex, uint8_t levels) const;
 
   DecisionTreeNode getNode(uint64_t idx) const {
@@ -25,10 +26,33 @@ public:
     return Nodes.at(idx);
   }
 
-  void addNode(uint64_t idx, DecisionTreeNode node) {
+  DecisionTreeNode getRootNode() const {
+    return getNode(getRootNodeIdx());
+  }
+
+  DecisionTreeNode getChildNodeFor(DecisionTreeNode node,
+                                   NodeEvaluation eval) const {
+    return getNode(eval == NodeEvaluation::ContinueZeroLeft
+                   ? node.FalseChildNodeIdx
+                   : node.TrueChildNodeIdx);
+  }
+
+  void addNode(DecisionTreeNode node) {
     assert(!Finalized);
-    assert(Nodes.find(idx) == Nodes.end());
+    assert(Nodes.find(node.getIdx()) == Nodes.end());
+    uint64_t idx = node.getIdx(); // avoid move before read!
     Nodes.emplace(idx, std::move(node));
+  }
+
+  template <typename ...Args_tt>
+  void addNodes(DecisionTreeNode node, Args_tt... args) {
+    addNode(node);
+    addNodes(args...);
+  }
+
+  template <typename ...Args_tt>
+  void addNodes(DecisionTreeNode node) {
+    addNode(node);
   }
 
   static uint8_t getLevelForNodeIdx(uint64_t nodeIdx) {

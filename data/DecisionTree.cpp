@@ -86,10 +86,9 @@ DecisionTree DecisionTreeFactory::makeRandomRegular(uint8_t levels,
       float bias = 0.4f + makeRandomFloat() / 5.0f; // 0.5 +/- 0.1
       auto featureIdx = makeRandomInt<uint32_t>(0, dataSetFeatures);
 
-      DecisionTreeNode node(firstIdx + i, bias, featureIdx,
-                            firstChildIdx + 2 * i, firstChildIdx + 2 * i + 1);
-
-      tree.addNode(firstIdx + i, std::move(node));
+      tree.addNode(DecisionTreeNode(firstIdx + i, bias, featureIdx,
+                                    firstChildIdx + 2 * i,
+                                    firstChildIdx + 2 * i + 1));
     }
   }
 
