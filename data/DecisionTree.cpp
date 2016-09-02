@@ -12,6 +12,10 @@ DecisionTree::DecisionTree(uint8_t levels, uint64_t nodes) {
   Finalized = false;
 }
 
+DecisionTree DecisionTree::copy() const {
+  return *this;
+}
+
 void DecisionTree::finalize() {
   assert(Nodes.size() == TreeNodes(Levels));
   assert(!Finalized);

@@ -11,12 +11,10 @@ public:
   DecisionTree(DecisionTree &&) = default;
   DecisionTree &operator=(DecisionTree &&) = default;
 
-  // no copies as they'd be too expensive
-  DecisionTree(const DecisionTree &) = delete;
-  DecisionTree &operator=(const DecisionTree &) = delete;
-
   DecisionTree(uint8_t levels, uint64_t nodes);
   void finalize();
+
+  DecisionTree copy() const;
 
   uint8_t getNumLevels() const { return Levels; }
   uint64_t getRootNodeIdx() const { return 0; }
@@ -46,6 +44,10 @@ private:
   uint8_t Levels = 0;
   uint64_t FirstResultIdx = DecisionTreeNode::NoNodeIdx;
   std::unordered_map<uint64_t, DecisionTreeNode> Nodes;
+
+  // no implicit copies as they'd be too expensive, use copy() instead
+  DecisionTree(const DecisionTree &) = default;
+  DecisionTree &operator=(const DecisionTree &) = default;
 
   void addImplicitNode(uint64_t nodeIdx) {
     DecisionTreeNode node;
