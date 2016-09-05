@@ -21,15 +21,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -stdlib=libc++ -fno-rtti")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS")
 
 set(SOURCE_FILES
-        CompiledResolver.h
-        CompiledResolver.cpp
-        DataSet.h
-        DataSet.cpp
-        LegacyDecisionTree.h
-        OrcJitUtils.h
-        RegularResolver.h
-        SimpleOrcJit.h
-        SimpleObjectCache.h
         Utils.h
         codegen/CodeGenerator.h
         codegen/CodeGeneratorSelector.h
