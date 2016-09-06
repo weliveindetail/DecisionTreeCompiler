@@ -81,6 +81,9 @@ set(TEST_FILES
     test/TestCGEvaluationPathsBuilder.h
     test/TestSingleCodegenL1.h
     test/TestSingleCodegenL2.h
+    test/TestSingleCodegenL3.h
+    test/TestSingleCodegenL4.h
+    test/TestSingleCodegenL6.h
     test/TestDecisionTree.h)
 
 add_executable(EvalTreeJit_Test main_test.cpp ${TEST_FILES})

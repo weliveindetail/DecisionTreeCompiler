@@ -8,6 +8,9 @@
 
 #include "test/TestSingleCodegenL1.h"
 #include "test/TestSingleCodegenL2.h"
+#include "test/TestSingleCodegenL3.h"
+#include "test/TestSingleCodegenL4.h"
+#include "test/TestSingleCodegenL6.h"
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
