@@ -28,6 +28,8 @@ CGConditionVectorEmitterX86::CGConditionVectorEmitterX86(
 }
 
 Value *CGConditionVectorEmitterX86::run(CGNodeInfo subtreeRoot) {
+  Builder.SetInsertPoint(subtreeRoot.EvalBlock);
+
   unsigned significantBits = Nodes.size() + 1; // +1 = sign bit
   IntegerType *vectorTy = Type::getIntNTy(Ctx, significantBits);
 
@@ -110,7 +112,7 @@ Value *CGConditionVectorEmitterAVX::emitDefineBitShiftMaskValues() {
   for (uint8_t i = 0; i < numNodes; i++) {
     Builder.CreateStore(
         ConstantInt::get(Int32Ty, PowerOf2(i)),
-        Builder.CreateConstGEP1_32(bitShiftValues, numNodes - i - 1));
+        Builder.CreateConstGEP1_32(bitShiftValues, i));
   }
 
   // AND with 0 in unused last item
