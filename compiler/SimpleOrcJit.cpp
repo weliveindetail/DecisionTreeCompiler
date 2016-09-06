@@ -29,6 +29,13 @@ orc::TargetAddress SimpleOrcJit::getFnAddress(std::string unmangledName) {
   return jitSymbol.getAddress();
 }
 
+orc::TargetAddress SimpleOrcJit::getFnAddressIn(ModuleHandle_t module,
+                                                std::string unmangledName) {
+  auto jitSymbol = CompileLayer.findSymbolIn(module, mangle(unmangledName), false);
+  assert(jitSymbol.getAddress() != 0);
+  return jitSymbol.getAddress();
+}
+
 auto SimpleOrcJit::mangle(std::string name) -> std::string {
   std::string mangledName;
   {
@@ -48,6 +55,11 @@ auto SimpleOrcJit::optimizeModule(ModulePtr_t module) -> ModulePtr_t {
   legacy::FunctionPassManager perFunctionPasses(module.get());
   PMBuilder.populateFunctionPassManager(perFunctionPasses);
 
+  /*
+  llvm::outs() << "\nModule raw IR code:\n";
+  llvm::outs() << *module.get();
+  //*/
+
   perFunctionPasses.doInitialization();
 
   for (Function &function : *module)
@@ -58,6 +70,11 @@ auto SimpleOrcJit::optimizeModule(ModulePtr_t module) -> ModulePtr_t {
   legacy::PassManager perModulePasses;
   PMBuilder.populateModulePassManager(perModulePasses);
   perModulePasses.run(*module);
+
+  /*
+  llvm::outs() << "\nModule optimized IR code:\n";
+  llvm::outs() << *module.get();
+  //*/
 
   return module;
 }

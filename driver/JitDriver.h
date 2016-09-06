@@ -18,6 +18,8 @@ struct JitCompileResult {
 };
 
 class JitDriver {
+  using ModuleHandle_t = SimpleOrcJit::ModuleHandle_t;
+
 public:
   JitDriver() : LLVM(),
                 DecisionTreeFrontend(LLVM.getTargetMachine()),
@@ -34,11 +36,12 @@ public:
     std::string entryFnName = frontendResult.EvaluatorFunctionName;
     assert(frontendResult.Module->getFunction(entryFnName) != nullptr);
 
-    JitBackend.submitModule(std::move(frontendResult.Module));
+    ModuleHandle_t module = JitBackend.submitModule(
+        std::move(frontendResult.Module));
 
     return JitCompileResult(
         std::move(frontendResult),
-        JitBackend.getFnPtr<JitCompileResult::Evaluator_f>(entryFnName));
+        JitBackend.getFnPtrIn<JitCompileResult::Evaluator_f>(module, entryFnName));
   }
 
 private:

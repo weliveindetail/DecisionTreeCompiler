@@ -24,15 +24,20 @@ class SimpleOrcJit {
   using CompileLayer_t = IRCompileLayer<ObjectLayer_t>;
   using OptimizeLayer_t = IRTransformLayer<CompileLayer_t, Optimize_f>;
 
+public:
   using ModuleHandle_t = OptimizeLayer_t::ModuleSetHandleT;
 
-public:
   SimpleOrcJit(llvm::TargetMachine *targetMachine);
   ModuleHandle_t submitModule(ModulePtr_t module);
 
   template<typename Evaluator_f>
   Evaluator_f *getFnPtr(std::string unmangledName) {
     return (Evaluator_f*)getFnAddress(std::move(unmangledName));
+  }
+
+  template<typename Evaluator_f>
+  Evaluator_f *getFnPtrIn(ModuleHandle_t module, std::string unmangledName) {
+    return (Evaluator_f*)getFnAddressIn(module, std::move(unmangledName));
   }
 
 private:
@@ -43,5 +48,7 @@ private:
 
   ModulePtr_t optimizeModule(ModulePtr_t module);
   llvm::orc::TargetAddress getFnAddress(std::string unmangledName);
+  llvm::orc::TargetAddress getFnAddressIn(ModuleHandle_t module,
+                                          std::string unmangledName);
   std::string mangle(std::string name);
 };
