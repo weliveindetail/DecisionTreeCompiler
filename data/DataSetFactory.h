@@ -9,6 +9,7 @@
 
 class DataSetFactory {
 public:
+  DataSetFactory() = default;
   DataSetFactory(DecisionTree tree, uint32_t features)
       : Tree(std::move(tree)), Features(features) {}
 
@@ -17,6 +18,10 @@ public:
     std::vector<float> ds(Features, 0.0f);
     fillDataSetRecursively(ds, Tree.getRootNode(), l1, args...);
     return ds;
+  }
+
+  std::vector<float> makeTrivialDataSet(float value) {
+    return {value};
   }
 
   std::vector<std::vector<float>> makeRandomDataSets(uint32_t count) {
