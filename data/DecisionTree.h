@@ -85,6 +85,9 @@ class DecisionTreeFactory {
 public:
   DecisionTreeFactory(std::string cacheDirName = std::string{});
 
+  DecisionTree makePerfectTrivialGradientTree(uint8_t levels);
+  DecisionTree makePerfectDistinctGradientTree(uint8_t levels);
+
   DecisionTree makePerfectTrivialUniformTree(uint8_t levels);
   DecisionTree makePerfectDistinctUniformTree(uint8_t levels);
 
