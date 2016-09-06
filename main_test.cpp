@@ -12,7 +12,19 @@
 #include "test/TestSingleCodegenL4.h"
 #include "test/TestSingleCodegenL6.h"
 
+#include "test/TestMixedCodegenL2.h"
+#include "test/TestMixedCodegenL3.h"
+#include "test/TestMixedCodegenL4.h"
+#include "test/TestMixedCodegenL5.h"
+
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
+
+  /*
+  ::testing::GTEST_FLAG(filter) =
+      "MixedCodegenL2.*:MixedCodegenL3.*:MixedCodegenL4";
+  //    ":LXSubtreeSwitch3.PerfectTrivialGradientTree";
+  //*/
+
   return RUN_ALL_TESTS();
 }

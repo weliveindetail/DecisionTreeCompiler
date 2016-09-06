@@ -84,6 +84,10 @@ set(TEST_FILES
     test/TestSingleCodegenL3.h
     test/TestSingleCodegenL4.h
     test/TestSingleCodegenL6.h
+    test/TestMixedCodegenL2.h
+    test/TestMixedCodegenL3.h
+    test/TestMixedCodegenL4.h
+    test/TestMixedCodegenL5.h
     test/TestDecisionTree.h)
 
 add_executable(EvalTreeJit_Test main_test.cpp ${TEST_FILES})
