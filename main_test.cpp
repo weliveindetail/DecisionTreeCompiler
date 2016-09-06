@@ -7,6 +7,7 @@
 #include "test/TestCGConditionVectorVariationsBuilder.h"
 
 #include "test/TestSingleCodegenL1.h"
+#include "test/TestSingleCodegenL2.h"
 
 int main(int argc, char **argv) {
   ::testing::InitGoogleTest(&argc, argv);
