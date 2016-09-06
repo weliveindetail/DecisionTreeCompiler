@@ -20,12 +20,12 @@ std::vector<uint32_t> flattenToVector(
 
 // -----------------------------------------------------------------------------
 
-TEST(CGConditionVectorVariationsBuilder, RegularTree1) {
+TEST(CGConditionVectorVariationsBuilder, PerfectTree1) {
   // create tree:
   //             0
   //        1         2   (implicit result nodes)
 
-  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(1, 100);
+  DecisionTree tree = (DecisionTreeFactory()).makePerfectTrivialUniformTree(1);
   DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 1);
 
   CGEvaluationPathsBuilder pathsBuilder(subtree);
@@ -42,7 +42,7 @@ TEST(CGConditionVectorVariationsBuilder, RegularTree1) {
   checkVariations(variationsBuilder.run(paths[1]), {0b1}, 1); // 0 -> 2
 }
 
-TEST(CGConditionVectorVariationsBuilder, RegularTree2) {
+TEST(CGConditionVectorVariationsBuilder, PerfectSubtree2) {
   // create tree:
   //              0
   //        1            2
@@ -51,7 +51,7 @@ TEST(CGConditionVectorVariationsBuilder, RegularTree2) {
   //                 ^^^^^^^^^^^^
   //           looking at this subtree
 
-  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
+  DecisionTree tree = (DecisionTreeFactory()).makePerfectTrivialUniformTree(3);
   DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 2, /*levels*/ 2);
 
   CGEvaluationPathsBuilder pathsBuilder(subtree);
@@ -92,14 +92,14 @@ TEST(CGConditionVectorVariationsBuilder, RegularTree2) {
   }
 }
 
-TEST(CGConditionVectorVariationsBuilder, RegularTree3) {
+TEST(CGConditionVectorVariationsBuilder, PerfectTree3) {
   // create tree:
   //              0
   //        1            2
   //    3     4        5     6
   //  7 8    9 10    11 12  13 14   (implicit result nodes)
 
-  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
+  DecisionTree tree = (DecisionTreeFactory()).makePerfectTrivialUniformTree(3);
   DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 3);
 
   CGEvaluationPathsBuilder pathsBuilder(subtree);

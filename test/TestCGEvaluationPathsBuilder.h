@@ -12,12 +12,12 @@ std::pair<DecisionTreeNode, size_t> bubbleDown(DecisionSubtreeRef tree,
 
 // ----------------------------------------------------------------------------
 
-TEST(CGEvaluationPathsBuilder, RegularTree1) {
+TEST(CGEvaluationPathsBuilder, PerfectTree1) {
   // create tree:
   //             0
   //        1         2   (implicit result nodes)
 
-  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(1, 100);
+  DecisionTree tree = (DecisionTreeFactory()).makePerfectTrivialUniformTree(1);
   DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 1);
 
   CGEvaluationPathsBuilder builder(subtree);
@@ -41,7 +41,7 @@ TEST(CGEvaluationPathsBuilder, RegularTree1) {
   EXPECT_EQ(tree.getNode(2), paths[1].getDestNode());
 }
 
-TEST(CGEvaluationPathsBuilder, RegularTree2) {
+TEST(CGEvaluationPathsBuilder, PerfectSubtree2) {
   // create tree:
   //             0
   //        1            2
@@ -50,7 +50,7 @@ TEST(CGEvaluationPathsBuilder, RegularTree2) {
   //                 ^^^^^^^^^^^^
   //           looking at this subtree
 
-  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
+  DecisionTree tree = (DecisionTreeFactory()).makePerfectTrivialUniformTree(3);
   DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 2, /*levels*/ 2);
 
   CGEvaluationPathsBuilder builder(subtree);
@@ -74,7 +74,7 @@ TEST(CGEvaluationPathsBuilder, RegularTree2) {
   EXPECT_EQ(11 + 12 + 13 + 14, sumResultNodeIdxs);
 }
 
-TEST(CGEvaluationPathsBuilder, RegularTree4) {
+TEST(CGEvaluationPathsBuilder, PerfectTree4) {
   // create tree:
   //                        0
   //             1                     2
@@ -82,7 +82,7 @@ TEST(CGEvaluationPathsBuilder, RegularTree4) {
   //   7     8     9     10   11    12    13    14
   // 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30  (implicit result nodes)
 
-  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(4, 100);
+  DecisionTree tree = (DecisionTreeFactory()).makePerfectTrivialUniformTree(4);
   DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 4);
 
   CGEvaluationPathsBuilder builder(subtree);

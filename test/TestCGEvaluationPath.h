@@ -6,12 +6,12 @@
 #include "data/DecisionSubtreeRef.h"
 #include "data/DecisionTree.h"
 
-TEST(CGEvaluationPath, RegularTree1) {
+TEST(CGEvaluationPath, PerfectTree1) {
   // create tree:
   //             0
   //        1         2   (implicit result nodes)
 
-  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(1, 100);
+  DecisionTree tree = (DecisionTreeFactory()).makePerfectTrivialUniformTree(1);
   DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 1);
 
   // test path 0 -> 2
@@ -26,7 +26,7 @@ TEST(CGEvaluationPath, RegularTree1) {
   }
 }
 
-TEST(CGEvaluationPath, RegularTree2) {
+TEST(CGEvaluationPath, PerfectSubtree2) {
   // create tree:
   //             0
   //        1         2
@@ -35,7 +35,7 @@ TEST(CGEvaluationPath, RegularTree2) {
   //              ^^^^^^^^^^^^
   //        looking at this subtree
 
-  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
+  DecisionTree tree = (DecisionTreeFactory()).makePerfectTrivialUniformTree(3);
   DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 2, /*levels*/ 2);
 
   // test path 2 -> 5 -> 12
@@ -67,14 +67,14 @@ TEST(CGEvaluationPath, RegularTree2) {
   }
 }
 
-TEST(CGEvaluationPath, RegularTree3) {
+TEST(CGEvaluationPath, PerfectTree3) {
   // create tree:
   //             0
   //        1         2
   //    3     4     5     6
   //  7 8   9 10  11 12  13 14   (implicit result nodes)
 
-  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
+  DecisionTree tree = (DecisionTreeFactory()).makePerfectTrivialUniformTree(3);
   DecisionSubtreeRef subtree = tree.getSubtreeRef(/*root*/ 0, /*levels*/ 3);
 
   // test path 0 -> 1 -> 3 -> 8

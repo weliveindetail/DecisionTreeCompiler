@@ -10,7 +10,6 @@
 #include "driver/utility/Interpreter.h"
 
 uint8_t TreeDepth = 12;
-uint32_t DataSetFeatures = 100;
 uint64_t InvalidNodeIdx = DecisionTreeNode().getIdx();
 
 DecisionTree Tree;
@@ -55,9 +54,10 @@ BENCHMARK(BM_CompiledEvaluation);
 int main(int argc, char** argv) {
   printf("Preparing benchmark data..\n");
   DecisionTreeFactory treeFactory;
-  Tree = treeFactory.makeRandomRegular(TreeDepth, DataSetFeatures);
+  Tree = treeFactory.makePerfectDistinctUniformTree(TreeDepth);
+  uint32_t dataSetFeatures = TreeNodes(TreeDepth);
 
-  DataSetFactory dsFactory(Tree.copy(), DataSetFeatures);
+  DataSetFactory dsFactory(Tree.copy(), dataSetFeatures);
   DataSets = dsFactory.makeRandomDataSets(100);
 
   Results.resize(DataSets.size());

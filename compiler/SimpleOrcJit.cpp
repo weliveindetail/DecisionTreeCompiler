@@ -13,6 +13,8 @@
 
 using namespace llvm;
 
+std::mutex SimpleOrcJit::SubmitModuleMutex;
+
 SimpleOrcJit::SimpleOrcJit(TargetMachine *targetMachine)
   : ObjectLayer(),
     CompileLayer(ObjectLayer, orc::SimpleCompiler(*targetMachine)),
@@ -25,6 +27,13 @@ SimpleOrcJit::SimpleOrcJit(TargetMachine *targetMachine)
 
 orc::TargetAddress SimpleOrcJit::getFnAddress(std::string unmangledName) {
   auto jitSymbol = CompileLayer.findSymbol(mangle(unmangledName), false);
+  assert(jitSymbol.getAddress() != 0);
+  return jitSymbol.getAddress();
+}
+
+orc::TargetAddress SimpleOrcJit::getFnAddressIn(ModuleHandle_t module,
+                                                std::string unmangledName) {
+  auto jitSymbol = CompileLayer.findSymbolIn(module, mangle(unmangledName), false);
   assert(jitSymbol.getAddress() != 0);
   return jitSymbol.getAddress();
 }
@@ -48,6 +57,11 @@ auto SimpleOrcJit::optimizeModule(ModulePtr_t module) -> ModulePtr_t {
   legacy::FunctionPassManager perFunctionPasses(module.get());
   PMBuilder.populateFunctionPassManager(perFunctionPasses);
 
+  /*
+  llvm::outs() << "\nModule raw IR code:\n";
+  llvm::outs() << *module.get();
+  //*/
+
   perFunctionPasses.doInitialization();
 
   for (Function &function : *module)
@@ -58,6 +72,11 @@ auto SimpleOrcJit::optimizeModule(ModulePtr_t module) -> ModulePtr_t {
   legacy::PassManager perModulePasses;
   PMBuilder.populateModulePassManager(perModulePasses);
   perModulePasses.run(*module);
+
+  /*
+  llvm::outs() << "\nModule optimized IR code:\n";
+  llvm::outs() << *module.get();
+  //*/
 
   return module;
 }
@@ -114,6 +133,8 @@ template <class T> auto makeModuleSet(T t) {
 }
 
 auto SimpleOrcJit::submitModule(ModulePtr_t module) -> ModuleHandle_t {
+  std::lock_guard<std::mutex> lock(SubmitModuleMutex);
+
   ModuleHandle_t handle = OptimizeLayer.addModuleSet(
       makeModuleSet(std::move(module)), makeMemoryManager(),
       makeLinkingResolver(OptimizeLayer));

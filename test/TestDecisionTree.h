@@ -28,7 +28,7 @@ TEST(DecisionTreeFactory, getFirstNodeIdxOnLevel) {
 
 TEST(DecisionSubtreeRef, collectNodes) {
   DecisionTreeFactory treeFactory;
-  DecisionTree tree = treeFactory.makeRandomRegular(4, 100);
+  DecisionTree tree = treeFactory.makePerfectDistinctUniformTree(4);
 
   // tree:
   //                        0
@@ -92,13 +92,13 @@ TEST(DecisionSubtreeRef, collectNodes) {
 }
 
 TEST(DecisionTreeNode, isImplicit) {
-  // create tree:
+  // tree:
   //             0
   //        1         2
   //    3     4     5     6
   //  7 8    9 10 11 12  13 14   (implicit result nodes)
 
-  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
+  DecisionTree tree = (DecisionTreeFactory()).makePerfectTrivialUniformTree(3);
   DecisionSubtreeRef subtree = tree.getSubtreeRef(0, 3);
 
   for (int i = 0; i < 7; i++)
@@ -109,13 +109,13 @@ TEST(DecisionTreeNode, isImplicit) {
 }
 
 TEST(DecisionTreeNode, isLeaf) {
-  // create tree:
+  // tree:
   //             0
   //        1         2
   //    3     4     5     6
   //  7 8    9 10 11 12  13 14   (implicit result nodes)
 
-  DecisionTree tree = (DecisionTreeFactory()).makeRandomRegular(3, 100);
+  DecisionTree tree = (DecisionTreeFactory()).makePerfectTrivialUniformTree(3);
   DecisionSubtreeRef subtree = tree.getSubtreeRef(0, 3);
 
   for (int i = 0; i < 7; i++)

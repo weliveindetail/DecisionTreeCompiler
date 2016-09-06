@@ -28,7 +28,7 @@ public:
 
     // todo: read input file
     DecisionTreeFactory treeFactory;
-    DecisionTree decisionTree = treeFactory.makeRandomRegular(3, 100);
+    DecisionTree decisionTree = treeFactory.makePerfectDistinctUniformTree(3);
 
     llvm::outs() << "Compiling decision tree from file ";
     llvm::outs() << InputFileName << "..\n";

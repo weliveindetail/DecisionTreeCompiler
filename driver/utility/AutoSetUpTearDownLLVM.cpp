@@ -6,28 +6,20 @@
 
 using namespace llvm;
 
-// static init
-std::atomic_flag AutoSetUpTearDownLLVM::initialized = ATOMIC_FLAG_INIT;
-TargetMachine *AutoSetUpTearDownLLVM::targetMachine = nullptr;
-
-AutoSetUpTearDownLLVM::StaticShutDownHelper
-    AutoSetUpTearDownLLVM::StaticShutdown;
-
 AutoSetUpTearDownLLVM::AutoSetUpTearDownLLVM() {
-  if (!initialized.test_and_set(std::memory_order_acquire)) {
-    InitializeNativeTarget();
-    InitializeNativeTargetAsmPrinter();
-    InitializeNativeTargetAsmParser();
+  std::lock_guard<std::mutex> lock(NoRaceInGlobalInit);
 
-    assert(targetMachine == nullptr);
-    targetMachine = EngineBuilder().selectTarget();
-  }
+  InitializeNativeTarget();
+  InitializeNativeTargetAsmPrinter();
+  InitializeNativeTargetAsmParser();
+
+  TM = EngineBuilder().selectTarget();
 }
 
 AutoSetUpTearDownLLVM::StaticShutDownHelper::~StaticShutDownHelper() {
-  if (initialized.test_and_set(std::memory_order_release)) {
-    llvm_shutdown();
-  }
-
-  initialized.clear(std::memory_order_release); // for completeness
+  llvm_shutdown();
 }
+
+std::mutex AutoSetUpTearDownLLVM::NoRaceInGlobalInit;
+AutoSetUpTearDownLLVM::StaticShutDownHelper
+    AutoSetUpTearDownLLVM::StaticShutdown;

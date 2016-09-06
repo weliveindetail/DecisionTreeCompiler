@@ -1,23 +1,18 @@
 #pragma once
 
-#include <atomic>
+#include <mutex>
 #include <llvm/Target/TargetMachine.h>
 
 struct AutoSetUpTearDownLLVM {
   AutoSetUpTearDownLLVM();
-
-  llvm::TargetMachine *getTargetMachine() {
-    assert(targetMachine != nullptr);
-    return targetMachine;
-  }
+  llvm::TargetMachine *getTargetMachine() const { return TM; }
 
 private:
   struct StaticShutDownHelper {
     ~StaticShutDownHelper();
   };
 
-  static std::atomic_flag initialized;
+  llvm::TargetMachine *TM;
+  static std::mutex NoRaceInGlobalInit;
   static StaticShutDownHelper StaticShutdown;
-
-  static llvm::TargetMachine *targetMachine;
 };
