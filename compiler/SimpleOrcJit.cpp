@@ -13,6 +13,8 @@
 
 using namespace llvm;
 
+std::mutex SimpleOrcJit::SubmitModuleMutex;
+
 SimpleOrcJit::SimpleOrcJit(TargetMachine *targetMachine)
   : ObjectLayer(),
     CompileLayer(ObjectLayer, orc::SimpleCompiler(*targetMachine)),
@@ -131,6 +133,8 @@ template <class T> auto makeModuleSet(T t) {
 }
 
 auto SimpleOrcJit::submitModule(ModulePtr_t module) -> ModuleHandle_t {
+  std::lock_guard<std::mutex> lock(SubmitModuleMutex);
+
   ModuleHandle_t handle = OptimizeLayer.addModuleSet(
       makeModuleSet(std::move(module)), makeMemoryManager(),
       makeLinkingResolver(OptimizeLayer));

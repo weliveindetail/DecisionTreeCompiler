@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <string>
 
 #include <llvm/ExecutionEngine/Orc/IRCompileLayer.h>
@@ -45,6 +46,7 @@ private:
   CompileLayer_t CompileLayer;
   OptimizeLayer_t OptimizeLayer;
   llvm::DataLayout TargetDataLayout;
+  static std::mutex SubmitModuleMutex;
 
   ModulePtr_t optimizeModule(ModulePtr_t module);
   llvm::orc::TargetAddress getFnAddress(std::string unmangledName);
