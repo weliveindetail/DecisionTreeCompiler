@@ -91,6 +91,8 @@ public:
   DecisionTree makePerfectTrivialUniformTree(uint8_t levels);
   DecisionTree makePerfectDistinctUniformTree(uint8_t levels);
 
+  DecisionTree makePerfectRandomTree(uint8_t levels, uint32_t dataSetFeatures);
+
 private:
   std::string CacheDir;
   std::string initCacheDir(std::string cacheDirName);

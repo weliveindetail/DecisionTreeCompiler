@@ -69,8 +69,12 @@ add_executable(EvalTreeJit_Static main_static.cpp driver/StaticDriver.h)
 target_include_directories(EvalTreeJit_Static     PRIVATE EvalTreeJit)
 target_link_libraries     (EvalTreeJit_Static     PRIVATE EvalTreeJit)
 
-# benchmark
-add_executable(EvalTreeJit_Benchmark main_benchmark.cpp)
+# benchmarks
+set(BENCHMARK_FILES
+    benchmark/Shared.h
+    benchmark/BenchmarkInterpreter.h)
+
+add_executable(EvalTreeJit_Benchmark main_benchmark.cpp ${BENCHMARK_FILES})
 target_include_directories(EvalTreeJit_Benchmark  PRIVATE EvalTreeJit benchmark)
 target_link_libraries     (EvalTreeJit_Benchmark  PRIVATE EvalTreeJit benchmark)
 

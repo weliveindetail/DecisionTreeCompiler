@@ -1,77 +1,40 @@
-#include <memory>
-#include <vector>
+#include <benchmark/benchmark.h>
 
-#include "benchmark/benchmark.h"
+#include "benchmark/BenchmarkInterpreter.h"
+#include "benchmark/Shared.h"
 
-#include "data/DataSetFactory.h"
-#include "data/DecisionTree.h"
+int BenchmarkId = 0;
 
-#include "driver/JitDriver.h"
-#include "driver/utility/Interpreter.h"
-
-uint8_t TreeDepth = 12;
-uint64_t InvalidNodeIdx = DecisionTreeNode().getIdx();
-
-DecisionTree Tree;
-std::vector<std::vector<float>> DataSets;
-std::vector<uint64_t> Results;
-
-std::unique_ptr<Interpreter> InterpreterResolver;
-JitCompileResult::Evaluator_f *CompiledResolver;
-
-void submitDataSetEvalResult(size_t idx, uint64_t result) {
-  assert(Results[idx] == InvalidNodeIdx || Results[idx] == result);
-  Results[idx] = result;
+std::string makeBenchmarkName(const char *target, int depth, int features) {
+  std::string name(target);
+  name.resize(20, ' ');
+  name += std::to_string(depth);
+  name.resize(27, ' ');
+  name += std::to_string(features);
+  name.resize(36, ' ');
+  return name;
 }
 
-static void BM_RegularEvaluation(benchmark::State& state) {
-  static size_t idx = 0;
-  uint64_t result = 0;
-
-  while (state.KeepRunning()) {
-    result = InterpreterResolver->run(Tree, DataSets[idx]);
-  }
-
-  submitDataSetEvalResult(idx, result);
-  if (idx < DataSets.size() - 1) idx++;
+template <class Benchmark_f>
+void addBenchmark(Benchmark_f lambda, const char *name, int depth, int features) {
+  ::benchmark::RegisterBenchmark(
+      makeBenchmarkName(name, depth, features).data(),
+      lambda, BenchmarkId++, depth, features)->Threads(2);
 }
-
-static void BM_CompiledEvaluation(benchmark::State& state) {
-  static size_t idx = 0;
-  uint64_t result = 0;
-
-  while (state.KeepRunning()) {
-    result = CompiledResolver(DataSets[idx].data());
-  }
-
-  submitDataSetEvalResult(idx, result);
-  if (idx < DataSets.size() - 1) idx++;
-}
-
-BENCHMARK(BM_RegularEvaluation);
-BENCHMARK(BM_CompiledEvaluation);
 
 int main(int argc, char** argv) {
-  printf("Preparing benchmark data..\n");
-  DecisionTreeFactory treeFactory;
-  Tree = treeFactory.makePerfectDistinctUniformTree(TreeDepth);
-  uint32_t dataSetFeatures = TreeNodes(TreeDepth);
+  printf("Target              Depth  Features\n");
 
-  DataSetFactory dsFactory(Tree.copy(), dataSetFeatures);
-  DataSets = dsFactory.makeRandomDataSets(100);
+  std::vector<int> treeDepths{3, 4, 6, 8, 9, 12};
+  std::vector<int> dataSetFeatures {5, 10000};
+  initializeSharedData(treeDepths, dataSetFeatures);
 
-  Results.resize(DataSets.size());
-  std::fill(Results.begin(), Results.end(), InvalidNodeIdx);
+  for (int f : dataSetFeatures) {
+    for (int d : treeDepths) {
+      addBenchmark(BenchmarkInterpreter, "Interpreter", d, f);
+    }
+  }
 
-  printf("Compiling decision tree..\n");
-  JitDriver jitDriver;
-  JitCompileResult result = jitDriver.run(std::move(Tree));
-  CompiledResolver = result.EvaluatorFunction;
-  Tree = std::move(result.Tree);
-
-  InterpreterResolver = std::make_unique<Interpreter>();
-
-  printf("\n");
   ::benchmark::Initialize(&argc, argv);
   ::benchmark::RunSpecifiedBenchmarks();
 }

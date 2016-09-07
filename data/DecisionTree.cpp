@@ -274,3 +274,41 @@ DecisionTreeFactory::makePerfectDistinctUniformTree(uint8_t levels) {
   tree.finalize();
   return tree;
 }
+
+/// Create a decision tree with the given number of levels and the following
+/// special properties:
+/// * Perfect: all leaf nodes have equal depth
+/// * Random: nodes have random bias and read random feature values
+///
+/// Example: makePerfectRandomTree(4)
+///
+/// Indices:
+///                            0
+///              1                           2
+///       3             4             5             6
+///   7      8      9      10     11    12      13     14
+/// 15 16  17 18  19 20  21 22  23 24  25 26  27 28  29 30 (results)
+///
+DecisionTree
+DecisionTreeFactory::makePerfectRandomTree(uint8_t levels,
+                                           uint32_t dataSetFeatures) {
+  uint64_t nodes = TreeNodes(levels);
+  DecisionTree tree(levels, nodes);
+
+  for (uint64_t level = 0; level < levels; level++) {
+    uint64_t firstIdx = DecisionTree::getFirstNodeIdxOnLevel(level);
+    uint64_t firstChildIdx = DecisionTree::getFirstNodeIdxOnLevel(level + 1);
+
+    for (uint64_t i = 0; i < PowerOf2(level); i++) {
+      float bias = makeRandomFloat();
+      auto featureIdx = makeRandomInt<uint32_t>(0, dataSetFeatures - 1);
+
+      tree.addNode(DecisionTreeNode(firstIdx + i, bias, featureIdx,
+                                    firstChildIdx + 2 * i,
+                                    firstChildIdx + 2 * i + 1));
+    }
+  }
+
+  tree.finalize();
+  return tree;
+}
