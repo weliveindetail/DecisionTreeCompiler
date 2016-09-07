@@ -29,6 +29,22 @@ void addBenchmark(Benchmark_f lambda, const char *name, int depth, int features)
 int main(int argc, char** argv) {
   printf("Target                 Depth  Features Flags\n");
 
+  int f = 10000;
+  std::vector<int> treeDepths{2, 3, 12};
+  initializeSharedData(treeDepths, {f});
+
+  addBenchmark(BMInterpreter, "Interpreter", 12, f);
+  addBenchmark(BMInterpreterValueBased, "InterpreterVB", 12, f);
+  addBenchmark(BMCodegenAdaptive, "AdaptiveCodegen", 12, f);
+  addBenchmark(BMCodegenL1IfThenElse, "PureL1IfThenElse", 12, f);
+
+  addBenchmark(BMCodegenL1IfThenElse, "PureL1IfThenElse", 3, f);
+  addBenchmark(BMCodegenL3SubtreeSwitchAVX, "PureL3SubtreeSwitchAVX", 3, f);
+
+  addBenchmark(BMCodegenL1IfThenElse, "PureL1IfThenElse", 2, f);
+  addBenchmark(BMCodegenL2SubtreeSwitch, "PureL2SubtreeSwitch", 2, f);
+
+  /*
   std::vector<int> treeDepths{6, 9, 12, 15};
   std::vector<int> dataSetFeatures {5, 10000};
   initializeSharedData(treeDepths, dataSetFeatures);
@@ -48,7 +64,7 @@ int main(int argc, char** argv) {
         addBenchmark(BMCodegenL3SubtreeSwitchAVX,
                      "PureL3SubtreeSwitchAVX", d, f);
     }
-  }
+  }*/
 
   ::benchmark::Initialize(&argc, argv);
   ::benchmark::RunSpecifiedBenchmarks();

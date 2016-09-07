@@ -15,10 +15,14 @@ auto BMCodegenAdaptive = [](::benchmark::State& st, int id, int depth, int featu
   float *data1 = selectRandomDataSet(id, features);
   float *data2 = selectRandomDataSet(id, features);
   float *data3 = selectRandomDataSet(id, features);
+  float *data4 = selectRandomDataSet(id, features);
+  float *data5 = selectRandomDataSet(id, features);
 
   while (st.KeepRunning()) {
     benchmark::DoNotOptimize(compiledResover(data1));
     benchmark::DoNotOptimize(compiledResover(data2));
     benchmark::DoNotOptimize(compiledResover(data3));
+    benchmark::DoNotOptimize(compiledResover(data4));
+    benchmark::DoNotOptimize(compiledResover(data5));
   }
 };

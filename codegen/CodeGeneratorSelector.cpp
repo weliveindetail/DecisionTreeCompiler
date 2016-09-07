@@ -6,19 +6,15 @@
 
 CodeGenerator *DefaultSelector::select(const CompilerSession &session,
                                        int remainingLevels) {
-  static L1IfThenElse L1IfThenElse;
-  static LXSubtreeSwitch L2SubtreeSwitch(2);
-  static L3SubtreeSwitchAVX L3SubtreeSwitchAVX;
+  static L1IfThenElse DefaultL1IfThenElse;
+  static LXSubtreeSwitch L2SubtreeSwitchForLeafSwitchTables(2);
+  static L3SubtreeSwitchAVX L3SubtreeSwitchForLeafSwitchTables;
 
-  if (remainingLevels > 2 && AvxSupport)
-    return &L3SubtreeSwitchAVX;
+  if (remainingLevels == 3 /* && has AVX support */)
+    return &L3SubtreeSwitchForLeafSwitchTables;
 
-  if (remainingLevels > 1)
-    return &L2SubtreeSwitch;
+  if (remainingLevels == 2)
+    return &L2SubtreeSwitchForLeafSwitchTables;
 
-  if (remainingLevels == 1)
-    return &L1IfThenElse;
-
-  assert(false);
-  return nullptr;
+  return &DefaultL1IfThenElse;
 }
