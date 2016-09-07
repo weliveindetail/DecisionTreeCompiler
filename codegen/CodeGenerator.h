@@ -22,4 +22,10 @@ public:
 
   virtual std::vector<CGNodeInfo>
   emitEvaluation(const CompilerSession &session, CGNodeInfo nodeInfo) = 0;
+
+  virtual bool canEmitLeafEvaluation() const { return false; }
+  virtual llvm::Value *emitLeafEvaluation(const CompilerSession &session,
+                                          CGNodeInfo nodeInfo) {
+    llvm_unreachable("Override this if canEmitLeafEvaluation returns true");
+  }
 };
