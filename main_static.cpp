@@ -8,7 +8,7 @@
 #include "driver/StaticDriver.h"
 
 // EvalTreeJit_Static -h
-// EvalTreeJit_Static [-d] [-S] [-o tree] tree1.json
+// EvalTreeJit_Static [-d] [-S] [-o outputFile] tree1.json
 
 void printHelp(llvm::raw_ostream &out) {
   out << "Usage: dtg [OPTIONS] INPUT\n";
@@ -19,7 +19,7 @@ void printHelp(llvm::raw_ostream &out) {
   out << "  -h             Print help message\n";
   out << "  -d             Enable debug output\n";
   out << "  -S             Write output IR as human-readable text\n";
-  out << "  -o FILE_NAME   Override name for output file\n";
+  out << "  -o FILE_NAME   Write output to FILE_NAME (defaults to stdout)\n";
   out << "\n";
   out << "Example usage:\n";
   out << "  dtg -S -d -o module.ll module.json\n";

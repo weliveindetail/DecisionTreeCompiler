@@ -30,33 +30,43 @@ public:
     DecisionTreeFactory treeFactory;
     DecisionTree decisionTree = treeFactory.makePerfectDistinctUniformTree(3);
 
-    llvm::outs() << "Compiling decision tree from file ";
-    llvm::outs() << InputFileName << "..\n";
+    if (isOutputFileSpecified()) {
+      llvm::outs() << "Compiling decision tree from file ";
+      llvm::outs() << InputFileName << "..\n";
 
-    if (Debug) {
-      llvm::outs() << "Debug output enabled\n";
+      if (Debug) {
+        llvm::outs() << "Debug output enabled\n";
+      }
     }
 
     CompileResult result =
         Compiler.compile(std::move(decisionTree));
 
-    int FD;
-    std::string uniqueName;
+    if (isOutputFileSpecified()) {
+      int FD;
+      std::string uniqueName;
 
-    std::string fileName = getOutputFileName();
-    if (std::error_code EC = openOutputFile(fileName, FD, uniqueName)) {
-      llvm::errs() << "Cannot open output file ";
-      llvm::errs() << fileName << " for writing\n";
-      llvm::errs() << "Aborting\n";
-      return;
+      std::string fileName = getOutputFileName();
+      if (std::error_code EC = openOutputFile(fileName, FD, uniqueName)) {
+        llvm::errs() << "Cannot open output file ";
+        llvm::errs() << fileName << " for writing\n";
+        llvm::errs() << "Aborting\n";
+        return;
+      }
+
+      llvm::outs() << "Writing compiled module as ";
+      llvm::outs() << (WriteAsBitcode ? "bitcode" : "human-readable") << " IR ";
+      llvm::outs() << "to file " << uniqueName << "\n";
+
+      result.Module->setModuleIdentifier(uniqueName);
+
+      constexpr bool autoClose = true;
+      llvm::raw_fd_ostream outfile(FD, autoClose);
+      writeModuleToStream(outfile, result.Module.get());
     }
-
-    llvm::outs() << "Writing compiled module as ";
-    llvm::outs() << (WriteAsBitcode ? "bitcode" : "human-readable") << " IR ";
-    llvm::outs() << "to file " << uniqueName << "\n";
-
-    result.Module->setModuleIdentifier(uniqueName);
-    writeModuleToFile(FD, result.Module.get());
+    else {
+      writeModuleToStream(llvm::outs(), result.Module.get());
+    }
   }
 
   void enableDebug() { Debug = true; }
@@ -70,6 +80,9 @@ public:
   void setInputFileName(std::string fileName) {
     InputFileName = std::move(fileName);
   }
+
+  bool isConfigurationComplete() const { return !InputFileName.empty(); }
+  bool isOutputFileSpecified() const { return !OutputFileName.empty(); }
 
 private:
   AutoSetUpTearDownLLVM LLVM;
@@ -100,14 +113,11 @@ private:
     return std::error_code();
   }
 
-  void writeModuleToFile(int FD, llvm::Module *module) {
-    constexpr bool autoClose = true;
-    llvm::raw_fd_ostream outfile(FD, autoClose);
-
+  void writeModuleToStream(llvm::raw_ostream &out, llvm::Module *module) {
     if (WriteAsBitcode)
-      llvm::WriteBitcodeToFile(module, outfile);
+      llvm::WriteBitcodeToFile(module, out);
     else
-      outfile << *module;
+      out << *module;
   }
 
   std::string getOutputFileName() const {
