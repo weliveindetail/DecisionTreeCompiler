@@ -1,7 +1,6 @@
 #pragma once
 
 #include <benchmark/benchmark.h>
-
 #include <codegen/CodeGeneratorSelector.h>
 #include <codegen/L1IfThenElse.h>
 #include <codegen/L3SubtreeSwitchAVX.h>
@@ -10,12 +9,10 @@
 
 #include "benchmark/Shared.h"
 
-auto BenchmarkCodegenL1IfThenElse = [](::benchmark::State& st, int id, int depth, int features) {
+auto BMCodegenL1IfThenElse = [](::benchmark::State& st, int id, int depth, int features) {
   DecisionTree tree = selectDecisionTree(id, depth, features);
-  std::vector<float> dataSet = selectDataSet(id, features);
 
   JitDriver jitDriver;
-
   jitDriver.setCodegenSelector(makeLambdaSelector(
       [](const CompilerSession &session, int remainingLevels) {
         static L1IfThenElse codegen;
@@ -25,17 +22,21 @@ auto BenchmarkCodegenL1IfThenElse = [](::benchmark::State& st, int id, int depth
   JitCompileResult jitResult = jitDriver.run(std::move(tree));
   JitCompileResult::Evaluator_f *compiledResover = jitResult.EvaluatorFunction;
 
+  float *data1 = selectRandomDataSet(id, features);
+  float *data2 = selectRandomDataSet(id, features);
+  float *data3 = selectRandomDataSet(id, features);
+
   while (st.KeepRunning()) {
-    benchmark::DoNotOptimize(compiledResover(dataSet.data()));
+    benchmark::DoNotOptimize(compiledResover(data1));
+    benchmark::DoNotOptimize(compiledResover(data2));
+    benchmark::DoNotOptimize(compiledResover(data3));
   }
 };
 
-auto BenchmarkCodegenL2SubtreeSwitch = [](::benchmark::State& st, int id, int depth, int features) {
+auto BMCodegenL2SubtreeSwitch = [](::benchmark::State& st, int id, int depth, int features) {
   DecisionTree tree = selectDecisionTree(id, depth, features);
-  std::vector<float> dataSet = selectDataSet(id, features);
 
   JitDriver jitDriver;
-
   jitDriver.setCodegenSelector(makeLambdaSelector(
       [](const CompilerSession &session, int remainingLevels) {
         static LXSubtreeSwitch codegen(2);
@@ -45,17 +46,21 @@ auto BenchmarkCodegenL2SubtreeSwitch = [](::benchmark::State& st, int id, int de
   JitCompileResult jitResult = jitDriver.run(std::move(tree));
   JitCompileResult::Evaluator_f *compiledResover = jitResult.EvaluatorFunction;
 
+  float *data1 = selectRandomDataSet(id, features);
+  float *data2 = selectRandomDataSet(id, features);
+  float *data3 = selectRandomDataSet(id, features);
+
   while (st.KeepRunning()) {
-    benchmark::DoNotOptimize(compiledResover(dataSet.data()));
+    benchmark::DoNotOptimize(compiledResover(data1));
+    benchmark::DoNotOptimize(compiledResover(data2));
+    benchmark::DoNotOptimize(compiledResover(data3));
   }
 };
 
-auto BenchmarkCodegenL3SubtreeSwitchAVX = [](::benchmark::State& st, int id, int depth, int features) {
+auto BMCodegenL3SubtreeSwitchAVX = [](::benchmark::State& st, int id, int depth, int features) {
   DecisionTree tree = selectDecisionTree(id, depth, features);
-  std::vector<float> dataSet = selectDataSet(id, features);
 
   JitDriver jitDriver;
-
   jitDriver.setCodegenSelector(makeLambdaSelector(
       [](const CompilerSession &session, int remainingLevels) {
         static L3SubtreeSwitchAVX codegen;
@@ -65,7 +70,13 @@ auto BenchmarkCodegenL3SubtreeSwitchAVX = [](::benchmark::State& st, int id, int
   JitCompileResult jitResult = jitDriver.run(std::move(tree));
   JitCompileResult::Evaluator_f *compiledResover = jitResult.EvaluatorFunction;
 
+  float *data1 = selectRandomDataSet(id, features);
+  float *data2 = selectRandomDataSet(id, features);
+  float *data3 = selectRandomDataSet(id, features);
+
   while (st.KeepRunning()) {
-    benchmark::DoNotOptimize(compiledResover(dataSet.data()));
+    benchmark::DoNotOptimize(compiledResover(data1));
+    benchmark::DoNotOptimize(compiledResover(data2));
+    benchmark::DoNotOptimize(compiledResover(data3));
   }
 };

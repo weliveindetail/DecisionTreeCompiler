@@ -1,27 +1,36 @@
 #pragma once
 
 #include <benchmark/benchmark.h>
-
 #include <driver/utility/Interpreter.h>
 
 #include "benchmark/Shared.h"
 
-auto BenchmarkInterpreter = [](::benchmark::State& st, int id, int depth, int features) {
+auto BMInterpreter = [](::benchmark::State& st, int id, int depth, int features) {
   DecisionTree tree = selectDecisionTree(id, depth, features);
-  std::vector<float> dataSet = selectDataSet(id, features);
   Interpreter resolver;
 
+  float *data1 = selectRandomDataSet(id, features);
+  float *data2 = selectRandomDataSet(id, features);
+  float *data3 = selectRandomDataSet(id, features);
+
   while (st.KeepRunning()) {
-    benchmark::DoNotOptimize(resolver.run(tree, dataSet));
+    benchmark::DoNotOptimize(resolver.run(tree, data1));
+    benchmark::DoNotOptimize(resolver.run(tree, data2));
+    benchmark::DoNotOptimize(resolver.run(tree, data3));
   }
 };
 
-auto BenchmarkInterpreterValueBased = [](::benchmark::State& st, int id, int depth, int features) {
+auto BMInterpreterValueBased = [](::benchmark::State& st, int id, int depth, int features) {
   DecisionTree tree = selectDecisionTree(id, depth, features);
-  std::vector<float> dataSet = selectDataSet(id, features);
   Interpreter resolver;
 
+  float *data1 = selectRandomDataSet(id, features);
+  float *data2 = selectRandomDataSet(id, features);
+  float *data3 = selectRandomDataSet(id, features);
+
   while (st.KeepRunning()) {
-    benchmark::DoNotOptimize(resolver.runValueBased(tree, dataSet));
+    benchmark::DoNotOptimize(resolver.runValueBased(tree, data1));
+    benchmark::DoNotOptimize(resolver.runValueBased(tree, data2));
+    benchmark::DoNotOptimize(resolver.runValueBased(tree, data3));
   }
 };
