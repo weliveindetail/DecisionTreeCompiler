@@ -1,6 +1,8 @@
 #include <benchmark/benchmark.h>
 
 #include "benchmark/BenchmarkInterpreter.h"
+#include "benchmark/BenchmarkSingleCodegen.h"
+#include "benchmark/BenchmarkMixedCodegen.h"
 #include "benchmark/Shared.h"
 
 int BenchmarkId = 0;
@@ -32,6 +34,14 @@ int main(int argc, char** argv) {
   for (int f : dataSetFeatures) {
     for (int d : treeDepths) {
       addBenchmark(BenchmarkInterpreter, "Interpreter", d, f);
+      addBenchmark(BenchmarkCodegenAdaptive, "AdaptiveCodgen", d, f);
+      addBenchmark(BenchmarkCodegenL1IfThenElse, "L1IfThenElse", d, f);
+
+      if (d % 2 == 0)
+        addBenchmark(BenchmarkCodegenL2SubtreeSwitch, "L2SubtreeSwitch", d, f);
+
+      if (d % 3 == 0)
+        addBenchmark(BenchmarkCodegenL3SubtreeSwitchAVX, "L3SubtreeSwitchAVX", d, f);
     }
   }
 
