@@ -26,6 +26,11 @@ public:
     return Nodes.at(idx);
   }
 
+  const DecisionTreeNode *getNodePtr(uint64_t idx) const {
+    assert(Nodes.find(idx) != Nodes.end());
+    return &Nodes.at(idx);
+  }
+
   DecisionTreeNode getRootNode() const {
     return getNode(getRootNodeIdx());
   }
@@ -33,8 +38,15 @@ public:
   DecisionTreeNode getChildNodeFor(DecisionTreeNode node,
                                    NodeEvaluation eval) const {
     return getNode(eval == NodeEvaluation::ContinueZeroLeft
-                   ? node.FalseChildNodeIdx
-                   : node.TrueChildNodeIdx);
+                         ? node.FalseChildNodeIdx
+                         : node.TrueChildNodeIdx);
+  }
+
+  const DecisionTreeNode *getChildNodePtrFor(const DecisionTreeNode *node,
+                                             NodeEvaluation eval) const {
+    return getNodePtr(eval == NodeEvaluation::ContinueZeroLeft
+                            ? node->FalseChildNodeIdx
+                            : node->TrueChildNodeIdx);
   }
 
   void addNode(DecisionTreeNode node) {

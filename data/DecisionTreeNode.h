@@ -30,6 +30,9 @@ struct DecisionTreeNode {
   DecisionTreeNode getChildFor(NodeEvaluation evaluation,
                                DecisionSubtreeRef subtree) const;
 
+  uint64_t getLeftChildIdx() const { return FalseChildNodeIdx; }
+  uint64_t getRightChildIdx() const { return TrueChildNodeIdx; }
+
   uint64_t getIdx() const { return NodeIdx; }
   uint32_t getFeatureIdx() const { return DataSetFeatureIdx; }
   float getFeatureBias() const { return Bias; }

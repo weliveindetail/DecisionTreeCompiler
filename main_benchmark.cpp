@@ -34,6 +34,7 @@ int main(int argc, char** argv) {
   for (int f : dataSetFeatures) {
     for (int d : treeDepths) {
       addBenchmark(BenchmarkInterpreter, "Interpreter", d, f);
+      addBenchmark(BenchmarkInterpreterValueBased, "InterpreterVB", d, f);
       addBenchmark(BenchmarkCodegenAdaptive, "AdaptiveCodgen", d, f);
       addBenchmark(BenchmarkCodegenL1IfThenElse, "L1IfThenElse", d, f);
 

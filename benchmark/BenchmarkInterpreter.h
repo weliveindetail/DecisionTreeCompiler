@@ -15,3 +15,13 @@ auto BenchmarkInterpreter = [](::benchmark::State& st, int id, int depth, int fe
     benchmark::DoNotOptimize(resolver.run(tree, dataSet));
   }
 };
+
+auto BenchmarkInterpreterValueBased = [](::benchmark::State& st, int id, int depth, int features) {
+  DecisionTree tree = selectDecisionTree(id, depth, features);
+  std::vector<float> dataSet = selectDataSet(id, features);
+  Interpreter resolver;
+
+  while (st.KeepRunning()) {
+    benchmark::DoNotOptimize(resolver.runValueBased(tree, dataSet));
+  }
+};
