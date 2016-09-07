@@ -14,6 +14,7 @@
 #include "codegen/utility/CGNodeInfo.h"
 #include "data/DecisionTree.h"
 
+class CodeGenerator;
 class CodeGeneratorSelector;
 class CompilerSession;
 
@@ -38,6 +39,14 @@ public:
 private:
   std::vector<CGNodeInfo> compileSubtrees(CGNodeInfo rootNode,
                                           const CompilerSession &session);
+
+  std::vector<CGNodeInfo> compileNestedSubtrees(CodeGenerator *codegen,
+                                                std::vector<CGNodeInfo> roots,
+                                                const CompilerSession &session);
+
+  void compileLeafSubtrees(CodeGenerator *codegen,
+                           std::vector<CGNodeInfo> roots,
+                           const CompilerSession &session);
 
   void connectSubtreeEndpoints(std::vector<CGNodeInfo> evaluatorEndPoints,
                                const CompilerSession &session);

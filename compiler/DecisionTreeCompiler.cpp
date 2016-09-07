@@ -119,21 +119,50 @@ DecisionTreeCompiler::compileSubtrees(CGNodeInfo rootNode,
 
   while (remainingLevels > 0) {
     CodeGenerator *codegen = session.selectCodeGenerator(remainingLevels);
+    bool isLeafSubtree = (remainingLevels == codegen->getJointSubtreeDepth());
+
     std::vector<CGNodeInfo> roots = std::move(nodesNextLevel);
-    nodesNextLevel.clear();
 
-    for (CGNodeInfo node : roots) {
-      std::vector<CGNodeInfo> continuationNodes =
-          codegen->emitEvaluation(session, node);
-
-      std::move(continuationNodes.begin(), continuationNodes.end(),
-                std::back_inserter(nodesNextLevel));
+    if (isLeafSubtree && codegen->canEmitLeafEvaluation()) {
+      compileLeafSubtrees(codegen, std::move(roots), session);
+      return {}; // endpoints connected already
     }
 
+    nodesNextLevel = compileNestedSubtrees(codegen, std::move(roots), session);
     remainingLevels -= codegen->getJointSubtreeDepth();
   }
 
-  return nodesNextLevel;
+  return nodesNextLevel; // unconnected endpoints
+}
+
+std::vector<CGNodeInfo>
+DecisionTreeCompiler::compileNestedSubtrees(CodeGenerator *codegen,
+                                            std::vector<CGNodeInfo> roots,
+                                            const CompilerSession &session) {
+  std::vector<CGNodeInfo> levelContinuationNodes;
+
+  for (CGNodeInfo node : roots) {
+    std::vector<CGNodeInfo> subtreeContinuationNodes =
+        codegen->emitEvaluation(session, std::move(node));
+
+    std::move(subtreeContinuationNodes.begin(), subtreeContinuationNodes.end(),
+              std::back_inserter(levelContinuationNodes));
+  }
+
+  return levelContinuationNodes;
+}
+
+void DecisionTreeCompiler::compileLeafSubtrees(CodeGenerator *codegen,
+                                               std::vector<CGNodeInfo> roots,
+                                               const CompilerSession &session) {
+  for (CGNodeInfo node : roots) {
+    session.Builder.SetInsertPoint(node.EvalBlock);
+
+    Value *nodeIdxVal = codegen->emitLeafEvaluation(session, node);
+
+    session.Builder.CreateStore(nodeIdxVal, session.OutputNodeIdxPtr);
+    session.Builder.CreateBr(node.ContinuationBlock);
+  }
 }
 
 void DecisionTreeCompiler::connectSubtreeEndpoints(
