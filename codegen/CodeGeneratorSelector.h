@@ -4,10 +4,6 @@
 #include <map>
 #include <memory>
 
-#include "codegen/L1IfThenElse.h"
-#include "codegen/LXSubtreeSwitch.h"
-#include "codegen/L3SubtreeSwitchAVX.h"
-
 class CodeGenerator;
 class CompilerSession;
 
@@ -19,19 +15,9 @@ public:
   bool AvxSupport = false;
 };
 
-class L1IfThenElse;
-class LXSubtreeSwitch;
-class L3SubtreeSwitchAVX;
-
 class DefaultSelector : public CodeGeneratorSelector {
 public:
-  ~DefaultSelector() override;
   CodeGenerator *select(const CompilerSession &session, int remainingLevels) override;
-
-private:
-  mutable std::unique_ptr<L1IfThenElse> CachedGenL1IfThenElse;
-  mutable std::unique_ptr<L3SubtreeSwitchAVX> CachedGenL3SubtreeSwitchAVX;
-  mutable std::map<int, std::unique_ptr<LXSubtreeSwitch>> CachedGensLXSubtreeSwitch;
 };
 
 template <class LambdaSelect_f>
