@@ -10,6 +10,10 @@
 #include <llvm/Support/Path.h>
 #include <llvm/Support/raw_ostream.h>
 
+#include "codegen/CodeGeneratorSelector.h"
+#include "codegen/L1IfThenElse.h"
+#include "codegen/LXSubtreeSwitch.h"
+#include "codegen/L3SubtreeSwitchAVX.h"
 #include "compiler/DecisionTreeCompiler.h"
 #include "data/DecisionTree.h"
 #include "driver/utility/AutoSetUpTearDownLLVM.h"
@@ -37,6 +41,18 @@ public:
       if (Debug) {
         llvm::outs() << "Debug output enabled\n";
       }
+    }
+
+    if (DefaultCodegen && FallbackCodegen) {
+      Compiler.setCodegenSelector(makeLambdaSelector(
+        [this](const CompilerSession &session, int remainingLevels) {
+          if (remainingLevels >= DefaultCodegen->getJointSubtreeDepth())
+            return DefaultCodegen.get();
+          else
+            return FallbackCodegen.get();
+        }));
+    } else {
+      Compiler.setCodegenSelector(std::make_shared<DefaultSelector>());
     }
 
     CompileResult result =
@@ -71,7 +87,21 @@ public:
 
   void enableDebug() { Debug = true; }
   void setOutputFormatText() { WriteAsBitcode = false; }
-  bool isConfigurationComplete() const { return !InputFileName.empty(); }
+
+  void setCodeGeneratorL1IfThenElse() {
+    DefaultCodegen = std::make_unique<L1IfThenElse>();
+    FallbackCodegen = std::make_unique<L1IfThenElse>();
+  }
+
+  void setCodeGeneratorL2SubtreeSwitch() {
+    DefaultCodegen = std::make_unique<LXSubtreeSwitch>(2);
+    FallbackCodegen = std::make_unique<L1IfThenElse>();
+  }
+
+  void setCodeGeneratorL3SubtreeSwitchAVX() {
+    DefaultCodegen = std::make_unique<L3SubtreeSwitchAVX>();
+    FallbackCodegen = std::make_unique<L1IfThenElse>();
+  }
 
   void setOutputFileName(std::string fileName) {
     OutputFileName = std::move(fileName);
@@ -88,6 +118,8 @@ private:
   AutoSetUpTearDownLLVM LLVM;
   DecisionTreeCompiler Compiler;
 
+  std::unique_ptr<CodeGenerator> DefaultCodegen;
+  std::unique_ptr<CodeGenerator> FallbackCodegen;
   std::string InputFileName;
   std::string OutputFileName;
   bool WriteAsBitcode = true;
