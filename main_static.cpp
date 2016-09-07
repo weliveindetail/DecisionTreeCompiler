@@ -8,7 +8,7 @@
 #include "driver/StaticDriver.h"
 
 // EvalTreeJit_Static -h
-// EvalTreeJit_Static [-d] [-S] [-L1..3] [-o outputFile] tree1.json
+// EvalTreeJit_Static [-d] [-S] [-O1..3] [-L1..3] [-o outputFile] tree1.json
 
 void printHelp(llvm::raw_ostream &out) {
   out << "Usage: dtg [OPTIONS] INPUT\n";
@@ -18,6 +18,7 @@ void printHelp(llvm::raw_ostream &out) {
   out << "OPTIONS:\n";
   out << "  -h             Print help message\n";
   out << "  -d             Enable debug output\n";
+  out << "  -Ox            Select optimization level (x=0..3)\n";
   out << "  -Lx            Select code generator subtree depth (x=1..3)\n";
   out << "  -S             Write output IR as human-readable text\n";
   out << "  -o FILE_NAME   Write output to FILE_NAME (defaults to stdout)\n";
@@ -53,7 +54,7 @@ int main(int argc, char **argv) {
 
   int c;
   opterr = 0;
-  while ((c = getopt(argc, argv, "hdL:So:")) != -1) {
+  while ((c = getopt(argc, argv, "hdO:L:So:")) != -1) {
     switch (c) {
       case 'h':
         printHelp(llvm::outs());
@@ -61,6 +62,16 @@ int main(int argc, char **argv) {
       case 'd':
         driver.enableDebug();
         break;
+      case 'O': {
+        std::string arg(optarg);
+        if (arg == "0" || arg == "1" || arg == "2" || arg == "3") {
+          driver.setOptimizerLevel(arg[0] - '0');
+        } else {
+          printInvalidArgument(llvm::errs(), "-L", optarg);
+          exit(EXIT_FAILURE);
+        }
+        break;
+      }
       case 'L': {
         std::string arg(optarg);
         if (arg == "1") {

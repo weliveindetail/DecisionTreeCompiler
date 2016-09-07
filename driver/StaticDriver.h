@@ -9,6 +9,9 @@
 #include <llvm/Support/MemoryBuffer.h>
 #include <llvm/Support/Path.h>
 #include <llvm/Support/raw_ostream.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/IPO/PassManagerBuilder.h>
+#include <llvm/IR/LegacyPassManager.h>
 
 #include "codegen/CodeGeneratorSelector.h"
 #include "codegen/L1IfThenElse.h"
@@ -58,6 +61,11 @@ public:
     CompileResult result =
         Compiler.compile(std::move(decisionTree));
 
+    // todo: respect actual levels when optimizing
+    if (OptimizationLevel > 0) {
+      runStandardOptimizations(result.Module.get());
+    }
+
     if (isOutputFileSpecified()) {
       int FD;
       std::string uniqueName;
@@ -87,6 +95,7 @@ public:
 
   void enableDebug() { Debug = true; }
   void setOutputFormatText() { WriteAsBitcode = false; }
+  void setOptimizerLevel(int level) { OptimizationLevel = level; }
 
   void setCodeGeneratorL1IfThenElse() {
     DefaultCodegen = std::make_unique<L1IfThenElse>();
@@ -122,8 +131,31 @@ private:
   std::unique_ptr<CodeGenerator> FallbackCodegen;
   std::string InputFileName;
   std::string OutputFileName;
+  int OptimizationLevel = 0;
   bool WriteAsBitcode = true;
   bool Debug = false;
+
+  void runStandardOptimizations(llvm::Module *module) {
+    llvm::PassManagerBuilder PMBuilder;
+    PMBuilder.BBVectorize = true;
+    PMBuilder.SLPVectorize = true;
+    PMBuilder.VerifyInput = true;
+    PMBuilder.VerifyOutput = true;
+
+    llvm::legacy::FunctionPassManager perFunctionPasses(module);
+    PMBuilder.populateFunctionPassManager(perFunctionPasses);
+
+    perFunctionPasses.doInitialization();
+
+    for (llvm::Function &function : *module)
+      perFunctionPasses.run(function);
+
+    perFunctionPasses.doFinalization();
+
+    llvm::legacy::PassManager perModulePasses;
+    PMBuilder.populateModulePassManager(perModulePasses);
+    perModulePasses.run(*module);
+  }
 
   std::error_code openOutputFile(std::string fileName, int &resultFD,
                                  std::string &resultName) {
