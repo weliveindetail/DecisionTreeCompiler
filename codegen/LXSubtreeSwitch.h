@@ -20,6 +20,10 @@ public:
   std::vector<CGNodeInfo>
   emitEvaluation(const CompilerSession &session, CGNodeInfo subtreeRoot) override;
 
+  bool canEmitLeafEvaluation() const override { return true; }
+  llvm::Value *emitLeafEvaluation(const CompilerSession &session,
+                                  CGNodeInfo nodeInfo) override;
+
 protected:
   virtual llvm::Value *emitConditionVector(const CompilerSession &session,
                                            DecisionSubtreeRef subtree,
@@ -41,6 +45,14 @@ protected:
                                 llvm::Type *switchCondTy,
                                 CGNodeInfo targetNodeInfo,
                                 std::vector<uint32_t> pathCaseValues);
+
+  std::vector<uint64_t> collectSwitchTableData(
+      DecisionSubtreeRef subtreeRef,
+      std::vector<CGEvaluationPath> evaluationPaths);
+
+  llvm::Constant *emitSwitchTable(const CompilerSession &session,
+                                  std::vector<uint64_t> data);
+
 private:
   uint8_t Levels;
 };

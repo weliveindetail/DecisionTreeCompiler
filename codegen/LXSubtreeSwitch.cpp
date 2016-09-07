@@ -1,5 +1,7 @@
 #include "codegen/LXSubtreeSwitch.h"
 
+#include <llvm/IR/GlobalVariable.h>
+
 #include "codegen/utility/CGConditionVectorEmitter.h"
 #include "codegen/utility/CGConditionVectorVariationsBuilder.h"
 #include "codegen/utility/CGEvaluationPathsBuilder.h"
@@ -60,6 +62,32 @@ LXSubtreeSwitch::emitEvaluation(const CompilerSession &session,
   return continuationNodes;
 }
 
+Value *LXSubtreeSwitch::emitLeafEvaluation(const CompilerSession &session,
+                                           CGNodeInfo subtreeRoot) {
+  DecisionSubtreeRef subtreeRef =
+      session.Tree.getSubtreeRef(subtreeRoot.Index, Levels);
+
+  CGEvaluationPathsBuilder pathBuilder(subtreeRef);
+  std::vector<CGEvaluationPath> evaluationPaths = pathBuilder.run();
+
+  auto expectedSwitchCases = PowerOf2<uint32_t>(subtreeRef.getNodeCount());
+
+  std::vector<uint64_t> data = collectSwitchTableData(
+      subtreeRef, std::move(evaluationPaths));
+
+  assert(data.size() == expectedSwitchCases);
+  Constant *switchTable = emitSwitchTable(session, std::move(data));
+
+  session.Builder.SetInsertPoint(subtreeRoot.EvalBlock);
+  Value *conditionVector = emitConditionVector(session, subtreeRef, subtreeRoot);
+
+  Constant *ptrDeref = ConstantInt::get(conditionVector->getType(), 0);
+  Value *returnValPtr = session.Builder.CreateGEP(switchTable,
+                                                  {ptrDeref, conditionVector});
+
+  return session.Builder.CreateLoad(returnValPtr);
+}
+
 std::vector<CGNodeInfo> LXSubtreeSwitch::emitSwitchTargets(
     LLVMContext &ctx, const std::vector<CGEvaluationPath> &evaluationPaths,
     Function *ownerFunction, BasicBlock *returnBB) {
@@ -89,6 +117,41 @@ uint32_t LXSubtreeSwitch::emitSwitchCaseLabels(
   }
 
   return pathCaseValues.size();
+}
+
+Constant *LXSubtreeSwitch::emitSwitchTable(const CompilerSession &session,
+                                           std::vector<uint64_t> data) {
+  LLVMContext &ctx = session.Builder.getContext();
+
+  Type *tableTy = ArrayType::get(session.NodeIdxTy, data.size());
+  Constant *init = ConstantDataArray::get(ctx, std::move(data));
+
+  return new GlobalVariable(*session.Module.get(),
+                            tableTy, true,
+                            GlobalVariable::PrivateLinkage,
+                            init, "switchTable");
+}
+
+std::vector<uint64_t> LXSubtreeSwitch::collectSwitchTableData(
+    DecisionSubtreeRef subtreeRef,
+    std::vector<CGEvaluationPath> evaluationPaths) {
+  size_t tableSize = PowerOf2<size_t>(subtreeRef.getNodeCount());
+
+  std::vector<uint64_t> data(tableSize, 0);
+  CGConditionVectorVariationsBuilder variantsBuilder(subtreeRef);
+
+  for (CGEvaluationPath path : evaluationPaths) {
+    uint64_t destNodeIdx = path.getDestNode().getIdx();
+    std::vector<uint32_t> caseValues = variantsBuilder.run(std::move(path));
+
+    for (uint32_t val : caseValues) {
+      assert(data.at(val) == 0);
+      data[val] = destNodeIdx;
+    }
+  }
+
+  assert(data.size() == tableSize);
+  return data;
 }
 
 BasicBlock *LXSubtreeSwitch::makeSwitchBB(LLVMContext &ctx,
