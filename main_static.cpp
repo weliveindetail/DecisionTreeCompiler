@@ -24,7 +24,7 @@ void printHelp(llvm::raw_ostream &out) {
   out << "  -o FILE_NAME   Write output to FILE_NAME (defaults to stdout)\n";
   out << "\n";
   out << "Example usage:\n";
-  out << "  dtg -S -d -o module.ll module.json\n";
+  out << "  EvalTreeJit_Static -S -d -o module.ll module.json\n";
 }
 
 void printIgnoredInput(llvm::raw_ostream &out, std::string input) {

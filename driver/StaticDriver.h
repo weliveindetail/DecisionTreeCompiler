@@ -23,7 +23,7 @@
 
 class StaticDriver {
 public:
-  StaticDriver() : Compiler(LLVM.getTargetMachine()) {}
+  StaticDriver() : LLVM(), Compiler(LLVM.getTargetMachine()) {}
 
   void run() {
     if (!llvm::sys::fs::is_regular_file(InputFileName)) {
@@ -35,7 +35,7 @@ public:
 
     // todo: read input file
     DecisionTreeFactory treeFactory;
-    DecisionTree decisionTree = treeFactory.makePerfectDistinctUniformTree(3);
+    DecisionTree decisionTree = treeFactory.makePerfectRandomTree(4, 10);
 
     if (isOutputFileSpecified()) {
       llvm::outs() << "Compiling decision tree from file ";
