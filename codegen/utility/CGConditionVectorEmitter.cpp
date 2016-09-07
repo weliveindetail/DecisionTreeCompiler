@@ -30,28 +30,31 @@ CGConditionVectorEmitterX86::CGConditionVectorEmitterX86(
 Value *CGConditionVectorEmitterX86::run(CGNodeInfo subtreeRoot) {
   Builder.SetInsertPoint(subtreeRoot.EvalBlock);
 
-  unsigned significantBits = Nodes.size() + 1; // +1 = sign bit
-  IntegerType *vectorTy = Type::getIntNTy(Ctx, significantBits);
-
-  Value *vectorPtr = Builder.CreateAlloca(vectorTy, nullptr, "conditionVector");
-  Value *vectorInitVal = ConstantInt::get(vectorTy, 0);
-  Builder.CreateStore(vectorInitVal, vectorPtr);
-
-  uint8_t bitOffset = 0;
+  std::vector<Value *> nodeFeatureValues;
   for (DecisionTreeNode node : Nodes) {
-    Value *featureVal = emitLoadFeatureValue(node);
-    Constant *biasVal = ConstantFP::get(FloatTy, node.getFeatureBias());
-
-    Value *cmpResultBit = Builder.CreateFCmpOGT(featureVal, biasVal);
-    Value *cmpResultInt = Builder.CreateZExt(cmpResultBit, vectorTy);
-    Value *vectorBit = Builder.CreateShl(cmpResultInt, APInt(8, bitOffset++));
-
-    Value *vectorValOld = Builder.CreateLoad(vectorPtr);
-    Value *vectorValNew = Builder.CreateOr(vectorValOld, vectorBit);
-    Builder.CreateStore(vectorValNew, vectorPtr);
+    nodeFeatureValues.push_back(emitLoadFeatureValue(node));
   }
 
-  return Builder.CreateLoad(vectorPtr);
+  unsigned significantBits = Nodes.size() + 1; // +1 = sign bit
+  IntegerType *vectorTy = Type::getIntNTy(Ctx, significantBits);
+  std::vector<Value *> vectorBits;
+
+  for (uint8_t bitOffset = 0; bitOffset < Nodes.size(); bitOffset++) {
+    DecisionTreeNode node = Nodes.at(bitOffset);
+    Value *featureVal = nodeFeatureValues.at(bitOffset);
+
+    Constant *biasVal = ConstantFP::get(FloatTy, node.getFeatureBias());
+    Value *cmpResultBit = Builder.CreateFCmpOGT(featureVal, biasVal);
+    Value *cmpResultInt = Builder.CreateZExt(cmpResultBit, vectorTy);
+    vectorBits.push_back(Builder.CreateShl(cmpResultInt, APInt(8, bitOffset)));
+  }
+
+  Value *vectorVal = vectorBits.front();
+  for (uint8_t i = 1; i < Nodes.size(); i++) {
+    vectorVal = Builder.CreateOr(vectorVal, vectorBits.at(i));
+  }
+
+  return vectorVal;
 }
 
 // -----------------------------------------------------------------------------
