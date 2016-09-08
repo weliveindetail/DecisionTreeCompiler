@@ -67,13 +67,6 @@ static T makeRandomInt(T min, T max) {
   return dist(engine);
 }
 
-template <class T> static std::vector<T> copyListToVector(std::list<T> l) {
-  std::vector<T> v;
-  v.reserve(l.size());
-  std::copy(std::begin(l), std::end(l), std::back_inserter(v));
-  return v;
-}
-
 template <class SourceColl_t>
 static std::vector<typename SourceColl_t::value_type>
 moveToVector(SourceColl_t source) {
@@ -105,40 +98,4 @@ static std::list<T> concatLists(std::list<T> l1, std::list<T> l2) {
   concatenation.splice(concatenation.end(), std::move(l1));
   concatenation.splice(concatenation.end(), std::move(l2));
   return concatenation;
-}
-
-static bool isFileInCache(std::string fileName) {
-  int FD;
-  std::error_code EC = llvm::sys::fs::openFileForRead(fileName, FD);
-  if (EC)
-    return false;
-
-  close(FD);
-  return true;
-}
-
-static std::string makeTreeFileName(int treeDepth, int dataSetFeatures) {
-  std::ostringstream osstr;
-
-  osstr << "cache/";
-  osstr << "_td" << treeDepth;
-  osstr << "_dsf" << dataSetFeatures;
-  osstr << ".t";
-
-  return osstr.str();
-}
-
-static std::string makeObjFileName(int treeDepth, int dataSetFeatures,
-                                   int compiledFunctionDepth,
-                                   int compiledFunctionSwitchDepth) {
-  std::ostringstream osstr;
-
-  osstr << "cache/";
-  osstr << "_td" << treeDepth;
-  osstr << "_dsf" << dataSetFeatures;
-  osstr << "_cfd" << compiledFunctionDepth;
-  osstr << "_cfsd" << compiledFunctionSwitchDepth;
-  osstr << ".o";
-
-  return osstr.str();
 }
