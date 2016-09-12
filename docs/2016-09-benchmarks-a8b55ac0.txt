@@ -1,0 +1,75 @@
+Run on (4 X 1000 MHz CPU s)
+2016-09-08 15:48:48
+
+Target                 Depth  Features 
+Benchmark                                    Time           CPU Iterations
+--------------------------------------------------------------------------
+Interpreter            2      5            234 ns        455 ns   17193418
+Interpreter            3      5            296 ns        589 ns   14301846
+Interpreter            6      5            537 ns       1057 ns    7980448
+Interpreter            9      5            732 ns       1458 ns    5754238
+Interpreter            12     5            944 ns       1863 ns    3962082
+Interpreter            15     5           1109 ns       2207 ns    3584020
+Interpreter            2      10000        246 ns        475 ns   17048416
+Interpreter            3      10000        331 ns        635 ns   13763528
+Interpreter            6      10000        529 ns       1047 ns    7851692
+Interpreter            9      10000        792 ns       1552 ns    4938744
+Interpreter            12     10000        886 ns       1768 ns    4765368
+Interpreter            15     10000       1102 ns       2199 ns    3795008
+
+InterpreterVB          2      5            253 ns        495 ns   17293086
+InterpreterVB          3      5            318 ns        632 ns   13371786
+InterpreterVB          6      5            541 ns       1076 ns    7815216
+InterpreterVB          9      5            789 ns       1565 ns    5439632
+InterpreterVB          12     5           1006 ns       1981 ns    4300706
+InterpreterVB          15     5           1225 ns       2432 ns    3543348
+InterpreterVB          2      10000        258 ns        505 ns   15127620
+InterpreterVB          3      10000        327 ns        641 ns   11532232
+InterpreterVB          6      10000        554 ns       1098 ns    7365282
+InterpreterVB          9      10000        894 ns       1657 ns    5244494
+InterpreterVB          12     10000        995 ns       1969 ns    4264734
+InterpreterVB          15     10000       1267 ns       2494 ns    3528836
+
+PureL1IfThenElse       2      5              9 ns         18 ns  472891010
+PureL1IfThenElse       3      5             10 ns         20 ns  434168668
+PureL1IfThenElse       6      5             17 ns         33 ns  245453012
+PureL1IfThenElse       9      5             29 ns         56 ns  138778874
+PureL1IfThenElse       12     5             29 ns         56 ns  155836494
+PureL1IfThenElse       15     5             33 ns         65 ns  122327750
+PureL1IfThenElse       2      10000          8 ns         17 ns  451604998
+PureL1IfThenElse       6      10000         19 ns         38 ns  218324462
+PureL1IfThenElse       3      10000         10 ns         20 ns  352227950
+PureL1IfThenElse       9      10000         26 ns         49 ns  173918780
+PureL1IfThenElse       12     10000         29 ns         57 ns  143349442
+PureL1IfThenElse       15     10000         42 ns         78 ns  115033100
+
+PureL2SubtreeSwitch    2      5             14 ns         28 ns  264498310
+PureL2SubtreeSwitch    6      5             32 ns         64 ns  130997728
+PureL2SubtreeSwitch    12     5             74 ns        142 ns   53276708
+PureL2SubtreeSwitch    2      10000         13 ns         26 ns  294510802
+PureL2SubtreeSwitch    6      10000         37 ns         72 ns  109660604
+PureL2SubtreeSwitch    12     10000         72 ns        135 ns   60112522
+
+PureL3SubtreeSwitchAVX 3      5             12 ns         24 ns  355374846
+PureL3SubtreeSwitchAVX 6      5             75 ns        149 ns   54248230
+PureL3SubtreeSwitchAVX 9      5            145 ns        285 ns   26947620
+PureL3SubtreeSwitchAVX 12     5            206 ns        410 ns   20959942
+PureL3SubtreeSwitchAVX 15     5            270 ns        535 ns   15799194
+PureL3SubtreeSwitchAVX 3      10000         14 ns         28 ns  323746474
+PureL3SubtreeSwitchAVX 6      10000         81 ns        159 ns   51405936
+PureL3SubtreeSwitchAVX 9      10000        146 ns        286 ns   29041406
+PureL3SubtreeSwitchAVX 12     10000        215 ns        423 ns   20106556
+PureL3SubtreeSwitchAVX 15     10000        319 ns        588 ns   14274732
+
+AdaptiveCodegen        2      5             12 ns         24 ns  345370224
+AdaptiveCodegen        3      5             12 ns         24 ns  342229196
+AdaptiveCodegen        6      5             69 ns        137 ns   58328822
+AdaptiveCodegen        9      5             79 ns        155 ns   52734866
+AdaptiveCodegen        12     5             78 ns        156 ns   54668364
+AdaptiveCodegen        15     5             86 ns        166 ns   47411142
+AdaptiveCodegen        2      10000         15 ns         30 ns  200000000
+AdaptiveCodegen        3      10000         16 ns         30 ns  309150982
+AdaptiveCodegen        6      10000         79 ns        150 ns   53289860
+AdaptiveCodegen        9      10000         77 ns        153 ns   55052674
+AdaptiveCodegen        12     10000         83 ns        164 ns   51845224
+AdaptiveCodegen        15     10000         85 ns        169 ns   50027566
